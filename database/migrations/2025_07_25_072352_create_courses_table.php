@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->string('banner');
             $table->text('description');
+            $table->string('tags')->nullable()->after('description');
+            $table->integer('estimated_time')->nullable()->after('tags');
             $table->tinyInteger('is_published')->default(0);
 
             $table->timestamps();
