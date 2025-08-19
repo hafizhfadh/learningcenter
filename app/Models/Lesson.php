@@ -11,11 +11,37 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class Lesson extends Model
 {
     /** @use HasFactory<LessonFactory> */
     use HasFactory, SoftDeletes;
+    
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Lesson $lesson) {
+            if ($lesson->order_index === null || $lesson->order_index === 0) {
+                $lesson->order_index = static::getNextOrderIndex($lesson->course_id, $lesson->lesson_section_id);
+            } else {
+                static::reorderLessons($lesson->course_id, $lesson->lesson_section_id, $lesson->order_index, null, $lesson);
+            }
+        });
+        
+        static::updating(function (Lesson $lesson) {
+            if ($lesson->isDirty('order_index')) {
+                $oldOrderIndex = $lesson->getOriginal('order_index');
+                static::reorderLessons($lesson->course_id, $lesson->lesson_section_id, $lesson->order_index, $oldOrderIndex, $lesson);
+            }
+        });
+        
+        static::deleted(function (Lesson $lesson) {
+            static::reorderAfterDeletion($lesson->course_id, $lesson->lesson_section_id, $lesson->order_index);
+        });
+    }
     
     /**
      * The attributes that are mass assignable.
@@ -152,5 +178,103 @@ class Lesson extends Model
     public function progressLogs(): HasMany
     {
         return $this->hasMany(ProgressLog::class);
+    }
+    
+    /**
+     * Get the next available order index for a course and lesson section
+     */
+    public static function getNextOrderIndex($courseId, $lessonSectionId = null): int
+    {
+        $query = static::where('course_id', $courseId);
+        
+        if ($lessonSectionId) {
+            $query->where('lesson_section_id', $lessonSectionId);
+        } else {
+            $query->whereNull('lesson_section_id');
+        }
+        
+        return $query->max('order_index') + 1;
+    }
+    
+    /**
+     * Reorder lessons when order_index changes
+     */
+    protected static function reorderLessons($courseId, $lessonSectionId, $newOrderIndex, $oldOrderIndex = null, $currentLesson = null): void
+    {
+        DB::transaction(function () use ($courseId, $lessonSectionId, $newOrderIndex, $oldOrderIndex, $currentLesson) {
+            $query = static::where('course_id', $courseId);
+            
+            if ($lessonSectionId) {
+                $query->where('lesson_section_id', $lessonSectionId);
+            } else {
+                $query->whereNull('lesson_section_id');
+            }
+            
+            // Exclude current lesson if updating
+            if ($currentLesson && $currentLesson->exists) {
+                $query->where('id', '!=', $currentLesson->id);
+            }
+            
+            if ($oldOrderIndex === null) {
+                // Creating new lesson - shift existing lessons down
+                $query->where('order_index', '>=', $newOrderIndex)
+                      ->increment('order_index');
+            } else {
+                // Updating existing lesson
+                if ($newOrderIndex > $oldOrderIndex) {
+                    // Moving down - shift lessons up
+                    $query->whereBetween('order_index', [$oldOrderIndex + 1, $newOrderIndex])
+                          ->decrement('order_index');
+                } else {
+                    // Moving up - shift lessons down
+                    $query->whereBetween('order_index', [$newOrderIndex, $oldOrderIndex - 1])
+                          ->increment('order_index');
+                }
+            }
+        });
+    }
+    
+    /**
+     * Reorder lessons after deletion
+     */
+    protected static function reorderAfterDeletion($courseId, $lessonSectionId, $deletedOrderIndex): void
+    {
+        $query = static::where('course_id', $courseId);
+        
+        if ($lessonSectionId) {
+            $query->where('lesson_section_id', $lessonSectionId);
+        } else {
+            $query->whereNull('lesson_section_id');
+        }
+        
+        $query->where('order_index', '>', $deletedOrderIndex)
+              ->decrement('order_index');
+    }
+    
+    /**
+     * Get available order positions for a course and lesson section
+     */
+    public static function getAvailableOrderPositions($courseId, $lessonSectionId = null, $excludeId = null): array
+    {
+        $query = static::where('course_id', $courseId);
+        
+        if ($lessonSectionId) {
+            $query->where('lesson_section_id', $lessonSectionId);
+        } else {
+            $query->whereNull('lesson_section_id');
+        }
+        
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+        
+        $maxOrder = $query->max('order_index') ?? 0;
+        $positions = [];
+        
+        for ($i = 1; $i <= $maxOrder + 1; $i++) {
+            $positions[$i] = "Position {$i}";
+        }
+        
+        return $positions;
     }
 }

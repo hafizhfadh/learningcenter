@@ -16,8 +16,11 @@ class LearningPathFactory extends Factory
      */
     public function definition(): array
     {
+        $name = fake()->catchPhrase();
+        
         return [
-            'name' => fake()->catchPhrase(),
+            'name' => $name,
+            'slug' => \Illuminate\Support\Str::slug($name) . '-' . fake()->unique()->numberBetween(1, 9999),
             'description' => fake()->paragraphs(3, true),
         ];
     }

@@ -27,10 +27,11 @@ class DatabaseSeeder extends Seeder
         // Check if we already have users in the database
         if (User::count() === 0) {
             $this->call([
-                UserSeeder::class,
                 InstitutionSeeder::class,
+                UserSeeder::class,
                 LearningPathSeeder::class,
                 CourseSeeder::class,
+                LearningPathCourseSeeder::class,
             ]);
         }
         

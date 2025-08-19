@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->string('banner');
+            $table->string('banner')->nullable();
             $table->text('description');
             $table->timestamps();
             $table->softDeletes();

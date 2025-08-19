@@ -9,6 +9,7 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
@@ -26,6 +27,22 @@ class UsersTable
                 TextColumn::make('email_verified_at')
                     ->dateTime()
                     ->sortable(),
+                TextColumn::make('institution.name')
+                    ->label('Institution')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('bio')
+                    ->label('Bio')
+                    ->limit(40)
+                    ->toggleable(isToggledHiddenByDefault: true),
+                BadgeColumn::make('role')
+                    ->colors([
+                        'admin' => 'danger',
+                        'manager' => 'warning',
+                        'teacher' => 'info',
+                        'student' => 'success',
+                    ])
+                    ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -38,8 +55,6 @@ class UsersTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('role')
-                    ->searchable(),
             ])
             ->filters([
                 TrashedFilter::make(),

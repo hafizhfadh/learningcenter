@@ -54,4 +54,12 @@ class LearningPath extends Model
             ->orderBy('learning_path_course.order_index')
             ->withTimestamps();
     }
+
+    /**
+     * Get the count of courses in this learning path.
+     */
+    public function getCoursesCountAttribute(): int
+    {
+        return $this->courses()->count();
+    }
 }
