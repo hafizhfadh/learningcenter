@@ -21,14 +21,6 @@ class CoursesTable
     {
         return $table
             ->columns([
-                ImageColumn::make('banner')
-                    ->label('Banner')
-                    ->disk('idcloudhost')
-                    ->height(60)
-                    ->width(80)
-                    ->defaultImageUrl('/images/placeholder-course.png')
-                    ->toggleable(),
-                
                 TextColumn::make('title')
                     ->searchable()
                     ->sortable()
