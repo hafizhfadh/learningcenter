@@ -21,14 +21,6 @@ class LessonsTable
     {
         return $table
             ->columns([
-                ImageColumn::make('lesson_banner')
-                    ->label('Banner')
-                    ->disk('idcloudhost')
-                    ->size(60)
-                    ->circular()
-                    ->defaultImageUrl('/images/default-lesson.png')
-                    ->toggleable(),
-                
                 TextColumn::make('lesson_type')
                     ->label('Type')
                     ->badge()
