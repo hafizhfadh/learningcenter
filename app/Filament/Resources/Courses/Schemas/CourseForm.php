@@ -19,6 +19,7 @@ class CourseForm
         return $schema
             ->components([
                 Section::make('Course Information')
+                ->columnSpanFull()
                     ->description('Basic course details and metadata')
                     ->schema([
                         Grid::make(2)
