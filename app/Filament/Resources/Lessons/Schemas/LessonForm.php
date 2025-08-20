@@ -8,6 +8,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\RichEditor;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
@@ -20,50 +21,50 @@ class LessonForm
     {
         return $schema
             ->components([
-                Section::make('Basic Information')
-                    ->description('Configure the lesson title, type, and basic settings')
-                    ->icon('heroicon-o-information-circle')
+                Tabs::make('lesson_tabs')
                     ->columnSpanFull()
-                    ->schema([
-                        TextInput::make('title')
-                            ->columnSpanFull()
-                            ->required()
-                            ->maxLength(255)
-                            ->live(onBlur: true)
-                            ->afterStateUpdated(function (string $state, callable $set) {
-                                $set('slug', str($state)->slug());
-                            })
-                            ->helperText('The lesson title will be displayed to students'),
-
-                        Grid::make(2)
+                    ->tabs([
+                        Tabs\Tab::make('Basic Information')
+                            ->icon('heroicon-o-information-circle')
                             ->schema([
-                                TextInput::make('slug')
+                                TextInput::make('title')
+                                    ->columnSpanFull()
                                     ->required()
-                                    ->disabled()
-                                    ->dehydrated()
-                                    ->helperText('Auto-generated from title'),
+                                    ->maxLength(255)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (string $state, callable $set) {
+                                        $set('slug', str($state)->slug());
+                                    })
+                                    ->helperText('The lesson title will be displayed to students'),
 
-                                Select::make('lesson_type')
-                                    ->required()
-                                    ->options([
-                                        'video' => 'Video Lesson',
-                                        'pages' => 'Reading Material',
-                                        'quiz' => 'Quiz/Assessment',
-                                    ])
-                                    ->default('video')
-                                    ->live()
-                                    ->helperText('Choose the type of lesson content')
-                                    ->afterStateUpdated(function (callable $set) {
-                                        // Clear video when not video type
-                                        $set('lesson_video', null);
-                                    }),
+                                Grid::make(2)
+                                    ->schema([
+                                        TextInput::make('slug')
+                                            ->required()
+                                            ->disabled()
+                                            ->dehydrated()
+                                            ->helperText('Auto-generated from title'),
+
+                                        Select::make('lesson_type')
+                                            ->required()
+                                            ->options([
+                                                'video' => 'Video Lesson',
+                                                'pages' => 'Reading Material',
+                                                'quiz' => 'Quiz/Assessment',
+                                            ])
+                                            ->default('video')
+                                            ->live()
+                                            ->helperText('Choose the type of lesson content')
+                                            ->afterStateUpdated(function (callable $set) {
+                                                // Clear video when not video type
+                                                $set('lesson_video', null);
+                                            }),
+                                    ]),
                             ]),
-                    ]),
 
-                Section::make('Course Organization')
-                    ->description('Assign this lesson to a course and section')
-                    ->icon('heroicon-o-academic-cap')
-                    ->schema([
+                        Tabs\Tab::make('Course & Organization')
+                            ->icon('heroicon-o-academic-cap')
+                            ->schema([
                         Select::make('course_id')
                             ->columnSpanFull()
                             ->relationship('course', 'title')
@@ -142,13 +143,11 @@ class LessonForm
                                 return Lesson::getNextOrderIndex($courseId, $lessonSectionId);
                             })
                             ->helperText('Order within the section'),
-                    ]),
+                            ]),
 
-                Section::make('Media Content')
-                    ->description('Upload lesson banner and video content')
-                    ->icon('heroicon-o-photo')
-                    ->columns(2)
-                    ->schema([
+                        Tabs\Tab::make('Media Content')
+                            ->icon('heroicon-o-photo')
+                            ->schema([
                         FileUpload::make('lesson_banner')
                             ->label('Lesson Banner')
                             ->disk('idcloudhost')
@@ -176,46 +175,45 @@ class LessonForm
                             ->columnSpanFull()
                             ->visible(fn(Get $get) => $get('lesson_type') === 'video')
                             ->required(fn(Get $get) => $get('lesson_type') === 'video'),
-                    ]),
+                            ]),
 
-                Section::make('Lesson Content')
-                    ->columnSpanFull()
-                    ->description('Create the main content for this lesson')
-                    ->icon('heroicon-o-document-text')
-                    ->schema([
-                        Placeholder::make('content_help')
-                    ->content(function (Get $get) {
-                        $type = $get('lesson_type');
-                        return match ($type) {
-                            'video' => new HtmlString('<div class="text-sm text-gray-600"><strong>Video Lesson:</strong> Add video summary, key takeaways, and supplementary materials.</div>'),
-                            'pages' => new HtmlString('<div class="text-sm text-gray-600"><strong>Reading Material:</strong> Create comprehensive written content with headings, sections, and references.</div>'),
-                            'quiz' => new HtmlString('<div class="text-sm text-gray-600"><strong>Quiz/Assessment:</strong> Add instructions, questions, and assessment criteria.</div>'),
-                            default => new HtmlString('<div class="text-sm text-gray-600">Select a lesson type to see content guidelines.</div>'),
-                        };
-                    })
-                    ->columnSpanFull(),
+                        Tabs\Tab::make('Lesson Content')
+                            ->icon('heroicon-o-document-text')
+                            ->schema([
+                                Placeholder::make('content_help')
+                                    ->content(function (Get $get) {
+                                        $type = $get('lesson_type');
+                                        return match ($type) {
+                                            'video' => new HtmlString('<div class="text-sm text-gray-600"><strong>Video Lesson:</strong> Add video summary, key takeaways, and supplementary materials.</div>'),
+                                            'pages' => new HtmlString('<div class="text-sm text-gray-600"><strong>Reading Material:</strong> Create comprehensive written content with headings, sections, and references.</div>'),
+                                            'quiz' => new HtmlString('<div class="text-sm text-gray-600"><strong>Quiz/Assessment:</strong> Add instructions, questions, and assessment criteria.</div>'),
+                                            default => new HtmlString('<div class="text-sm text-gray-600">Select a lesson type to see content guidelines.</div>'),
+                                        };
+                                    })
+                                    ->columnSpanFull(),
 
-                        RichEditor::make('content_body')
-                            ->required()
-                            ->columnSpanFull()
-                            ->toolbarButtons([
-                                'attachFiles',
-                                'blockquote',
-                                'bold',
-                                'bulletList',
-                                'codeBlock',
-                                'h2',
-                                'h3',
-                                'italic',
-                                'link',
-                                'orderedList',
-                                'redo',
-                                'strike',
-                                'table',
-                                'undo',
-                            ])
-                            ->placeholder('Enter the lesson content here...')
-                            ->helperText('Use rich formatting to create engaging lesson content'),
+                                RichEditor::make('content_body')
+                                    ->required()
+                                    ->columnSpanFull()
+                                    ->toolbarButtons([
+                                        'attachFiles',
+                                        'blockquote',
+                                        'bold',
+                                        'bulletList',
+                                        'codeBlock',
+                                        'h2',
+                                        'h3',
+                                        'italic',
+                                        'link',
+                                        'orderedList',
+                                        'redo',
+                                        'strike',
+                                        'table',
+                                        'undo',
+                                    ])
+                                    ->placeholder('Enter the lesson content here...')
+                                    ->helperText('Use rich formatting to create engaging lesson content'),
+                            ]),
                     ]),
             ]);
     }
