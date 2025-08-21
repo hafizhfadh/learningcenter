@@ -27,7 +27,7 @@ class LessonResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Content Management';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 35;
 
     protected static ?string $recordTitleAttribute = 'title';
 

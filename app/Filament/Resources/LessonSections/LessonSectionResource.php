@@ -18,6 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use UnitEnum;
+use App\Filament\Resources\LessonSections\RelationManagers\LessonsRelationManager;
 
 class LessonSectionResource extends Resource
 {
@@ -27,7 +28,7 @@ class LessonSectionResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Content Management';
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'title';
 
@@ -49,7 +50,7 @@ class LessonSectionResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            LessonsRelationManager::class,
         ];
     }
 
