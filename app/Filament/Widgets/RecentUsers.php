@@ -8,6 +8,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class RecentUsers extends BaseWidget
 {
@@ -15,13 +16,24 @@ class RecentUsers extends BaseWidget
 
     protected static ?int $sort = 4;
 
+    protected static bool $isLazy = true;
+
     public function table(Table $table): Table
     {
+        $users = Cache::remember('recent_users_widget', 300, function () {
+            return User::query()
+                ->withCount(['enrollments', 'progressLogs', 'taskSubmissions'])
+                ->latest()
+                ->limit(5)
+                ->get();
+        });
+
         return $table
             ->query(
                 User::query()
+                    ->whereIn('id', $users->pluck('id'))
+                    ->withCount(['enrollments', 'progressLogs', 'taskSubmissions'])
                     ->latest()
-                    ->limit(5)
             )
             ->columns([
                 TextColumn::make('name')
@@ -52,17 +64,14 @@ class RecentUsers extends BaseWidget
 
                 TextColumn::make('enrollments_count')
                     ->label('Enrollments')
-                    ->counts('enrollments')
                     ->sortable(),
 
                 TextColumn::make('progress_logs_count')
                     ->label('Progress Logs')
-                    ->counts('progressLogs')
                     ->sortable(),
 
                 TextColumn::make('task_submissions_count')
                     ->label('Submissions')
-                    ->counts('taskSubmissions')
                     ->sortable(),
 
                 TextColumn::make('email_verified_at')

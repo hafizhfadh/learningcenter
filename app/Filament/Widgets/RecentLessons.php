@@ -9,6 +9,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class RecentLessons extends BaseWidget
 {
@@ -16,14 +17,26 @@ class RecentLessons extends BaseWidget
 
     protected static ?int $sort = 3;
 
+    protected static bool $isLazy = true;
+
     public function table(Table $table): Table
     {
+        $lessons = Cache::remember('recent_lessons_widget', 300, function () {
+            return Lesson::query()
+                ->with(['course:id,title', 'lessonSection:id,title'])
+                ->withCount(['tasks', 'progressLogs'])
+                ->latest()
+                ->limit(5)
+                ->get();
+        });
+
         return $table
             ->query(
                 Lesson::query()
-                    ->with(['course', 'lessonSection'])
+                    ->whereIn('id', $lessons->pluck('id'))
+                    ->with(['course:id,title', 'lessonSection:id,title'])
+                    ->withCount(['tasks', 'progressLogs'])
                     ->latest()
-                    ->limit(5)
             )
             ->columns([
                 ImageColumn::make('lesson_banner')
@@ -70,12 +83,10 @@ class RecentLessons extends BaseWidget
 
                 TextColumn::make('tasks_count')
                     ->label('Tasks')
-                    ->counts('tasks')
                     ->sortable(),
 
                 TextColumn::make('progress_logs_count')
                     ->label('Progress')
-                    ->counts('progressLogs')
                     ->sortable(),
 
                 TextColumn::make('is_published')

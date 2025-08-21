@@ -7,6 +7,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class RecentEnrollments extends BaseWidget
 {
@@ -14,14 +15,32 @@ class RecentEnrollments extends BaseWidget
 
     protected static ?int $sort = 5;
 
+    protected static bool $isLazy = true;
+
     public function table(Table $table): Table
     {
+        $enrollments = Cache::remember('recent_enrollments_widget', 300, function () {
+            return Enrollment::query()
+                ->with([
+                    'user:id,name,email',
+                    'course:id,title'
+                ])
+                ->select(['id', 'user_id', 'course_id', 'enrollment_status', 'progress', 'enrolled_at', 'created_at'])
+                ->latest('enrolled_at')
+                ->limit(5)
+                ->get();
+        });
+
         return $table
             ->query(
                 Enrollment::query()
-                    ->with(['user', 'course'])
+                    ->whereIn('id', $enrollments->pluck('id'))
+                    ->with([
+                        'user:id,name,email',
+                        'course:id,title'
+                    ])
+                    ->select(['id', 'user_id', 'course_id', 'enrollment_status', 'progress', 'enrolled_at', 'created_at'])
                     ->latest('enrolled_at')
-                    ->limit(5)
             )
             ->columns([
                 TextColumn::make('user.name')
@@ -73,13 +92,6 @@ class RecentEnrollments extends BaseWidget
                     ->sortable()
                     ->since()
                     ->tooltip(fn (Enrollment $record): string => $record->enrolled_at->format('M j, Y g:i A')),
-
-                TextColumn::make('completion_date')
-                    ->label('Completed')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable()
-                    ->placeholder('Not completed'),
 
                 TextColumn::make('created_at')
                     ->label('Created')
