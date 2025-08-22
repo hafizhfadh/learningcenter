@@ -50,6 +50,7 @@ class UserResource extends Resource
     {
         return [
             \App\Filament\Resources\Users\RelationManagers\ProgressLogRelationManager::class,
+            \App\Filament\Resources\Users\RelationManagers\TaskSubmissionsRelationManager::class,
         ];
     }
 
