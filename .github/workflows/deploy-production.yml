@@ -1,0 +1,103 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to deploy'
+        required: true
+        default: 'latest'
+      push_to_ghcr:
+        description: 'Push image to GHCR'
+        type: boolean
+        default: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Container Registry
+        if: ${{ github.event.inputs.push_to_ghcr == 'true' || github.event_name == 'push' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Deploying version: $VERSION"
+      
+      - name: Set up environment variables
+        run: |
+          echo "APP_NAME=learningcenter" >> $GITHUB_ENV
+          echo "APP_ENV=production" >> $GITHUB_ENV
+          echo "APP_URL=${{ secrets.APP_URL }}" >> $GITHUB_ENV
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> $GITHUB_ENV
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> $GITHUB_ENV
+          echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> $GITHUB_ENV
+          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> $GITHUB_ENV
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
+          echo "DB_SSLMODE=${{ secrets.DB_SSLMODE }}" >> $GITHUB_ENV
+          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> $GITHUB_ENV
+          echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+          echo "GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
+      
+      - name: Make deployment script executable
+        run: chmod +x ./scripts/deploy-production.sh
+      
+      - name: Deploy to production (with GHCR push)
+        if: ${{ github.event.inputs.push_to_ghcr == 'true' || github.event_name == 'push' }}
+        run: |
+          ./scripts/deploy-production.sh ${{ steps.version.outputs.version }} --push-to-ghcr
+      
+      - name: Deploy to production (without GHCR push)
+        if: ${{ github.event.inputs.push_to_ghcr != 'true' && github.event_name != 'push' }}
+        run: |
+          ./scripts/deploy-production.sh ${{ steps.version.outputs.version }}
+      
+      - name: Verify deployment
+        run: |
+          echo "Deployment completed for version: ${{ steps.version.outputs.version }}"
+          echo "Image pushed to GHCR: ${{ env.REGISTRY }}/${{ github.repository_owner }}/learningcenter:${{ steps.version.outputs.version }}"
+          
+          # Wait for application to be ready
+          sleep 30
+          
+          # Basic health check (customize URL as needed)
+          if [[ -n "${{ secrets.APP_URL }}" ]]; then
+            curl -f "${{ secrets.APP_URL }}/health" || echo "Health check failed - please verify manually"
+          fi
+      
+      - name: Cleanup old images
+        if: success()
+        run: |
+          # Keep only the last 5 images
+          docker image prune -f
+          
+          # Optional: Clean up old GHCR images (requires additional permissions)
+          # This would need a separate workflow with package:delete permissions

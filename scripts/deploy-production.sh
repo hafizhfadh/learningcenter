@@ -19,6 +19,11 @@ IMAGE_TAG="${1:-latest}"
 ENV_FILE=".env.production"
 COMPOSE_FILE="docker-compose.production.yml"
 
+# GitHub Container Registry Configuration
+GHCR_REGISTRY="ghcr.io"
+GHCR_NAMESPACE="${GITHUB_REPOSITORY_OWNER:-$(whoami)}"
+GHCR_IMAGE="${GHCR_REGISTRY}/${GHCR_NAMESPACE}/${APP_NAME}"
+
 # Functions
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -147,6 +152,30 @@ build_image() {
         .
     
     log_success "Docker image built successfully"
+}
+
+push_to_ghcr() {
+    log_info "Pushing image to GitHub Container Registry..."
+    
+    # Check if GITHUB_TOKEN is set
+    if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+        log_error "GITHUB_TOKEN is required for GHCR push"
+        log_error "Please set GITHUB_TOKEN with packages:write scope"
+        exit 1
+    fi
+    
+    # Login to GHCR
+    echo "$GITHUB_TOKEN" | docker login "$GHCR_REGISTRY" -u "$GHCR_NAMESPACE" --password-stdin
+    
+    # Tag image for GHCR
+    docker tag "${APP_NAME}:${IMAGE_TAG}" "${GHCR_IMAGE}:${IMAGE_TAG}"
+    docker tag "${APP_NAME}:${IMAGE_TAG}" "${GHCR_IMAGE}:latest"
+    
+    # Push to GHCR
+    docker push "${GHCR_IMAGE}:${IMAGE_TAG}"
+    docker push "${GHCR_IMAGE}:latest"
+    
+    log_success "Image pushed to GHCR: ${GHCR_IMAGE}:${IMAGE_TAG}"
 }
 
 run_security_scan() {
@@ -303,6 +332,12 @@ main() {
     generate_secrets
     validate_environment
     build_image
+    
+    # Push to GHCR if requested
+    if [[ "$PUSH_TO_GHCR" == "true" ]]; then
+        push_to_ghcr
+    fi
+    
     run_security_scan
     backup_existing_deployment
     deploy_application
@@ -314,39 +349,67 @@ main() {
     log_success "Production deployment completed successfully!"
 }
 
-# Handle script arguments
-case "${1:-}" in
-    "--help" | "-h")
-        echo "Usage: $0 [IMAGE_TAG]"
-        echo
-        echo "Deploy Laravel Learning Center to production"
-        echo
-        echo "Arguments:"
-        echo "  IMAGE_TAG    Docker image tag (default: latest)"
-        echo
-        echo "Environment Variables:"
-        echo "  APP_NAME     Application name"
-        echo "  APP_ENV      Application environment (production)"
-        echo "  APP_KEY      Application encryption key"
-        echo "  APP_URL      Application URL"
-        echo "  DB_HOST      PostgreSQL cluster host"
-        echo "  DB_PORT      PostgreSQL cluster port (default: 5432)"
-        echo "  DB_DATABASE  Database name"
-        echo "  DB_USERNAME  Database username"
-        echo "  DB_PASSWORD  Database password"
-        echo "  DB_SSLMODE   PostgreSQL SSL mode (default: require)"
-        echo "  REDIS_PASSWORD Redis password"
-        echo
-        echo "Example:"
-        echo "  export APP_URL=https://learningcenter.example.com"
-        echo "  export DB_HOST=postgres-cluster.example.com"
-        echo "  export DB_DATABASE=learningcenter"
-        echo "  export DB_USERNAME=laravel"
-        echo "  export DB_SSLMODE=require"
-        echo "  $0 v1.0.0"
-        exit 0
-        ;;
-    *)
-        main
-        ;;
-esac
+# Parse command line arguments
+PUSH_TO_GHCR=false
+
+# Check for help first
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "Usage: $0 [IMAGE_TAG] [options]"
+    echo
+    echo "Deploy Laravel Learning Center to production"
+    echo
+    echo "Arguments:"
+    echo "  IMAGE_TAG    Docker image tag (default: latest)"
+    echo
+    echo "Options:"
+    echo "  --push-to-ghcr    Push built image to GitHub Container Registry"
+    echo "  --help, -h        Show this help message"
+    echo
+    echo "Environment Variables:"
+    echo "  APP_NAME     Application name"
+    echo "  APP_ENV      Application environment (production)"
+    echo "  APP_KEY      Application encryption key"
+    echo "  APP_URL      Application URL"
+    echo "  DB_HOST      PostgreSQL cluster host"
+    echo "  DB_PORT      PostgreSQL cluster port (default: 5432)"
+    echo "  DB_DATABASE  Database name"
+    echo "  DB_USERNAME  Database username"
+    echo "  DB_PASSWORD  Database password"
+    echo "  DB_SSLMODE   PostgreSQL SSL mode (default: require)"
+    echo "  REDIS_PASSWORD Redis password"
+    echo
+    echo "Optional Environment Variables (for GHCR push):"
+    echo "  GITHUB_TOKEN          GitHub Personal Access Token with packages:write scope"
+    echo "  GITHUB_REPOSITORY_OWNER  GitHub username/organization (defaults to current user)"
+    echo
+    echo "Example:"
+    echo "  export APP_URL=https://learningcenter.example.com"
+    echo "  export DB_HOST=postgres-cluster.example.com"
+    echo "  export DB_DATABASE=learningcenter"
+    echo "  export DB_USERNAME=laravel"
+    echo "  export DB_SSLMODE=require"
+    echo "  $0 v1.0.0 --push-to-ghcr"
+    exit 0
+fi
+
+# Parse arguments
+args=()
+for arg in "$@"; do
+    case $arg in
+        --push-to-ghcr)
+            PUSH_TO_GHCR=true
+            ;;
+        --help|-h)
+            # Already handled above
+            ;;
+        *)
+            args+=("$arg")
+            ;;
+    esac
+done
+
+# Set IMAGE_TAG from first non-option argument
+IMAGE_TAG="${args[0]:-latest}"
+
+# Run main deployment
+main
