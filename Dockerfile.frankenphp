@@ -1,0 +1,43 @@
+# Stage 1 – build dependencies and assets
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader
+
+# Stage 2 – build frontend assets
+FROM node:20 AS node_modules
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci && npm run build
+
+# Stage 3 – final runtime image using FrankenPHP
+FROM dunglas/frankenphp:1-php8.4-bookworm AS app
+WORKDIR /app
+
+# Install additional PHP extensions if needed
+RUN install-php-extensions pcntl
+
+# Copy source code and built dependencies
+COPY --from=vendor /app/vendor /app/vendor
+COPY --from=node_modules /app/node_modules /app/node_modules
+COPY . /app
+
+# Copy production env file
+COPY .env.production /app/.env
+
+# Ensure correct permissions for storage and cache directories
+RUN chown -R www-data:www-data storage bootstrap/cache
+
+# Run migrations, optimize config and install Octane/FrankenPHP
+RUN composer require --no-dev laravel/octane && \
+    php artisan octane:install --server=frankenphp && \
+    php artisan migrate --force && \
+    php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache
+
+# Expose ports – 8000 for HTTP, 2019 for Caddy admin
+EXPOSE 8000 443 443/udp 2019
+
+# Start the Octane server using FrankenPHP
+ENTRYPOINT ["php","artisan","octane:frankenphp","--host=0.0.0.0","--port=8000","--workers=auto","--max-requests=1000"]
