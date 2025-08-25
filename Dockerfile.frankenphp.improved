@@ -25,13 +25,16 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-di
 # =======================================
 # Stage 2: Node (frontend assets compile)
 # =======================================
-FROM node:20 AS node_build
+FROM node:20-alpine AS node_build
 WORKDIR /app
 
+# Copy package files
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --only=production
+
+# Copy source and build assets
 COPY . .
-RUN npm run build || echo "No frontend build step, continuing..."
+RUN npm run build
 
 
 # ==========================================
@@ -40,46 +43,54 @@ RUN npm run build || echo "No frontend build step, continuing..."
 FROM dunglas/frankenphp:1-php8.4-bookworm AS app
 WORKDIR /app
 
-# Use production php.ini (optional but recommended)
+# Use production php.ini
 RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
 
-# Runtime PHP extensions needed by Laravel + Octane/FrankenPHP
-# (install-php-extensions will pull needed dev libs automatically)
+# Install runtime PHP extensions + Redis for caching
 RUN install-php-extensions \
       intl \
       zip \
       pdo_pgsql \
       gd \
       bcmath \
-      pcntl
+      pcntl \
+      redis \
+      opcache
+
+# Create non-root user for security
+RUN groupadd -r laravel && useradd -r -g laravel -s /bin/false laravel
 
 # Bring in vendor deps and built assets
 COPY --from=vendor     /app/vendor   /app/vendor
 COPY --from=node_build /app/public   /app/public
-# If runtime needs node_modules (usually not), uncomment:
-# COPY --from=node_build /app/node_modules /app/node_modules
 
 # Copy application source
 COPY . .
 
-# Environment for production
-COPY .env.production /app/.env
+# Create .env.example as template (DO NOT copy .env.production)
+COPY .env.example /app/.env.example
 
-# (Optional) Caddyfile for multi-domain
-# Provide Caddyfile at project root to enable this COPY.
-COPY Caddyfile /etc/frankenphp/Caddyfile
+# Set proper permissions
+RUN chown -R laravel:laravel /app \
+ && chmod -R 755 /app \
+ && chmod -R 775 /app/storage /app/bootstrap/cache
 
-# Ensure writable dirs
-RUN chown -R www-data:www-data storage bootstrap/cache
+# Switch to non-root user
+USER laravel
 
-# Optimize after full code (artisan exists now)
-RUN composer dump-autoload -o \
- && php artisan config:cache \
- && php artisan route:cache \
- && php artisan view:cache
+# Optimize autoloader (defer caching commands to runtime)
+RUN composer dump-autoload -o
 
-# Expose ports for HTTPS/HTTP3 and Admin API
-EXPOSE 443 443/udp 2019
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost/health || exit 1
 
-# Start Octane via FrankenPHP with HTTPS + redirect and custom Caddyfile
-ENTRYPOINT ["php","artisan","octane:frankenphp","--host=0.0.0.0","--port=443","--admin-port=2019","--https","--http-redirect","--caddyfile","/etc/frankenphp/Caddyfile"]
+# Expose ports for HTTPS/HTTP3 (remove admin port from public exposure)
+EXPOSE 443 443/udp
+
+# Create startup script for runtime initialization
+COPY docker/startup.sh /usr/local/bin/startup.sh
+RUN chmod +x /usr/local/bin/startup.sh
+
+# Use startup script as entrypoint
+ENTRYPOINT ["/usr/local/bin/startup.sh"]
