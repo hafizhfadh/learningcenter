@@ -66,6 +66,7 @@ RUN groupadd -r laravel && useradd -r -g laravel -s /bin/false laravel
 
 # Bring in vendor deps and built assets
 COPY --from=vendor     /app/vendor   /app/vendor
+COPY --from=vendor     /usr/bin/composer /usr/bin/composer
 COPY --from=node_build /app/public   /app/public
 
 # Copy application source
@@ -73,6 +74,13 @@ COPY . .
 
 # Create .env.example as template (DO NOT copy .env.production)
 COPY .env.example /app/.env.example
+
+# Optimize autoloader before switching users
+RUN composer dump-autoload -o
+
+# Create startup script for runtime initialization (before switching users)
+COPY docker/startup.sh /usr/local/bin/startup.sh
+RUN chmod +x /usr/local/bin/startup.sh
 
 # Set proper permissions
 RUN chown -R laravel:laravel /app \
@@ -82,19 +90,12 @@ RUN chown -R laravel:laravel /app \
 # Switch to non-root user
 USER laravel
 
-# Optimize autoloader (defer caching commands to runtime)
-RUN composer dump-autoload -o
-
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost/health || exit 1
 
 # Expose ports for HTTPS/HTTP3 (remove admin port from public exposure)
 EXPOSE 443 443/udp
-
-# Create startup script for runtime initialization
-COPY docker/startup.sh /usr/local/bin/startup.sh
-RUN chmod +x /usr/local/bin/startup.sh
 
 # Use startup script as entrypoint
 ENTRYPOINT ["/usr/local/bin/startup.sh"]

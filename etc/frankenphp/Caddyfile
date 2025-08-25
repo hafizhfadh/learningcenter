@@ -1,0 +1,134 @@
+# Production Caddyfile for Laravel with FrankenPHP
+# Supports HTTPS, HTTP/3, and automatic certificate management
+
+{
+    # Global options
+    auto_https on
+    http_port 80
+    https_port 443
+    
+    # Enable HTTP/3
+    servers {
+        protocols h1 h2 h3
+    }
+    
+    # Admin API (disabled for security)
+    admin off
+    
+    # Logging
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# Main application server
+{$APP_URL:localhost} {
+    # Enable compression
+    encode gzip zstd
+    
+    # Security headers
+    header {
+        # HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # XSS Protection
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        # CSP (adjust as needed)
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; media-src 'self'; object-src 'none'; child-src 'none'; worker-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self';"
+        # Remove server info
+        -Server
+        -X-Powered-By
+    }
+    
+    # Rate limiting
+    rate_limit {
+        zone static_files {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+        zone api {
+            key {remote_host}
+            events 60
+            window 1m
+        }
+    }
+    
+    # Handle static assets with caching
+    @static {
+        path *.css *.js *.ico *.png *.jpg *.jpeg *.gif *.svg *.woff *.woff2 *.ttf *.eot *.webp *.avif
+    }
+    
+    handle @static {
+        rate_limit static_files
+        header Cache-Control "public, max-age=31536000, immutable"
+        header Vary "Accept-Encoding"
+        file_server
+    }
+    
+    # API routes with rate limiting
+    @api {
+        path /api/*
+    }
+    
+    handle @api {
+        rate_limit api
+        php_fastcgi unix//var/run/php/php-fpm.sock {
+            root /app/public
+            index index.php
+            try_files {path} {path}/ /index.php?{query}
+        }
+    }
+    
+    # Health check endpoint (no rate limiting)
+    handle /health {
+        respond "OK" 200
+    }
+    
+    # Main Laravel application
+    handle {
+        root * /app/public
+        
+        # Try to serve static files first, then fallback to PHP
+        try_files {path} {path}/ /index.php?{query}
+        
+        # PHP processing with FrankenPHP
+        php {
+            root /app/public
+        }
+    }
+    
+    # Error pages
+    handle_errors {
+        @5xx expression `{err.status_code} >= 500`
+        handle @5xx {
+            respond "Internal Server Error" 500
+        }
+        
+        @4xx expression `{err.status_code} >= 400 && {err.status_code} < 500`
+        handle @4xx {
+            respond "Not Found" 404
+        }
+    }
+}
+
+# Redirect HTTP to HTTPS
+http://{$APP_URL:localhost} {
+    redir https://{host}{uri} permanent
+}
+
+# Health check on port 8080 (internal)
+:8080 {
+    handle /health {
+        respond "OK" 200 {
+            header Content-Type "text/plain"
+        }
+    }
+    
+    handle {
+        respond "Not Found" 404
+    }
+}
