@@ -1,8 +1,5 @@
 # Production Docker Compose Configuration
 # This file demonstrates proper production deployment with external secrets
-
-version: '3.8'
-
 services:
   app:
     build:

@@ -30,7 +30,11 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json ./
-RUN npm ci --only=production
+
+# Install all dependencies (including dev) for build process
+RUN npm cache clean --force && \
+    rm -rf node_modules package-lock.json && \
+    npm install
 
 # Copy source and build assets
 COPY . .
