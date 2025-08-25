@@ -3,15 +3,11 @@
 FROM composer:2 AS vendor
 WORKDIR /app
 
-# Install system libs and intl extension needed by Filament, etc.
-# (composer image is based on official PHP, so docker-php-ext-* is available)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      libicu-dev git unzip \
-  && docker-php-ext-configure intl \
-  && docker-php-ext-install intl \
-  && rm -rf /var/lib/apt/lists/*
+# Build deps + intl for Alpine
+RUN apk add --no-cache $PHPIZE_DEPS icu-dev git unzip \
+ && docker-php-ext-configure intl \
+ && docker-php-ext-install intl
 
-# Copy only composer manifests first for better caching
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
