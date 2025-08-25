@@ -1,34 +1,49 @@
-# ---------- Stage 1: Composer (build PHP deps) ----------
-# Use an official PHP image with Composer preinstalled
-FROM composer:2 AS vendor
+# ============================
+# Stage 1: Composer (PHP deps)
+# ============================
+FROM php:8.4-cli-bookworm AS vendor
 WORKDIR /app
 
-# Build deps + intl for Alpine
-RUN apk add --no-cache $PHPIZE_DEPS icu-dev git unzip \
- && docker-php-ext-configure intl \
- && docker-php-ext-install intl
+# Tools + Composer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git unzip curl libicu-dev \
+  && rm -rf /var/lib/apt/lists/* \
+  && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
+ENV COMPOSER_ALLOW_SUPERUSER=1
 
+# Build intl for Composer-time requirements (e.g., Filament)
+RUN docker-php-ext-configure intl && docker-php-ext-install intl
+
+# Copy only composer manifests first (cache-friendly)
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
-# ---------- Stage 2: Node (build frontend) ----------
-FROM node:20 AS node_modules
+# Install without running scripts (artisan not present yet)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
+
+
+# =======================================
+# Stage 2: Node (frontend assets compile)
+# =======================================
+FROM node:20 AS node_build
 WORKDIR /app
+
+# Install NPM deps and build assets
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN npm run build || echo "No frontend build step, continuing..."
 
-# ---------- Stage 3: Final runtime w/ FrankenPHP ----------
+
+# ==========================================
+# Stage 3: Final Runtime (FrankenPHP/Caddy)
+# ==========================================
 FROM dunglas/frankenphp:1-php8.4-bookworm AS app
 WORKDIR /app
 
-# Install runtime PHP extensions:
-# - intl (Filament)
-# - pdo_pgsql (PostgreSQL)
-# - gd (images)
-# - zip, bcmath
-# - pcntl (Octane)
+# Use production php.ini (optional but recommended)
+RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
+
+# Runtime PHP extensions needed by Laravel + Octane/FrankenPHP
 RUN install-php-extensions \
       intl \
       pdo_pgsql \
@@ -37,29 +52,37 @@ RUN install-php-extensions \
       bcmath \
       pcntl
 
-# Copy Composer deps from vendor stage
+# Bring in vendor deps and built assets
 COPY --from=vendor /app/vendor /app/vendor
+COPY --from=node_build /app/public /app/public
+# If your app needs node_modules at runtime (usually not), uncomment:
+# COPY --from=node_build /app/node_modules /app/node_modules
 
-# Copy built assets from node stage (adjust if your build outputs elsewhere)
-COPY --from=node_modules /app/public /app/public
-COPY --from=node_modules /app/node_modules /app/node_modules
-
-# Copy the rest of your application source
+# Copy application source
 COPY . .
 
-# Use your production env
+# Environment for production
+# Provide .env.production in project root; copy it to .env
 COPY .env.production /app/.env
 
-# Ensure writable paths
+# (Optional) Caddyfile for multi-domain; if you maintain via API you can omit this
+# and pass a different path at runtime.
+# Provide Caddyfile at project root to enable this COPY.
+COPY Caddyfile /etc/frankenphp/Caddyfile
+
+# Ensure writable dirs
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Optimize (do NOT run migrations during image build)
-RUN php artisan config:cache \
+# Optimize after full code (artisan exists now)
+# If your composer.json relies on scripts you skipped earlier, generate autoloads now.
+RUN composer dump-autoload -o \
+ && php artisan config:cache \
  && php artisan route:cache \
  && php artisan view:cache
 
-# Expose ports
-EXPOSE 8000 443 443/udp 2019
+# Expose ports for HTTPS/HTTP3 and Admin API
+EXPOSE 443 443/udp 2019
 
-# Start Octane via FrankenPHP
-ENTRYPOINT ["php","artisan","octane:frankenphp","--host=0.0.0.0","--port=8000","--workers=auto","--max-requests=1000"]
+# Start Octane via FrankenPHP with HTTPS and HTTP->HTTPS redirect.
+# You can manage domains via Caddyfile or Caddy Admin API (port 2019).
+ENTRYPOINT ["php","artisan","octane:frankenphp","--host=0.0.0.0","--port=443","--admin-port=2019","--https","--http-redirect","--caddyfile","/etc/frankenphp/Caddyfile"]

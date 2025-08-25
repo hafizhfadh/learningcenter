@@ -1,0 +1,25 @@
+{
+    # Enable FrankenPHP globally with our worker script
+    frankenphp {
+        # Use the Laravel entry point as a worker
+        worker ./public/index.php
+    }
+}
+
+# Single app served on multiple domains (add more as needed)
+learning.csi-academy.id {
+    # Serve files from the public directory
+    root * /app/public
+
+    # Execute PHP files and serve static assets
+    php_server
+
+    # Optional: compress responses
+    encode zstd br gzip
+
+    # Optional: caching of static files
+    @assets {
+        path_regexp assets \.(?:css|js|jpg|jpeg|png|gif|svg|ico|woff2?)$
+    }
+    header @assets Cache-Control "public, max-age=2592000, immutable"
+}

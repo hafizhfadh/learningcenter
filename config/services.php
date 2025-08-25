@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'caddy' => [
+        'api_url' => env('CADDY_API_URL', 'http://localhost:2019'),
+        'timeout' => env('CADDY_API_TIMEOUT', 30),
+    ],
+
 ];
