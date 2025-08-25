@@ -1,43 +1,69 @@
-# Stage 1 – build dependencies and assets
+# ---------- Stage 1: Composer (build PHP deps) ----------
+# Use an official PHP image with Composer preinstalled
 FROM composer:2 AS vendor
 WORKDIR /app
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader
 
-# Stage 2 – build frontend assets
+# Install system libs and intl extension needed by Filament, etc.
+# (composer image is based on official PHP, so docker-php-ext-* is available)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libicu-dev git unzip \
+  && docker-php-ext-configure intl \
+  && docker-php-ext-install intl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy only composer manifests first for better caching
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+# ---------- Stage 2: Node (build frontend) ----------
 FROM node:20 AS node_modules
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci && npm run build
+RUN npm ci
+COPY . .
+RUN npm run build
 
-# Stage 3 – final runtime image using FrankenPHP
+# ---------- Stage 3: Final runtime w/ FrankenPHP ----------
 FROM dunglas/frankenphp:1-php8.4-bookworm AS app
 WORKDIR /app
 
-# Install additional PHP extensions if needed
-RUN install-php-extensions pcntl
+# Install runtime PHP extensions:
+# - intl (Filament)
+# - pdo_pgsql (PostgreSQL)
+# - gd (images)
+# - zip, bcmath
+# - pcntl (Octane)
+RUN install-php-extensions \
+      intl \
+      pdo_pgsql \
+      gd \
+      zip \
+      bcmath \
+      pcntl
 
-# Copy source code and built dependencies
+# Copy Composer deps from vendor stage
 COPY --from=vendor /app/vendor /app/vendor
-COPY --from=node_modules /app/node_modules /app/node_modules
-COPY . /app
 
-# Copy production env file
+# Copy built assets from node stage (adjust if your build outputs elsewhere)
+COPY --from=node_modules /app/public /app/public
+COPY --from=node_modules /app/node_modules /app/node_modules
+
+# Copy the rest of your application source
+COPY . .
+
+# Use your production env
 COPY .env.production /app/.env
 
-# Ensure correct permissions for storage and cache directories
+# Ensure writable paths
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Run migrations, optimize config and install Octane/FrankenPHP
-RUN composer require --no-dev laravel/octane && \
-    php artisan octane:install --server=frankenphp && \
-    php artisan migrate --force && \
-    php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache
+# Optimize (do NOT run migrations during image build)
+RUN php artisan config:cache \
+ && php artisan route:cache \
+ && php artisan view:cache
 
-# Expose ports – 8000 for HTTP, 2019 for Caddy admin
+# Expose ports
 EXPOSE 8000 443 443/udp 2019
 
-# Start the Octane server using FrankenPHP
+# Start Octane via FrankenPHP
 ENTRYPOINT ["php","artisan","octane:frankenphp","--host=0.0.0.0","--port=8000","--workers=auto","--max-requests=1000"]
