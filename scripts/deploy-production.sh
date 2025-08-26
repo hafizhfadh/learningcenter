@@ -244,10 +244,10 @@ deploy_application() {
     log_info "Deploying application..."
     
     # Pull latest images for dependencies (Redis only - PostgreSQL is external)
-    docker-compose -f "$COMPOSE_FILE" pull redis
+    docker compose -f "$COMPOSE_FILE" pull redis
     
     # Start the application
-    docker-compose -f "$COMPOSE_FILE" up -d
+    docker compose -f "$COMPOSE_FILE" up -d
     
     log_success "Application deployment started"
 }
@@ -259,7 +259,7 @@ wait_for_health() {
     attempt=1
     
     while [[ $attempt -le $max_attempts ]]; do
-        if docker-compose -f "$COMPOSE_FILE" ps app | grep -q "healthy"; then
+        if docker compose -f "$COMPOSE_FILE" ps app | grep -q "healthy"; then
             log_success "Application is healthy"
             return 0
         fi
@@ -271,7 +271,7 @@ wait_for_health() {
     
     log_error "Application failed to become healthy within expected time"
     log_info "Checking application logs..."
-    docker-compose -f "$COMPOSE_FILE" logs app
+    docker compose -f "$COMPOSE_FILE" logs app
     exit 1
 }
 
@@ -279,7 +279,7 @@ run_post_deployment_tests() {
     log_info "Running post-deployment tests..."
     
     # Test PostgreSQL cluster connectivity from container
-    if docker-compose -f "$COMPOSE_FILE" exec -T app php artisan migrate:status >/dev/null 2>&1; then
+    if docker compose -f "$COMPOSE_FILE" exec -T app php artisan migrate:status >/dev/null 2>&1; then
         log_success "PostgreSQL cluster connectivity test passed"
     else
         log_error "PostgreSQL cluster connectivity test failed"
@@ -288,7 +288,7 @@ run_post_deployment_tests() {
     fi
     
     # Test Redis connectivity
-    if docker-compose -f "$COMPOSE_FILE" exec -T app php artisan tinker --execute="Redis::ping()" | grep -q "PONG"; then
+    if docker compose -f "$COMPOSE_FILE" exec -T app php artisan tinker --execute="Redis::ping()" | grep -q "PONG"; then
         log_success "Redis connectivity test passed"
     else
         log_error "Redis connectivity test failed"
@@ -330,12 +330,12 @@ show_deployment_info() {
     echo "  - URL: $APP_URL"
     echo
     echo "Container Status:"
-    docker-compose -f "$COMPOSE_FILE" ps
+    docker compose -f "$COMPOSE_FILE" ps
     echo
     echo "Useful Commands:"
-    echo "  - View logs: docker-compose -f $COMPOSE_FILE logs -f"
-    echo "  - Access shell: docker-compose -f $COMPOSE_FILE exec app bash"
-    echo "  - Stop application: docker-compose -f $COMPOSE_FILE down"
+    echo "  - View logs: docker compose -f $COMPOSE_FILE logs -f"
+    echo "  - Access shell: docker compose -f $COMPOSE_FILE exec app bash"
+    echo "  - Stop application: docker compose -f $COMPOSE_FILE down"
     echo "  - Update application: $0 <new-tag>"
 }
 
