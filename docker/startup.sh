@@ -53,7 +53,7 @@ wait_for_db() {
     echo -e "${RED}  - Cluster port: ${DB_PORT:-5432}${NC}"
     echo -e "${RED}  - Database: $DB_DATABASE${NC}"
     echo -e "${RED}  - Username: $DB_USERNAME${NC}"
-    echo -e "${RED}  - SSL mode: ${DB_SSLMODE:-require}${NC}"
+    echo -e "${RED}  - SSL mode: ${DB_SSLMODE:-null}${NC}"
     echo -e "${RED}  - Network connectivity from container to cluster${NC}"
     exit 1
 }
