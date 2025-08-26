@@ -9,10 +9,10 @@ services:
     container_name: learningcenter_app
     restart: unless-stopped
     ports:
-      - "8080:80"
-      - "8081:8080"
-      - "8443:443"
-      - "8443:443/udp"  # HTTP/3
+      - "80:80"
+      - "8080:8080"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
       - "2019:2019"
     env_file:
       - .env.production

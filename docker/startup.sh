@@ -87,22 +87,9 @@ wait_for_db() {
         echo -e "${YELLOW}Connecting to: $DB_HOST:${DB_PORT:-5432}/$DB_DATABASE as $DB_USERNAME${NC}"
         echo -e "${YELLOW}SSL Mode: ${DB_SSLMODE:-prefer}${NC}"
         
-        # Test with direct PDO connection
-        if php -r "
-            try {
-                \$pdo = new PDO(
-                    'pgsql:host=${DB_HOST};port=${DB_PORT:-5432};dbname=${DB_DATABASE}',
-                    '${DB_USERNAME}',
-                    '${DB_PASSWORD}',
-                    [PDO::ATTR_TIMEOUT => 5]
-                );
-                \$pdo->query('SELECT 1');
-                echo 'OK';
-            } catch (Exception \$e) {
-                exit(1);
-            }
-        " >/dev/null 2>&1; then
-            echo '✅ PostgreSQL cluster connection established';
+        # Test with psql command
+        if PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME}" -d "${DB_DATABASE}" -c "SELECT 1;" >/dev/null 2>&1; then
+            echo -e "${GREEN}✅ PostgreSQL cluster connection established${NC}"
             return 0
         fi
 
@@ -135,31 +122,33 @@ wait_for_db() {
 
 # Function to run database migrations
 run_migrations() {
-    echo -e "${YELLOW}🔄 Running database migrations...${NC}"
-    
-    if php artisan migrate --force --no-interaction; then
-        echo -e "${GREEN}✅ Database migrations completed${NC}"
-    else
-        echo -e "${RED}❌ Database migrations failed${NC}"
-        exit 1
-    fi
+    echo -e "${YELLOW}🔄 Skipping database migrations for now...${NC}"
+    echo -e "${YELLOW}ℹ️  Migrations will be run after application starts${NC}"
+    # TODO: Re-enable after fixing container resolution issue
+    # if php artisan migrate --force --no-interaction; then
+    #     echo -e "${GREEN}✅ Database migrations completed${NC}"
+    # else
+    #     echo -e "${RED}❌ Database migrations failed${NC}"
+    #     exit 1
+    # fi
 }
 
 # Function to optimize Laravel for production
 optimize_laravel() {
-    echo -e "${YELLOW}⚡ Optimizing Laravel for production...${NC}"
-    
-    # Clear any existing caches first
-    php artisan config:clear || true
-    php artisan route:clear || true
-    php artisan view:clear || true
-    
-    # Generate optimized caches
-    php artisan config:cache
-    php artisan route:cache
-    php artisan view:cache
-    
-    echo -e "${GREEN}✅ Laravel optimization completed${NC}"
+    echo -e "${YELLOW}⚡ Skipping Laravel optimization for now...${NC}"
+    echo -e "${YELLOW}ℹ️  Optimization will be done after application starts${NC}"
+    # TODO: Re-enable after fixing container resolution issue
+    # # Clear any existing caches first
+    # php artisan config:clear || true
+    # php artisan route:clear || true
+    # php artisan view:clear || true
+    # 
+    # # Generate optimized caches
+    # php artisan config:cache
+    # php artisan route:cache
+    # php artisan view:cache
+    # 
+    # echo -e "${GREEN}✅ Laravel optimization completed${NC}"
 }
 
 # Function to create health check endpoint
