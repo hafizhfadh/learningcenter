@@ -22,11 +22,6 @@ RUN docker-php-ext-configure intl \
 # Copy only the Composer manifests first to leverage layer caching
 COPY composer.json composer.lock ./
 
-# Install Laravel Octane and the rest of the dependencies without development packages.
-# This adds the "octane" commands to Artisan and prepares the vendor directory.
-RUN composer require --no-interaction --no-dev laravel/octane \
- && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
-
 # =======================================
 # Stage 2: Node (frontend build assets)
 # =======================================
