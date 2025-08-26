@@ -28,51 +28,71 @@ check_required_env() {
 export HOME="${HOME:-/tmp}"
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-/tmp}"
 
-# Optional network connectivity test using netcat/nslookup
+# Function to test network connectivity and DB readiness
 test_network_connectivity() {
-  if command -v nc >/dev/null 2>&1; then
-    echo -e "${YELLOW}🔍 Checking network connectivity to ${DB_HOST}:${DB_PORT:-5432}...${NC}"
-    if nc -z -w5 "$DB_HOST" "${DB_PORT:-5432}" 2>/dev/null; then
-      echo -e "${GREEN}✅ Network connectivity to $DB_HOST:${DB_PORT:-5432} OK${NC}"
-    else
-      echo -e "${RED}❌ Cannot connect to $DB_HOST:${DB_PORT:-5432}${NC}"
-      return 1
+    echo -e "${YELLOW}🔍 Checking network connectivity to $DB_HOST:${DB_PORT:-5432}...${NC}"
+
+    # Optional: basic TCP check
+    if command -v nc >/dev/null 2>&1; then
+        if nc -z -w5 "$DB_HOST" "${DB_PORT:-5432}" >/dev/null 2>&1; then
+            echo -e "${GREEN}✅ Port $DB_PORT open on $DB_HOST${NC}"
+        else
+            echo -e "${RED}❌ Cannot reach $DB_HOST:${DB_PORT:-5432}${NC}"
+            return 1
+        fi
     fi
-  fi
-  if command -v nslookup >/dev/null 2>&1; then
-    if nslookup "$DB_HOST" >/dev/null 2>&1; then
-      echo -e "${GREEN}✅ DNS resolution for $DB_HOST OK${NC}"
+
+    # Check server readiness using pg_isready or psql
+    if command -v pg_isready >/dev/null 2>&1; then
+        if pg_isready -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" >/dev/null 2>&1; then
+            echo -e "${GREEN}✅ PostgreSQL server is ready${NC}"
+        else
+            echo -e "${RED}❌ PostgreSQL server not accepting connections${NC}"
+            return 1
+        fi
+    elif command -v psql >/dev/null 2>&1; then
+        if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "${DB_PORT:-5432}" \
+              -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT 1;" >/dev/null 2>&1; then
+            echo -e "${GREEN}✅ PostgreSQL accepted a connection${NC}"
+        else
+            echo -e "${RED}❌ Could not connect to PostgreSQL with psql${NC}"
+            return 1
+        fi
     else
-      echo -e "${RED}❌ DNS resolution failed for $DB_HOST${NC}"
-      return 1
+        echo -e "${YELLOW}⚠️  Neither pg_isready nor psql available; skipping DB probe${NC}"
     fi
-  fi
-  return 0
+
+    return 0
 }
 
 wait_for_db() {
   echo -e "${YELLOW}⏳ Waiting for PostgreSQL connection...${NC}"
   test_network_connectivity || echo -e "${YELLOW}⚠️  Network test skipped or failed; will try DB directly...${NC}"
+
   local max_attempts=30
   for (( attempt=1; attempt<=max_attempts; attempt++ )); do
-    echo -e "${YELLOW}⏳ Attempt $attempt/$max_attempts: Connecting to $DB_HOST:${DB_PORT:-5432}/$DB_DATABASE as $DB_USERNAME (sslmode=${DB_SSLMODE:-prefer})...${NC}"
-    # Use plain PHP to test DB connection via Laravel's DB facade
-    if php -r "
-      require 'vendor/autoload.php';
-      \$app = require 'bootstrap/app.php';
-      \$app->make(Illuminate\Contracts\Console\Kernel::class);
-      try {
-        \$pdo = \$app['db']->connection()->getPdo();
-        exit(0);
-      } catch (\Throwable \$e) {
-        fwrite(STDERR, \$e->getMessage());
-        exit(1);
-      }" > /dev/null 2>&1; then
-      echo -e "${GREEN}✅ PostgreSQL cluster connection established${NC}"
-      return 0
+    echo -e "${YELLOW}⏳ Attempt $attempt/$max_attempts: Checking $DB_HOST:${DB_PORT:-5432}/$DB_DATABASE as $DB_USERNAME...${NC}"
+
+    # Prefer pg_isready if available
+    if command -v pg_isready >/dev/null 2>&1; then
+      if pg_isready -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ PostgreSQL is accepting connections${NC}"
+        return 0
+      fi
+    # Fall back to psql with SELECT 1
+    elif command -v psql >/dev/null 2>&1; then
+      if PGPASSWORD="$DB_PASSWORD" psql \
+            -h "$DB_HOST" -p "${DB_PORT:-5432}" \
+            -U "$DB_USERNAME" -d "$DB_DATABASE" \
+            -c "SELECT 1;" >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ PostgreSQL accepted a connection${NC}"
+        return 0
+      fi
     fi
+
     sleep 3
   done
+
   echo -e "${RED}❌ Could not connect to PostgreSQL after $max_attempts attempts${NC}"
   exit 1
 }
