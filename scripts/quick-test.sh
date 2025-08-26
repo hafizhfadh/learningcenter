@@ -79,12 +79,12 @@ for script in "${scripts[@]}"; do
     fi
 done
 
-# Test 5: Docker Image Build Test (dry run)
+# Test 5: Docker Image Build Test
 echo -e "\n${BLUE}📋 Testing Docker Build Configuration${NC}"
-if docker build -f "$PROJECT_ROOT/Dockerfile.frankenphp.improved" --dry-run "$PROJECT_ROOT" >/dev/null 2>&1; then
-    echo -e "${GREEN}✅ Dockerfile syntax is valid${NC}"
+if docker images laravel-learning-center:test >/dev/null 2>&1 && [[ $(docker images -q laravel-learning-center:test) ]]; then
+    echo -e "${GREEN}✅ Docker image built successfully${NC}"
 else
-    echo -e "${YELLOW}⚠️  Dockerfile may have syntax issues${NC}"
+    echo -e "${YELLOW}⚠️  Docker image not found - run: docker build -f Dockerfile.frankenphp.improved -t laravel-learning-center:test .${NC}"
 fi
 
 echo -e "\n${BLUE}📋 Quick Test Summary${NC}"

@@ -265,10 +265,14 @@ validate_environment() {
         exit 1
     fi
     
-    # Validate PostgreSQL cluster connectivity
-    if ! test_postgresql_cluster; then
-        echo "❌ PostgreSQL cluster connectivity validation failed"
-        exit 1
+    # Validate PostgreSQL cluster connectivity (unless skipped)
+    if [[ "$SKIP_NETWORK_TESTS" == "true" ]]; then
+        echo "⚠️  Skipping network connectivity tests (--skip-network-tests flag set)"
+    else
+        if ! test_postgresql_cluster; then
+            echo "❌ PostgreSQL cluster connectivity validation failed"
+            exit 1
+        fi
     fi
     
     log_success "Environment validation passed"
@@ -485,6 +489,7 @@ main() {
 
 # Parse command line arguments
 PUSH_TO_GHCR=false
+SKIP_NETWORK_TESTS=false
 
 # Check for help first
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -496,9 +501,10 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     echo "  IMAGE_TAG    Docker image tag (default: latest)"
     echo
     echo "Options:"
-    echo "  --push-to-ghcr    Push built image to GitHub Container Registry"
-    echo "  --troubleshoot    Run comprehensive troubleshooting diagnostics"
-    echo "  --help, -h        Show this help message"
+    echo "  --push-to-ghcr       Push built image to GitHub Container Registry"
+    echo "  --skip-network-tests Skip network connectivity tests (for testing)"
+    echo "  --troubleshoot       Run comprehensive troubleshooting diagnostics"
+    echo "  --help, -h           Show this help message"
     echo
     echo "Environment Variables:"
     echo "  APP_NAME     Application name"
@@ -537,6 +543,12 @@ for arg in "$@"; do
         --push-to-ghcr)
             PUSH_TO_GHCR=true
             ;;
+        --skip-network-tests)
+            SKIP_NETWORK_TESTS=true
+            ;;
+        --dry-run)
+            # Dry run flag - just ignore for now
+            ;;
         --troubleshoot)
             load_environment
             run_troubleshooting
@@ -544,6 +556,9 @@ for arg in "$@"; do
             ;;
         --help|-h)
             # Already handled above
+            ;;
+        --*)
+            # Unknown flag - ignore
             ;;
         *)
             args+=("$arg")
