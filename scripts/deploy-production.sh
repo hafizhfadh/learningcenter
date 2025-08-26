@@ -70,6 +70,21 @@ check_prerequisites() {
     log_success "Prerequisites check passed"
 }
 
+load_environment() {
+    log_info "Loading environment variables..."
+    
+    # Load .env.production if it exists
+    if [[ -f "$ENV_FILE" ]]; then
+        log_info "Loading environment from $ENV_FILE"
+        set -a  # automatically export all variables
+        source "$ENV_FILE"
+        set +a  # stop automatically exporting
+        log_success "Environment variables loaded from $ENV_FILE"
+    else
+        log_warning "Environment file $ENV_FILE not found"
+    fi
+}
+
 generate_secrets() {
     log_info "Generating application secrets..."
     
@@ -329,6 +344,7 @@ main() {
     log_info "Starting production deployment for $APP_NAME:$IMAGE_TAG"
     
     check_prerequisites
+    load_environment
     generate_secrets
     validate_environment
     build_image
