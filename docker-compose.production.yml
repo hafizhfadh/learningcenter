@@ -26,7 +26,6 @@ services:
       - DB_DATABASE=${DB_DATABASE}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_SSLMODE=${DB_SSLMODE:-require}  # SSL mode for cluster connection
       
       # Cache & Session
       - CACHE_STORE=redis
