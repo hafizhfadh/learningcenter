@@ -66,34 +66,15 @@ test_network_connectivity() {
 }
 
 wait_for_db() {
-  echo -e "${YELLOW}⏳ Waiting for PostgreSQL connection...${NC}"
-  test_network_connectivity || echo -e "${YELLOW}⚠️  Network test skipped or failed; will try DB directly...${NC}"
-
-  local max_attempts=30
-  for (( attempt=1; attempt<=max_attempts; attempt++ )); do
-    echo -e "${YELLOW}⏳ Attempt $attempt/$max_attempts: Checking $DB_HOST:${DB_PORT:-5432}/$DB_DATABASE as $DB_USERNAME...${NC}"
-
-    # Prefer pg_isready if available
-    if command -v pg_isready >/dev/null 2>&1; then
-      if pg_isready -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" >/dev/null 2>&1; then
-        echo -e "${GREEN}✅ PostgreSQL is accepting connections${NC}"
-        return 0
-      fi
-    # Fall back to psql with SELECT 1
-    elif command -v psql >/dev/null 2>&1; then
-      if PGPASSWORD="$DB_PASSWORD" psql \
-            -h "$DB_HOST" -p "${DB_PORT:-5432}" \
-            -U "$DB_USERNAME" -d "$DB_DATABASE" \
-            -c "SELECT 1;" >/dev/null 2>&1; then
-        echo -e "${GREEN}✅ PostgreSQL accepted a connection${NC}"
-        return 0
-      fi
+  echo "Waiting for PostgreSQL connection..."
+  for i in {1..30}; do
+    if pg_isready -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" >/dev/null 2>&1; then
+      echo "PostgreSQL is accepting connections"
+      return 0
     fi
-
     sleep 3
   done
-
-  echo -e "${RED}❌ Could not connect to PostgreSQL after $max_attempts attempts${NC}"
+  echo "Failed to connect to PostgreSQL"
   exit 1
 }
 

@@ -4,20 +4,28 @@
 FROM php:8.4-cli-bookworm AS vendor
 WORKDIR /app
 
-# Install build tools and Composer
+# Install system packages and Composer. We need git, unzip, curl, and dev libraries.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       git unzip curl libicu-dev libzip-dev zlib1g-dev \
   && rm -rf /var/lib/apt/lists/* \
   && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
+
+# Allow Composer to run as root
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# Extensions needed at build time
-RUN docker-php-ext-configure intl  && docker-php-ext-install intl \
- && docker-php-ext-configure zip   && docker-php-ext-install zip
+# Build-time PHP extensions needed for Composer checks (intl, zip)
+RUN docker-php-ext-configure intl \
+ && docker-php-ext-install intl \
+ && docker-php-ext-configure zip \
+ && docker-php-ext-install zip
 
-# Copy composer manifests and install without scripts (artisan not yet present)
+# Copy only the Composer manifests first to leverage layer caching
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
+
+# Install Laravel Octane and the rest of the dependencies without development packages.
+# This adds the "octane" commands to Artisan and prepares the vendor directory.
+RUN composer require --no-interaction --no-dev laravel/octane \
+ && composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
 
 # =======================================
 # Stage 2: Node (frontend build assets)
@@ -25,11 +33,14 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-di
 FROM node:20-alpine AS node_build
 WORKDIR /app
 
-# Install Node dependencies and build assets
+# Install NPM dependencies
 COPY package.json package-lock.json ./
 RUN npm ci
+
+# Copy the full application to build front-end assets
 COPY . .
-RUN npm run build || echo "No build script found, skipping asset build"
+# If your project defines a build script in package.json, run it. Otherwise, ignore errors.
+RUN npm run build || echo "No front-end build step; skipping."
 
 # ==========================================
 # Stage 3: Runtime (FrankenPHP + Caddy)
@@ -37,51 +48,67 @@ RUN npm run build || echo "No build script found, skipping asset build"
 FROM dunglas/frankenphp:1-php8.4-bookworm AS app
 WORKDIR /app
 
-# Use production php.ini
+# Use production php.ini for optimized settings
 RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
 
-# Install extra packages for debugging and PostgreSQL client
+# Install extra packages: network tools and PostgreSQL client for health checks
 RUN apt-get update && apt-get install -y --no-install-recommends \
       netcat-openbsd dnsutils iputils-ping iproute2 postgresql-client \
   && rm -rf /var/lib/apt/lists/*
 
-# Runtime PHP extensions and Redis
+# Install runtime PHP extensions needed by Laravel and Octane
 RUN install-php-extensions \
-      intl zip pdo_pgsql gd bcmath pcntl redis opcache
+      intl \
+      zip \
+      pdo_pgsql \
+      pgsql \
+      gd \
+      bcmath \
+      pcntl \
+      redis \
+      opcache
 
-# Create non-root user
+# Create a non-root user for running the application
 RUN groupadd -r laravel && useradd -r -g laravel -s /bin/false laravel
 
-# Copy vendor deps and built assets from previous stages
+# Copy vendor dependencies and Composer binary from the vendor stage
 COPY --from=vendor /app/vendor /app/vendor
 COPY --from=vendor /usr/bin/composer /usr/bin/composer
+
+# Copy built frontend assets from the node build stage
 COPY --from=node_build /app/public /app/public
 
-# Copy the rest of the application source
+# Copy the application source code
 COPY . .
 
-# Provide the .env template but do not overwrite .env
+# Copy the environment example to allow local editing (the real .env is provided via volume or env_file)
 COPY .env.example /app/.env.example
 
-# Optimize autoloader before switching user
+# Optimize Composer autoloader
 RUN composer dump-autoload -o
 
-# Copy custom startup script
+# Install Octane configuration for FrankenPHP.  The --force flag avoids prompts,
+# and --no-interaction ensures the command runs unattended.
+RUN php artisan octane:install --server=frankenphp --force --no-interaction
+
+# Copy the custom startup script into the image and make it executable
 COPY docker/startup.sh /usr/local/bin/startup.sh
 RUN chmod +x /usr/local/bin/startup.sh
 
-# Ensure correct permissions for runtime
+# Ensure correct permissions for runtime directories
 RUN chown -R laravel:laravel /app \
  && chmod -R 755 /app \
  && chmod -R 775 /app/storage /app/bootstrap/cache
 
+# Switch to the non-root user
 USER laravel
 
-# Health check inside container
+# Health check using the internal /health endpoint; adjust intervals as necessary
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost/health || exit 1
 
-# Expose HTTP, HTTPS (TCP + UDP) and optional admin API ports
+# Expose ports for HTTP (80), HTTPS (443), HTTP/3 (443/udp), and Caddy admin API (2019)
 EXPOSE 80 443 443/udp 2019
 
+# Use the custom startup script as the entrypoint
 ENTRYPOINT ["/usr/local/bin/startup.sh"]
