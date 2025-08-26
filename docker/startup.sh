@@ -50,13 +50,18 @@ test_network_connectivity() {
         echo -e "${YELLOW}⚠️  netcat not available, skipping network test${NC}"
     fi
     
-    # Test DNS resolution
+    # Test DNS resolution (only for hostnames, not IP addresses)
     if command -v nslookup >/dev/null 2>&1; then
-        if nslookup "$DB_HOST" >/dev/null 2>&1; then
-            echo -e "${GREEN}✅ DNS resolution for $DB_HOST successful${NC}"
+        # Check if DB_HOST is an IP address (simple regex check)
+        if [[ "$DB_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo -e "${YELLOW}ℹ️  DB_HOST is an IP address ($DB_HOST), skipping DNS resolution${NC}"
         else
-            echo -e "${RED}❌ DNS resolution for $DB_HOST failed${NC}"
-            return 1
+            if nslookup "$DB_HOST" >/dev/null 2>&1; then
+                echo -e "${GREEN}✅ DNS resolution for $DB_HOST successful${NC}"
+            else
+                echo -e "${RED}❌ DNS resolution for $DB_HOST failed${NC}"
+                return 1
+            fi
         fi
     fi
     
@@ -82,13 +87,21 @@ wait_for_db() {
         echo -e "${YELLOW}Connecting to: $DB_HOST:${DB_PORT:-5432}/$DB_DATABASE as $DB_USERNAME${NC}"
         echo -e "${YELLOW}SSL Mode: ${DB_SSLMODE:-prefer}${NC}"
         
-        # Test with more detailed error output
+        # Test with direct PDO connection
         if php -r "
-            require 'vendor/autoload.php';
-            \$app = require 'bootstrap/app.php';
-            \$app->make(Illuminate\Contracts\Console\Kernel::class);
-            \$app['db']->connection()->getPdo();
-        "; then
+            try {
+                \$pdo = new PDO(
+                    'pgsql:host=${DB_HOST};port=${DB_PORT:-5432};dbname=${DB_DATABASE}',
+                    '${DB_USERNAME}',
+                    '${DB_PASSWORD}',
+                    [PDO::ATTR_TIMEOUT => 5]
+                );
+                \$pdo->query('SELECT 1');
+                echo 'OK';
+            } catch (Exception \$e) {
+                exit(1);
+            }
+        " >/dev/null 2>&1; then
             echo '✅ PostgreSQL cluster connection established';
             return 0
         fi
