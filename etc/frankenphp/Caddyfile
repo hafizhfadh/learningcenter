@@ -2,20 +2,19 @@
 # Supports HTTPS, HTTP/3, and automatic certificate management
 
 {
-    # Global options
-    auto_https on
+    # Global options (no auto_https line needed)
     http_port 80
     https_port 443
-    
+
     # Enable HTTP/3
     servers {
         protocols h1 h2 h3
     }
-    
-    # Admin API (disabled for security)
+
+    # Disable the admin API
     admin off
-    
-    # Logging
+
+    # Structured JSON logging
     log {
         output stdout
         format json
@@ -76,10 +75,10 @@
     
     handle @api {
         rate_limit api
-        php_fastcgi unix//var/run/php/php-fpm.sock {
+        root * /app/public
+        try_files {path} {path}/ /index.php?{query}
+        php {
             root /app/public
-            index index.php
-            try_files {path} {path}/ /index.php?{query}
         }
     }
     
