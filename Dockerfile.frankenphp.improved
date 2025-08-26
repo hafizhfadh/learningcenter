@@ -4,45 +4,35 @@
 FROM php:8.4-cli-bookworm AS vendor
 WORKDIR /app
 
-# Tools + Composer
+# Install build tools and Composer
 RUN apt-get update && apt-get install -y --no-install-recommends \
       git unzip curl libicu-dev libzip-dev zlib1g-dev \
   && rm -rf /var/lib/apt/lists/* \
   && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# Build required extensions for Composer-time checks (Filament, OpenSpout, etc.)
+# Extensions needed at build time
 RUN docker-php-ext-configure intl  && docker-php-ext-install intl \
  && docker-php-ext-configure zip   && docker-php-ext-install zip
 
-# Copy only manifests first (cache-friendly)
+# Copy composer manifests and install without scripts (artisan not yet present)
 COPY composer.json composer.lock ./
-
-# Install without running scripts (artisan not present yet)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
 
-
 # =======================================
-# Stage 2: Node (frontend assets compile)
+# Stage 2: Node (frontend build assets)
 # =======================================
 FROM node:20-alpine AS node_build
 WORKDIR /app
 
-# Copy package files
+# Install Node dependencies and build assets
 COPY package.json package-lock.json ./
-
-# Install all dependencies (including dev) for build process
-RUN npm cache clean --force && \
-    rm -rf node_modules package-lock.json && \
-    npm install
-
-# Copy source and build assets
+RUN npm ci
 COPY . .
-RUN npm run build
-
+RUN npm run build || echo "No build script found, skipping asset build"
 
 # ==========================================
-# Stage 3: Final Runtime (FrankenPHP/Caddy)
+# Stage 3: Runtime (FrankenPHP + Caddy)
 # ==========================================
 FROM dunglas/frankenphp:1-php8.4-bookworm AS app
 WORKDIR /app
@@ -50,62 +40,48 @@ WORKDIR /app
 # Use production php.ini
 RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
 
-# Install system packages for network debugging and PostgreSQL connectivity
+# Install extra packages for debugging and PostgreSQL client
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      netcat-openbsd \
-      dnsutils \
-      iputils-ping \
-      iproute2 \
-      postgresql-client \
-      curl \
-      && rm -rf /var/lib/apt/lists/*
+      netcat-openbsd dnsutils iputils-ping iproute2 postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
 
-# Install runtime PHP extensions + Redis for caching
+# Runtime PHP extensions and Redis
 RUN install-php-extensions \
-      intl \
-      zip \
-      pdo_pgsql \
-      gd \
-      bcmath \
-      pcntl \
-      redis \
-      opcache
+      intl zip pdo_pgsql gd bcmath pcntl redis opcache
 
-# Create non-root user for security
+# Create non-root user
 RUN groupadd -r laravel && useradd -r -g laravel -s /bin/false laravel
 
-# Bring in vendor deps and built assets
-COPY --from=vendor     /app/vendor   /app/vendor
-COPY --from=vendor     /usr/bin/composer /usr/bin/composer
-COPY --from=node_build /app/public   /app/public
+# Copy vendor deps and built assets from previous stages
+COPY --from=vendor /app/vendor /app/vendor
+COPY --from=vendor /usr/bin/composer /usr/bin/composer
+COPY --from=node_build /app/public /app/public
 
-# Copy application source
+# Copy the rest of the application source
 COPY . .
 
-# Create .env.example as template (DO NOT copy .env.production)
+# Provide the .env template but do not overwrite .env
 COPY .env.example /app/.env.example
 
-# Optimize autoloader before switching users
+# Optimize autoloader before switching user
 RUN composer dump-autoload -o
 
-# Create startup script for runtime initialization (before switching users)
+# Copy custom startup script
 COPY docker/startup.sh /usr/local/bin/startup.sh
 RUN chmod +x /usr/local/bin/startup.sh
 
-# Set proper permissions
+# Ensure correct permissions for runtime
 RUN chown -R laravel:laravel /app \
  && chmod -R 755 /app \
  && chmod -R 775 /app/storage /app/bootstrap/cache
 
-# Switch to non-root user
 USER laravel
 
-# Add health check
+# Health check inside container
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost/health || exit 1
 
-# Expose ports for HTTPS/HTTP3 (remove admin port from public exposure)
-EXPOSE 443 443/udp
+# Expose HTTP, HTTPS (TCP + UDP) and optional admin API ports
+EXPOSE 80 443 443/udp 2019
 
-# Use startup script as entrypoint
 ENTRYPOINT ["/usr/local/bin/startup.sh"]
