@@ -28,22 +28,71 @@ check_required_env() {
     fi
 }
 
+# Function to test network connectivity to PostgreSQL cluster
+test_network_connectivity() {
+    echo -e "${YELLOW}🔍 Testing network connectivity to PostgreSQL cluster...${NC}"
+    
+    # Test basic network connectivity
+    if command -v nc >/dev/null 2>&1; then
+        if nc -z -w5 "$DB_HOST" "${DB_PORT:-5432}" 2>/dev/null; then
+            echo -e "${GREEN}✅ Network connectivity to $DB_HOST:${DB_PORT:-5432} successful${NC}"
+        else
+            echo -e "${RED}❌ Network connectivity to $DB_HOST:${DB_PORT:-5432} failed${NC}"
+            echo -e "${RED}This indicates a Docker networking issue${NC}"
+            return 1
+        fi
+    else
+        echo -e "${YELLOW}⚠️  netcat not available, skipping network test${NC}"
+    fi
+    
+    # Test DNS resolution
+    if command -v nslookup >/dev/null 2>&1; then
+        if nslookup "$DB_HOST" >/dev/null 2>&1; then
+            echo -e "${GREEN}✅ DNS resolution for $DB_HOST successful${NC}"
+        else
+            echo -e "${RED}❌ DNS resolution for $DB_HOST failed${NC}"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+
 # Function to wait for PostgreSQL cluster
 wait_for_db() {
     echo -e "${YELLOW}⏳ Waiting for PostgreSQL cluster connection...${NC}"
+    
+    # First test network connectivity
+    if ! test_network_connectivity; then
+        echo -e "${RED}❌ Network connectivity test failed${NC}"
+        echo -e "${RED}Please check Docker networking configuration${NC}"
+        exit 1
+    fi
     
     max_attempts=30
     attempt=1
     
     while [[ $attempt -le $max_attempts ]]; do
-        if php artisan tinker --execute="DB::connection()->getPdo(); echo 'Database connected successfully';" >/dev/null 2>&1; then
+        echo -e "${YELLOW}⏳ Attempt $attempt/$max_attempts - Testing database connection...${NC}"
+        echo -e "${YELLOW}Connecting to: $DB_HOST:${DB_PORT:-5432}/$DB_DATABASE as $DB_USERNAME${NC}"
+        echo -e "${YELLOW}SSL Mode: ${DB_SSLMODE:-prefer}${NC}"
+        
+        # Test with more detailed error output
+        if php artisan tinker --execute="
+            try {
+                \$pdo = DB::connection()->getPdo();
+                echo 'Database connected successfully';
+                echo 'Server version: ' . \$pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
+            } catch (Exception \$e) {
+                echo 'Connection failed: ' . \$e->getMessage();
+                throw \$e;
+            }
+        " 2>&1; then
             echo -e "${GREEN}✅ PostgreSQL cluster connection established${NC}"
             return 0
         fi
         
-        echo -e "${YELLOW}⏳ Attempt $attempt/$max_attempts - PostgreSQL cluster not ready, waiting...${NC}"
-        echo -e "${YELLOW}Connecting to: $DB_HOST:${DB_PORT:-5432}/$DB_DATABASE${NC}"
-        sleep 2
+        sleep 3
         ((attempt++))
     done
     
@@ -53,8 +102,19 @@ wait_for_db() {
     echo -e "${RED}  - Cluster port: ${DB_PORT:-5432}${NC}"
     echo -e "${RED}  - Database: $DB_DATABASE${NC}"
     echo -e "${RED}  - Username: $DB_USERNAME${NC}"
-    echo -e "${RED}  - SSL mode: ${DB_SSLMODE:-null}${NC}"
+    echo -e "${RED}  - SSL mode: ${DB_SSLMODE:-prefer}${NC}"
     echo -e "${RED}  - Network connectivity from container to cluster${NC}"
+    echo -e "${RED}  - Docker networking configuration${NC}"
+    
+    # Additional debugging information
+    echo -e "${YELLOW}🔍 Container networking debug info:${NC}"
+    echo -e "${YELLOW}Container IP: $(hostname -i 2>/dev/null || echo 'unknown')${NC}"
+    echo -e "${YELLOW}Container hostname: $(hostname 2>/dev/null || echo 'unknown')${NC}"
+    if command -v ip >/dev/null 2>&1; then
+        echo -e "${YELLOW}Network interfaces:${NC}"
+        ip addr show 2>/dev/null || echo "IP command failed"
+    fi
+    
     exit 1
 }
 

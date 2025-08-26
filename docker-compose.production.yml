@@ -24,6 +24,19 @@ services:
         condition: service_healthy
     networks:
       - app_network
+    # Add DNS configuration for external database connectivity
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    # Add extra hosts for database cluster if needed
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Security options for external connectivity
+    security_opt:
+      - no-new-privileges:true
+    # Add capability for network access
+    cap_add:
+      - NET_ADMIN
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
@@ -113,6 +126,13 @@ volumes:
 networks:
   app_network:
     driver: bridge
+    # Use host networking for external database connectivity
+    # This allows containers to access external services like the PostgreSQL cluster
     ipam:
       config:
         - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"

@@ -50,6 +50,16 @@ WORKDIR /app
 # Use production php.ini
 RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
 
+# Install system packages for network debugging and PostgreSQL connectivity
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      netcat-openbsd \
+      dnsutils \
+      iputils-ping \
+      iproute2 \
+      postgresql-client \
+      curl \
+      && rm -rf /var/lib/apt/lists/*
+
 # Install runtime PHP extensions + Redis for caching
 RUN install-php-extensions \
       intl \

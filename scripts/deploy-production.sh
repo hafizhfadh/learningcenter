@@ -109,6 +109,131 @@ generate_secrets() {
     log_success "Secrets generation completed"
 }
 
+# Function to test network connectivity to PostgreSQL cluster
+test_network_connectivity() {
+    echo "🔍 Testing network connectivity to PostgreSQL cluster..."
+    
+    # Test basic network connectivity
+    if command -v nc >/dev/null 2>&1; then
+        if nc -z -w5 "$DB_HOST" "${DB_PORT:-5432}" 2>/dev/null; then
+            echo "✅ Network connectivity to $DB_HOST:${DB_PORT:-5432} successful"
+        else
+            echo "❌ Network connectivity to $DB_HOST:${DB_PORT:-5432} failed"
+            echo "❌ This indicates a network/firewall issue"
+            return 1
+        fi
+    else
+        echo "⚠️  netcat not available, skipping network test"
+    fi
+    
+    # Test DNS resolution
+    if command -v nslookup >/dev/null 2>&1; then
+        if nslookup "$DB_HOST" >/dev/null 2>&1; then
+            echo "✅ DNS resolution for $DB_HOST successful"
+        else
+            echo "❌ DNS resolution for $DB_HOST failed"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+
+# Function to test PostgreSQL cluster connectivity
+test_postgresql_cluster() {
+    echo "🔍 Testing PostgreSQL cluster connectivity..."
+    
+    # First test network connectivity
+    if ! test_network_connectivity; then
+        echo "❌ Network connectivity test failed"
+        return 1
+    fi
+    
+    if ! command -v psql >/dev/null 2>&1; then
+        echo "❌ psql command not found. Please install PostgreSQL client."
+        return 1
+    fi
+    
+    # Test connection with timeout and detailed output
+    echo "🔗 Connecting to: postgresql://$DB_USERNAME:***@$DB_HOST:${DB_PORT:-5432}/$DB_DATABASE?sslmode=${DB_SSLMODE:-prefer}"
+    
+    if timeout 15 PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT version(), current_database(), current_user;" >/dev/null 2>&1; then
+        echo "✅ PostgreSQL cluster connection successful"
+        return 0
+    else
+        echo "❌ PostgreSQL cluster connection failed"
+        echo "❌ Please verify:"
+        echo "❌   - Host: $DB_HOST"
+        echo "❌   - Port: ${DB_PORT:-5432}"
+        echo "❌   - Database: $DB_DATABASE"
+        echo "❌   - Username: $DB_USERNAME"
+        echo "❌   - Password is correct"
+        echo "❌   - SSL mode: ${DB_SSLMODE:-prefer}"
+        echo "❌   - Network connectivity from this host"
+        echo "❌   - PostgreSQL cluster is accepting connections"
+        return 1
+    fi
+}
+
+# Function to test PostgreSQL cluster connectivity from container
+test_postgresql_cluster_from_container() {
+    echo "🔍 Testing PostgreSQL cluster connectivity from container..."
+    
+    if docker compose -f "$COMPOSE_FILE" exec -T app php artisan tinker --execute="
+        try {
+            \$pdo = DB::connection()->getPdo();
+            echo 'Database connected successfully';
+            echo 'Server version: ' . \$pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
+        } catch (Exception \$e) {
+            echo 'Connection failed: ' . \$e->getMessage();
+            throw \$e;
+        }
+    " 2>&1; then
+        echo "✅ PostgreSQL cluster connectivity from container successful"
+        return 0
+    else
+        echo "❌ PostgreSQL cluster connectivity from container failed"
+        echo "❌ This indicates Docker networking issues"
+        echo "❌ Troubleshooting steps:"
+        echo "❌   1. Check if container can resolve DNS: docker compose exec app nslookup $DB_HOST"
+        echo "❌   2. Check network connectivity: docker compose exec app nc -zv $DB_HOST ${DB_PORT:-5432}"
+        echo "❌   3. Check container network: docker compose exec app ip addr show"
+        echo "❌   4. Verify environment variables: docker compose exec app env | grep DB_"
+        echo "❌   5. Check PostgreSQL logs on the cluster"
+        return 1
+    fi
+}
+
+# Function to run comprehensive troubleshooting
+run_troubleshooting() {
+    echo "🔧 Running comprehensive troubleshooting..."
+    
+    # Test host connectivity
+    echo "\n📋 Host-level diagnostics:"
+    test_postgresql_cluster
+    
+    # Test container connectivity if deployment exists
+    if docker compose -f "$COMPOSE_FILE" ps app | grep -q "Up"; then
+        echo "\n📋 Container-level diagnostics:"
+        test_postgresql_cluster_from_container
+        
+        echo "\n📋 Container environment check:"
+        docker compose -f "$COMPOSE_FILE" exec -T app env | grep -E "^(DB_|APP_|REDIS_)" | sort
+        
+        echo "\n📋 Container network diagnostics:"
+        docker compose -f "$COMPOSE_FILE" exec -T app ip route show
+        docker compose -f "$COMPOSE_FILE" exec -T app cat /etc/resolv.conf
+    else
+        echo "\n⚠️  Application container not running, skipping container diagnostics"
+    fi
+    
+    echo "\n📋 Docker network information:"
+    docker network ls
+    
+    echo "\n📋 Docker compose configuration:"
+    docker compose -f "$COMPOSE_FILE" config --services
+}
+
 validate_environment() {
     log_info "Validating environment variables..."
     
@@ -141,17 +266,10 @@ validate_environment() {
     fi
     
     # Validate PostgreSQL cluster connectivity
-    log_info "Testing PostgreSQL cluster connectivity..."
-    if ! PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT 1;" >/dev/null 2>&1; then
-        log_error "Cannot connect to PostgreSQL cluster at $DB_HOST:${DB_PORT:-5432}"
-        log_error "Please verify:"
-        log_error "  - Database host and port are correct"
-        log_error "  - Database credentials are valid"
-        log_error "  - Network connectivity to the cluster"
-        log_error "  - SSL configuration if required"
+    if ! test_postgresql_cluster; then
+        echo "❌ PostgreSQL cluster connectivity validation failed"
         exit 1
     fi
-    log_success "PostgreSQL cluster connectivity verified"
     
     log_success "Environment validation passed"
 }
@@ -379,6 +497,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     echo
     echo "Options:"
     echo "  --push-to-ghcr    Push built image to GitHub Container Registry"
+    echo "  --troubleshoot    Run comprehensive troubleshooting diagnostics"
     echo "  --help, -h        Show this help message"
     echo
     echo "Environment Variables:"
@@ -391,14 +510,17 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     echo "  DB_DATABASE  Database name"
     echo "  DB_USERNAME  Database username"
     echo "  DB_PASSWORD  Database password"
-    echo "  DB_SSLMODE   PostgreSQL SSL mode (default: require)"
+    echo "  DB_SSLMODE   PostgreSQL SSL mode (default: prefer)"
     echo "  REDIS_PASSWORD Redis password"
     echo
     echo "Optional Environment Variables (for GHCR push):"
     echo "  GITHUB_TOKEN          GitHub Personal Access Token with packages:write scope"
     echo "  GITHUB_REPOSITORY_OWNER  GitHub username/organization (defaults to current user)"
     echo
-    echo "Example:"
+    echo "Examples:"
+    echo "  $0                           # Deploy with default settings"
+    echo "  $0 v1.0.0 --push-to-ghcr     # Deploy specific version and push to registry"
+    echo "  $0 --troubleshoot            # Run diagnostics for connectivity issues"
     echo "  export APP_URL=https://learningcenter.example.com"
     echo "  export DB_HOST=postgres-cluster.example.com"
     echo "  export DB_DATABASE=learningcenter"
@@ -414,6 +536,11 @@ for arg in "$@"; do
     case $arg in
         --push-to-ghcr)
             PUSH_TO_GHCR=true
+            ;;
+        --troubleshoot)
+            load_environment
+            run_troubleshooting
+            exit 0
             ;;
         --help|-h)
             # Already handled above
