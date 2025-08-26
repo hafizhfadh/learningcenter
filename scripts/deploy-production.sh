@@ -126,12 +126,14 @@ test_network_connectivity() {
         echo "⚠️  netcat not available, skipping network test"
     fi
     
-    # Test DNS resolution
+    # Test DNS resolution only for hostnames (not IP addresses)
     if command -v nslookup >/dev/null 2>&1; then
-        if nslookup "$DB_HOST" >/dev/null 2>&1; then
-            echo "✅ DNS resolution for $DB_HOST successful"
+        if [[ "$DB_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "✅ DB_HOST is an IP address ($DB_HOST), DNS resolution not required"
+        elif nslookup "$DB_HOST" >/dev/null 2>&1; then
+            echo "✅ DNS resolution for hostname $DB_HOST successful"
         else
-            echo "❌ DNS resolution for $DB_HOST failed"
+            echo "❌ DNS resolution for hostname $DB_HOST failed"
             return 1
         fi
     fi
@@ -195,8 +197,12 @@ test_postgresql_cluster_from_container() {
         echo "❌ PostgreSQL cluster connectivity from container failed"
         echo "❌ This indicates Docker networking issues"
         echo "❌ Troubleshooting steps:"
-        echo "❌   1. Check if container can resolve DNS: docker compose exec app nslookup $DB_HOST"
-        echo "❌   2. Check network connectivity: docker compose exec app nc -zv $DB_HOST ${DB_PORT:-5432}"
+        if [[ "$DB_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌   1. Check network connectivity: docker compose exec app nc -zv $DB_HOST ${DB_PORT:-5432}"
+        else
+            echo "❌   1. Check DNS resolution: docker compose exec app nslookup $DB_HOST"
+            echo "❌   2. Check network connectivity: docker compose exec app nc -zv $DB_HOST ${DB_PORT:-5432}"
+        fi
         echo "❌   3. Check container network: docker compose exec app ip addr show"
         echo "❌   4. Verify environment variables: docker compose exec app env | grep DB_"
         echo "❌   5. Check PostgreSQL logs on the cluster"

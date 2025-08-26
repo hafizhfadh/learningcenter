@@ -188,17 +188,17 @@ validate_network_connectivity() {
     source "$ENV_FILE"
     set +a
     
-    # Test DNS resolution (skip for IP addresses)
+    # Test DNS resolution only for hostnames (not IP addresses)
     if command -v nslookup >/dev/null 2>&1; then
         if [[ "$DB_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            log_success "DB_HOST is an IP address ($DB_HOST), skipping DNS resolution"
+            log_success "DB_HOST is an IP address ($DB_HOST), DNS resolution not required"
         elif nslookup "$DB_HOST" >/dev/null 2>&1; then
-            log_success "DNS resolution for $DB_HOST successful"
+            log_success "DNS resolution for hostname $DB_HOST successful"
         else
-            log_error "DNS resolution for $DB_HOST failed"
+            log_error "DNS resolution for hostname $DB_HOST failed"
         fi
     else
-        log_warning "nslookup not available, skipping DNS test"
+        log_warning "nslookup not available, skipping DNS resolution test"
     fi
     
     # Test network connectivity
