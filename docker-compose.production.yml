@@ -9,56 +9,13 @@ services:
     container_name: learningcenter_app
     restart: unless-stopped
     ports:
+      - "80:80"
+      - "8080:8080"
       - "443:443"
       - "443:443/udp"  # HTTP/3
-    environment:
-      # Application
-      - APP_NAME=LearningCenter
-      - APP_ENV=production
-      - APP_KEY=${APP_KEY}  # Inject from external secrets
-      - APP_DEBUG=false
-      - APP_URL=${APP_URL}
-      
-      # Database (External PostgreSQL Cluster)
-      - DB_CONNECTION=pgsql
-      - DB_HOST=${DB_HOST}  # External PostgreSQL cluster host
-      - DB_PORT=${DB_PORT:-5432}
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      
-      # Cache & Session
-      - CACHE_STORE=redis
-      - SESSION_DRIVER=redis
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      
-      # Queue
-      - QUEUE_CONNECTION=redis
-      
-      # Mail
-      - MAIL_MAILER=smtp
-      - MAIL_HOST=${MAIL_HOST}
-      - MAIL_PORT=${MAIL_PORT}
-      - MAIL_USERNAME=${MAIL_USERNAME}
-      - MAIL_PASSWORD=${MAIL_PASSWORD}
-      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
-      
-      # Storage
-      - FILESYSTEM_DISK=s3
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
-      - AWS_BUCKET=${AWS_BUCKET}
-      
-      # Caddy Admin (disabled by default for security)
-      - CADDY_ADMIN_ENABLED=false
-      - CADDY_API_URL=http://localhost:2019
-      - CADDY_API_TIMEOUT=30
-      
-      # Security
-      - TRUSTED_PROXIES=*
-      - TRUSTED_HOSTS=${TRUSTED_HOSTS}
+      - "2019:2019"
+    env_file:
+      - .env.production
     volumes:
       - app_storage:/app/storage
       - ./etc/frankenphp/Caddyfile:/etc/frankenphp/Caddyfile:ro
@@ -94,6 +51,8 @@ services:
       - redis_data:/data
     networks:
       - app_network
+    env_file:
+      - .env.production
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
@@ -109,43 +68,43 @@ services:
           cpus: '0.1'
 
   # Optional: Queue worker (uncomment if using queues)
-  # queue:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.frankenphp.improved
-  #     target: app
-  #   container_name: learningcenter_queue
-  #   restart: unless-stopped
-  #   command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
-  #   environment:
-  #     # Same environment variables as app service
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #   networks:
-  #     - app_network
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 512M
-  #         cpus: '0.5'
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile.frankenphp.improved
+      target: app
+    container_name: learningcenter_queue
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    env_file:
+      - .env.production
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
   # Optional: Scheduler (uncomment if using scheduled tasks)
-  # scheduler:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.frankenphp.improved
-  #     target: app
-  #   container_name: learningcenter_scheduler
-  #   restart: unless-stopped
-  #   command: php artisan schedule:work
-  #   environment:
-  #     # Same environment variables as app service
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #   networks:
-  #     - app_network
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.frankenphp.improved
+      target: app
+    container_name: learningcenter_scheduler
+    restart: unless-stopped
+    command: php artisan schedule:work
+    env_file:
+      - .env.production
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app_network
 
 volumes:
   redis_data:
