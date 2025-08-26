@@ -79,7 +79,6 @@ services:
     env_file:
       - .env.production
     depends_on:
-      - postgres
       - redis
     networks:
       - app_network
@@ -101,7 +100,6 @@ services:
     env_file:
       - .env.production
     depends_on:
-      - postgres
       - redis
     networks:
       - app_network
