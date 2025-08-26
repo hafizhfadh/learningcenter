@@ -68,41 +68,41 @@ services:
           cpus: '0.1'
 
   # Optional: Queue worker (uncomment if using queues)
-  queue:
-    build:
-      context: .
-      dockerfile: Dockerfile.frankenphp.improved
-      target: app
-    container_name: learningcenter_queue
-    restart: unless-stopped
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
-    env_file:
-      - .env.production
-    depends_on:
-      - redis
-    networks:
-      - app_network
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
+  # queue:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.frankenphp.improved
+  #     target: app
+  #   container_name: learningcenter_queue
+  #   restart: unless-stopped
+  #   command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+  #   env_file:
+  #     - .env.production
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - app_network
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #         cpus: '0.5'
 
   # Optional: Scheduler (uncomment if using scheduled tasks)
-  scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile.frankenphp.improved
-      target: app
-    container_name: learningcenter_scheduler
-    restart: unless-stopped
-    command: php artisan schedule:work
-    env_file:
-      - .env.production
-    depends_on:
-      - redis
-    networks:
-      - app_network
+  # scheduler:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.frankenphp.improved
+  #     target: app
+  #   container_name: learningcenter_scheduler
+  #   restart: unless-stopped
+  #   command: php artisan schedule:work
+  #   env_file:
+  #     - .env.production
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - app_network
 
 volumes:
   redis_data:
