@@ -7,6 +7,11 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+export HOME="${HOME:-/tmp}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-/tmp}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-/tmp}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-/tmp}"
+
 echo -e "${GREEN}🚀 Starting Laravel application with FrankenPHP...${NC}"
 
 # Function to check if required environment variables are set
@@ -78,19 +83,16 @@ wait_for_db() {
         echo -e "${YELLOW}SSL Mode: ${DB_SSLMODE:-prefer}${NC}"
         
         # Test with more detailed error output
-        if php artisan tinker --execute="
-            try {
-                \$pdo = DB::connection()->getPdo();
-                echo 'Database connected successfully';
-                echo 'Server version: ' . \$pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
-            } catch (Exception \$e) {
-                echo 'Connection failed: ' . \$e->getMessage();
-                throw \$e;
-            }
-        " 2>&1; then
-            echo -e "${GREEN}✅ PostgreSQL cluster connection established${NC}"
+        if php -r "
+            require 'vendor/autoload.php';
+            \$app = require 'bootstrap/app.php';
+            \$app->make(Illuminate\Contracts\Console\Kernel::class);
+            \$app['db']->connection()->getPdo();
+        "; then
+            echo '✅ PostgreSQL cluster connection established';
             return 0
         fi
+
         
         sleep 3
         ((attempt++))
