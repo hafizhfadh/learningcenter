@@ -6,6 +6,9 @@
     # Enable automatic HTTPS for production
     auto_https on
 
+    # Email for Let's Encrypt certificate registration
+    email {$ACME_EMAIL:firman@csi-edu.id}
+
     # Disable admin API for production security
     admin off
 
