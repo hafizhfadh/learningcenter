@@ -5,11 +5,14 @@
 
     # Enable HTTP/1.1, HTTP/2 and HTTP/3
     servers {
-        protocols h1 h2 h3  # note the plural “protocols”:contentReference[oaicite:1]{index=1}
+        protocols h1 h2 h3
     }
 
     # Disable the admin API in production for security
-    admin off
+    admin 127.0.0.1:2019 {
+        origins zVBoj60EVeFdtddhxfvp2cM=
+        enforce_origin
+    }
 
     # Structured JSON logging to stdout (Docker-friendly)
     log {
@@ -17,6 +20,8 @@
         format json
         level info
     }
+
+	email hafizhfadh@gmail.com
 }
 
 # Main site (use your domain here; no http:// or https://)

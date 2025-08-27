@@ -1,510 +1,594 @@
-# Laravel Learning Center - Production Deployment Guide
+# Production Deployment Guide
+
+Comprehensive guide for deploying Laravel Learning Center to production with external PostgreSQL clusters, GitHub Container Registry, and Docker.
 
 ## 🏗️ Architecture Overview
 
-This Laravel application is designed for production deployment with:
-- **Backend**: Laravel 12 with PostgreSQL (external cluster)
-- **Admin**: Filament 4 admin panel
-- **Runtime**: FrankenPHP with Octane for high performance
-- **Caching**: Redis for sessions and application cache
-- **Proxy**: Caddy for HTTPS, HTTP/3, and load balancing
-- **Containerization**: Docker with multi-stage builds
+The Laravel Learning Center is designed for production deployment with:
+- **External PostgreSQL cluster** (managed database service)
+- **Docker containerization** with FrankenPHP
+- **GitHub Container Registry** for image distribution
+- **Caddy web server** with automatic HTTPS
+- **Redis** for caching and sessions
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Production Environment                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────┐    ┌─────────────────┐                 │
-│  │   Laravel App   │    │     Redis       │                 │
-│  │  (FrankenPHP)   │    │   (Container)   │                 │
-│  │   (Container)   │    │                 │                 │
-│  └─────────────────┘    └─────────────────┘                 │
-│           │                                                 │
-│           │ (External Network)                              │
-│           ▼                                                 │
-│  ┌──────────────────────────────────────────────────────────┤
-│  │            External PostgreSQL Cluster                   │
-│  │                                                          │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │
-│  │  │   Primary   │  │  Replica 1  │  │  Replica 2  │       │
-│  │  │   Server    │  │   Server    │  │   Server    │       │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘       │
-│  └──────────────────────────────────────────────────────────┤
-└─────────────────────────────────────────────────────────────┘
-```
+## 🚀 Quick Deployment
 
-## 🚨 Database Connectivity Issue Resolution
+### Prerequisites
 
-### Problem
-The Docker container cannot connect to the external PostgreSQL cluster, despite the host machine being able to connect with the same credentials. This is a **Docker networking issue**.
+1. **Server Requirements**
+   - Docker and Docker Compose installed
+   - Minimum 2GB RAM, 2 CPU cores
+   - 20GB+ disk space
+   - Ports 80, 443 open for web traffic
 
-### Root Cause
-Docker containers run in an isolated network namespace. When connecting to external services, the container needs proper network configuration to reach external hosts.
+2. **External Services**
+   - PostgreSQL cluster (managed service recommended)
+   - GitHub Personal Access Token for GHCR
+   - Domain name with DNS configured
 
-### Solution
-The issue is resolved by configuring Docker to use the host network for database connections while maintaining container isolation for other services.
+### Environment Setup
 
-## 🔧 Prerequisites
-
-### System Requirements
-- Ubuntu 24.04 LTS (or compatible Linux distribution)
-- Docker Engine 24.0+
-- Docker Compose V2
-- Minimum 2GB RAM, 20GB disk space
-- Network connectivity to PostgreSQL cluster
-
-### PostgreSQL Cluster Requirements
-- PostgreSQL 14+ with SSL/TLS enabled
-- Dedicated database and user for the application
-- Network accessibility from deployment server
-- Firewall rules allowing connections on PostgreSQL port
-
-### Installation Commands
 ```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
+# Required PostgreSQL Cluster Variables
+export DB_HOST="your-cluster-host.example.com"
+export DB_PORT="5432"
+export DB_DATABASE="learningcenter_production"
+export DB_USERNAME="laravel_user"
+export DB_PASSWORD="your_secure_password"
+export DB_SSLMODE="require"
 
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $USER
+# GitHub Container Registry
+export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
+export GITHUB_REPOSITORY_OWNER="your-username"
+export APP_NAME="learningcenter"
+export IMAGE_NAME="learningcenter"
 
-# Install Docker Compose V2 (if not included)
-sudo apt install docker-compose-plugin
-
-# Install PostgreSQL client tools
-sudo apt install postgresql-client-common postgresql-client
-
-# Logout and login to apply docker group membership
+# Application
+export APP_KEY="base64:$(openssl rand -base64 32)"
+export APP_URL="https://your-domain.com"
+export REDIS_PASSWORD="$(openssl rand -base64 32)"
 ```
 
-## 📋 Database Setup
+### Deployment Commands
 
-### 1. Create Database and User
-```sql
--- Connect to PostgreSQL cluster as superuser
-psql -h your-cluster-host.example.com -U postgres
+```bash
+# Test database connectivity
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT version();"
 
--- Create database
-CREATE DATABASE learningcenter;
+# Deploy with GHCR upload
+./scripts/deploy-production.sh v1.0.0 --push-to-ghcr
 
--- Create application user
-CREATE USER learningcenter_user WITH PASSWORD 'your_secure_password';
+# Or deploy without GHCR
+./scripts/deploy-production.sh v1.0.0
 
--- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE learningcenter TO learningcenter_user;
-GRANT ALL ON SCHEMA public TO learningcenter_user;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO learningcenter_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO learningcenter_user;
+# Manual deployment
+docker-compose -f docker-compose.production.yml up -d
+```
 
--- Enable required extensions
-\c learningcenter
+## 🐳 Docker Configuration
+
+### Key Files
+
+| File | Purpose | Description |
+|------|---------|-------------|
+| `Dockerfile.frankenphp.improved` | Application container | Multi-stage build with security optimizations |
+| `docker-compose.production.yml` | Orchestration | Production container orchestration |
+| `docker/startup.sh` | Runtime initialization | Database connectivity and Laravel setup |
+| `.env.production.example` | Environment template | Production environment variables |
+
+### Container Features
+
+- **Multi-stage build** for optimized image size
+- **Non-root user** execution for security
+- **Health checks** for container monitoring
+- **Graceful shutdown** handling
+- **PostgreSQL client tools** for database operations
+- **Security options** enabled
+
+## 🗄️ External PostgreSQL Setup
+
+### Database Configuration
+
+```bash
+# Create database and user
+CREATE DATABASE learningcenter_production;
+CREATE USER laravel_user WITH PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE learningcenter_production TO laravel_user;
+
+# Enable required extensions
+\c learningcenter_production;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 ```
 
-### 2. Test Connectivity
-```bash
-# Test from deployment server
-PGPASSWORD="your_password" psql -h 10.53.149.111 -p 6435 -U learningcenter_user -d learningcenter -c "SELECT version();"
-```
-
-## ⚙️ Environment Configuration
-
-### 1. Clone Repository
-```bash
-# Clone to deployment directory
-sudo mkdir -p /srv/learningcenter
-sudo chown $USER:$USER /srv/learningcenter
-cd /srv/learningcenter
-git clone https://github.com/your-org/learningcenter.git .
-```
-
-### 2. Configure Environment
-The `.env.production` file is already configured with the correct settings:
+### Connection Testing
 
 ```bash
-# Application
-APP_NAME=LearningCenter
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://learning.csi-academy.id
-
-# Database (External PostgreSQL Cluster)
-DB_CONNECTION=pgsql
-DB_HOST=10.53.149.111
-DB_PORT=6435
-DB_DATABASE=learningcenter
-DB_USERNAME=learningcenter_user
-DB_PASSWORD=CS1edu_1!1#
-
-# Redis (Container)
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
-# Caching
-CACHE_STORE=redis
-SESSION_DRIVER=redis
-
-# Logging
-LOG_LEVEL=error
-LOG_CHANNEL=stack
-```
-
-## 🚀 Deployment Process
-
-### Option 1: Automated Deployment (Recommended)
-```bash
-# Navigate to project directory
-cd /srv/learningcenter
-
-# Make deployment script executable
-chmod +x scripts/deploy-production.sh
-chmod +x deploy.sh
-
-# Run deployment
-./deploy.sh v1.0.0
-```
-
-### Option 2: Manual Deployment
-```bash
-# Load environment variables
-set -a
-source .env.production
-set +a
-
-# Run deployment script
-./scripts/deploy-production.sh v1.0.0
-```
-
-### Option 3: Step-by-Step Manual Deployment
-```bash
-# 1. Test PostgreSQL connectivity
+# Test connectivity
 PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT 1;"
 
-# 2. Build Docker image
-docker build -f Dockerfile.frankenphp.improved -t learningcenter:latest .
-
-# 3. Deploy with Docker Compose
-docker compose --env-file .env.production -f docker-compose.production.yml up -d
-
-# 4. Wait for containers to be healthy
-docker compose -f docker-compose.production.yml ps
-
-# 5. Check application logs
-docker compose -f docker-compose.production.yml logs -f app
+# Test SSL connection
+psql "postgresql://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_DATABASE?sslmode=$DB_SSLMODE"
 ```
 
-## 🔍 Docker Networking Fix
+### Required Environment Variables
 
-### Problem Resolution
-The Docker networking issue is resolved by ensuring the container can reach external hosts. The current configuration uses a bridge network with proper DNS resolution.
-
-### Network Configuration
-```yaml
-# docker-compose.production.yml
-networks:
-  app_network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-```
-
-### Additional Network Troubleshooting
-If connectivity issues persist, try these solutions:
-
-#### Solution 1: Use Host Network (Temporary)
-```yaml
-# Add to app service in docker-compose.production.yml
-services:
-  app:
-    network_mode: host
-    # Remove ports section when using host network
-```
-
-#### Solution 2: Add External Network Access
-```yaml
-# Add to docker-compose.production.yml
-services:
-  app:
-    extra_hosts:
-      - "postgres-cluster:10.53.149.111"
-```
-
-#### Solution 3: Custom DNS Configuration
-```yaml
-# Add to app service
-services:
-  app:
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
-```
-
-## 🏥 Health Checks and Monitoring
-
-### Application Health Check
 ```bash
-# Check application health
-curl -f https://learning.csi-academy.id/health
+DB_CONNECTION=pgsql
+DB_HOST=your-cluster-host.example.com
+DB_PORT=5432
+DB_DATABASE=learningcenter_production
+DB_USERNAME=laravel_user
+DB_PASSWORD=your_secure_password
+DB_SSLMODE=require
+```
 
-# Expected response:
+## 📦 GitHub Container Registry (GHCR)
+
+### Setup
+
+1. **Create GitHub Personal Access Token**
+   - Go to GitHub Settings → Developer settings → Personal access tokens
+   - Create token with `write:packages` and `read:packages` permissions
+
+2. **Configure Environment**
+   ```bash
+   export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
+   export GITHUB_REPOSITORY_OWNER="your-username"
+   ```
+
+### Usage
+
+```bash
+# Login to GHCR
+echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_REPOSITORY_OWNER --password-stdin
+
+# Deploy with GHCR upload
+./scripts/deploy-production.sh v1.0.0 --push-to-ghcr
+
+# Pull image from GHCR
+docker pull ghcr.io/$GITHUB_REPOSITORY_OWNER/learningcenter:v1.0.0
+```
+
+### Image Naming Convention
+
+```
+ghcr.io/{owner}/{repository}:{version}
+```
+
+Examples:
+- `ghcr.io/your-username/learningcenter:v1.0.0`
+- `ghcr.io/your-username/learningcenter:latest`
+- `ghcr.io/your-username/learningcenter:dev-20240115`
+
+## 🔧 Configuration Files
+
+### docker-compose.production.yml
+
+```yaml
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.frankenphp.improved
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - APP_ENV=production
+      - DB_HOST=${DB_HOST}
+      - DB_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - storage_data:/var/www/html/storage
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  storage_data:
+  redis_data:
+```
+
+### Caddyfile
+
+```
 {
-  "status": "ok",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "app": "LearningCenter",
-  "version": "1.0.0"
+    email your-email@example.com
+    admin off
+}
+
+your-domain.com {
+    root * /var/www/html/public
+    encode gzip
+    php_fastcgi unix//var/run/php/php-fpm.sock
+    file_server
 }
 ```
 
-### Container Health Monitoring
+## 🔍 Health Checks and Monitoring
+
+### Application Health
+
 ```bash
-# Check container status
-docker compose -f docker-compose.production.yml ps
+# Health endpoint
+curl -f https://your-domain.com/health
 
-# View application logs
-docker compose -f docker-compose.production.yml logs -f app
+# Container status
+docker-compose -f docker-compose.production.yml ps
 
-# View Redis logs
-docker compose -f docker-compose.production.yml logs -f redis
-
-# Check resource usage
-docker stats
+# Application logs
+docker-compose -f docker-compose.production.yml logs -f app
 ```
 
-### Database Connectivity Test
-```bash
-# Test from container
-docker compose -f docker-compose.production.yml exec app php artisan tinker --execute="DB::connection()->getPdo(); echo 'Connected successfully';"
+### Database Monitoring
 
-# Check migration status
-docker compose -f docker-compose.production.yml exec app php artisan migrate:status
+```bash
+# Database connectivity from container
+docker-compose -f docker-compose.production.yml exec app php artisan tinker
+# In tinker: DB::connection()->getPdo();
+
+# Database performance
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "
+  SELECT query, calls, total_time, mean_time 
+  FROM pg_stat_statements 
+  ORDER BY total_time DESC 
+  LIMIT 10;"
 ```
 
-## 🛠️ Troubleshooting Guide
+### Container Monitoring
+
+```bash
+# Resource usage
+docker stats --no-stream
+
+# Disk usage
+docker system df
+
+# Network status
+docker network ls
+```
+
+## 🚨 Troubleshooting Guide
 
 ### Database Connection Issues
 
-#### Error: "Connection refused"
+**Symptom: Connection Refused**
 ```bash
-# Check if PostgreSQL cluster is accessible from host
-telnet 10.53.149.111 6435
+# Check network connectivity
+telnet $DB_HOST $DB_PORT
 
-# Test PostgreSQL connection from host
-PGPASSWORD="CS1edu_1!1#" psql -h 10.53.149.111 -p 6435 -U learningcenter_user -d learningcenter -c "SELECT 1;"
+# Verify firewall rules
+sudo ufw status
+sudo iptables -L -n
 
-# If host connection works but container fails, apply network fixes above
+# Test from container
+docker-compose exec app psql -h $DB_HOST -p $DB_PORT -U $DB_USERNAME -d $DB_DATABASE
 ```
 
-#### Error: "Authentication failed"
+**Symptom: Authentication Failed**
 ```bash
-# Verify credentials in .env.production
-grep -E "^DB_" .env.production
+# Verify credentials
+echo "Host: $DB_HOST"
+echo "Username: $DB_USERNAME"
+echo "Database: $DB_DATABASE"
 
-# Test credentials manually
-PGPASSWORD="CS1edu_1!1#" psql -h 10.53.149.111 -p 6435 -U learningcenter_user -d learningcenter
+# Test credentials
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT current_user;"
 ```
 
-#### Error: "SSL connection failed"
+**Symptom: SSL Connection Failed**
 ```bash
-# Add SSL mode to .env.production
-echo "DB_SSLMODE=require" >> .env.production
+# Check SSL mode
+echo "SSL Mode: $DB_SSLMODE"
 
-# Or disable SSL for testing (not recommended for production)
-echo "DB_SSLMODE=disable" >> .env.production
+# Test SSL connection
+psql "postgresql://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_DATABASE?sslmode=require"
 ```
 
-### Container Issues
+### Docker Container Issues
 
-#### Container Won't Start
+**Container Won't Start**
 ```bash
-# Check Docker daemon
-sudo systemctl status docker
-
-# Check available resources
-df -h
-free -h
-
 # Check container logs
-docker compose -f docker-compose.production.yml logs app
+docker-compose logs app
+
+# Check resource usage
+docker stats
+
+# Rebuild container
+docker-compose down
+docker-compose up -d --build
 ```
 
-#### Application Not Responding
+**Container Not Responding**
 ```bash
-# Check if FrankenPHP is running
-docker compose -f docker-compose.production.yml exec app ps aux | grep frankenphp
+# Check health status
+docker-compose ps
 
-# Restart application
-docker compose -f docker-compose.production.yml restart app
+# Access container shell
+docker-compose exec app bash
 
-# Check Caddy configuration
-docker compose -f docker-compose.production.yml exec app cat /etc/frankenphp/Caddyfile
+# Check processes
+docker-compose exec app ps aux
 ```
 
-### Performance Issues
+### Network Configuration Issues
 
-#### High Memory Usage
+**DNS Resolution Failures**
 ```bash
-# Check memory limits
-docker compose -f docker-compose.production.yml config
+# Test DNS resolution
+nslookup $DB_HOST
+dig $DB_HOST @8.8.8.8
 
-# Monitor resource usage
-docker stats learningcenter_app
-
-# Optimize Laravel
-docker compose -f docker-compose.production.yml exec app php artisan optimize
+# Check /etc/hosts
+docker-compose exec app cat /etc/hosts
 ```
 
-#### Slow Database Queries
+**Port Access Issues**
 ```bash
-# Enable query logging (temporarily)
-docker compose -f docker-compose.production.yml exec app php artisan tinker --execute="DB::enableQueryLog();"
+# Check port binding
+sudo netstat -tlnp | grep -E ':(80|443)'
 
-# Check slow query log on PostgreSQL cluster
-# (This requires access to the PostgreSQL cluster logs)
+# Test local connectivity
+curl -I http://localhost/
+curl -I -k https://localhost/
+```
+
+### GHCR Issues
+
+**Authentication Failed**
+```bash
+# Verify token permissions
+curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user
+
+# Re-login to GHCR
+docker logout ghcr.io
+echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_REPOSITORY_OWNER --password-stdin
+```
+
+**Image Push/Pull Failed**
+```bash
+# Check repository name
+echo $GITHUB_REPOSITORY_OWNER
+echo $IMAGE_NAME
+
+# Verify image exists locally
+docker images | grep learningcenter
+
+# Check package visibility in GitHub
+# Go to GitHub → Your Repository → Packages
 ```
 
 ## 🔒 Security Considerations
 
 ### Environment Variables
-- Never commit `.env.production` to version control
-- Use strong, randomly generated passwords
-- Rotate secrets regularly
+- Never commit secrets to version control
+- Use environment-specific configurations
+- Rotate passwords and tokens regularly
+- Use GitHub Actions secrets for CI/CD
 
 ### Network Security
-- Ensure PostgreSQL cluster has proper firewall rules
-- Use SSL/TLS for database connections
-- Limit container network access
+- Enable firewall rules for required ports only
+- Use SSL/TLS for all database connections
+- Configure proper security groups in cloud providers
+- Enable HTTPS with automatic certificate management
 
 ### Container Security
-- Run containers as non-root user (already configured)
-- Keep base images updated
+- Run containers as non-root user
+- Enable security options (`no-new-privileges:true`)
 - Scan images for vulnerabilities
+- Keep base images updated
+- Remove development tools from production images
 
-## 📊 Performance Optimization
+### Database Security
+- Use strong passwords
+- Enable SSL/TLS connections
+- Restrict database access by IP
+- Regular security updates
+- Monitor access logs
 
-### Laravel Optimizations
+## ⚡ Performance Optimization
+
+### Laravel Optimization
+
 ```bash
-# Run inside container
-docker compose -f docker-compose.production.yml exec app php artisan optimize
-docker compose -f docker-compose.production.yml exec app php artisan config:cache
-docker compose -f docker-compose.production.yml exec app php artisan route:cache
-docker compose -f docker-compose.production.yml exec app php artisan view:cache
+# Cache configuration
+docker-compose exec app php artisan config:cache
+
+# Cache routes
+docker-compose exec app php artisan route:cache
+
+# Cache views
+docker-compose exec app php artisan view:cache
+
+# Optimize autoloader
+docker-compose exec app composer install --optimize-autoloader --no-dev
 ```
 
-### Database Optimizations
-- Ensure proper indexes on frequently queried columns
-- Use connection pooling on PostgreSQL cluster
-- Monitor query performance
+### Database Optimization
+
+```bash
+# Create indexes for better performance
+CREATE INDEX CONCURRENTLY idx_users_email ON users(email);
+CREATE INDEX CONCURRENTLY idx_posts_created_at ON posts(created_at);
+
+# Analyze tables for query optimization
+ANALYZE;
+
+# Monitor slow queries
+SELECT query, calls, total_time, mean_time 
+FROM pg_stat_statements 
+ORDER BY total_time DESC 
+LIMIT 10;
+```
 
 ### Caching Strategy
-- Redis for session storage
-- Application cache for computed data
-- HTTP caching via Caddy
 
-## 🔄 Maintenance and Updates
+```bash
+# Redis configuration
+REDIS_HOST=redis
+REDIS_PASSWORD=secure_redis_password
+REDIS_PORT=6379
+REDIS_DB=0
+
+# Cache driver
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+```
+
+## 🔄 Backup and Recovery
+
+### Database Backup
+
+```bash
+# Create backup
+PGPASSWORD="$DB_PASSWORD" pg_dump \
+  -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" \
+  > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restore backup
+PGPASSWORD="$DB_PASSWORD" psql \
+  -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" \
+  < backup_file.sql
+```
+
+### Application Backup
+
+```bash
+# Backup storage directory
+tar -czf storage_backup_$(date +%Y%m%d).tar.gz storage/
+
+# Backup environment
+cp .env.production .env.backup.$(date +%Y%m%d)
+```
+
+## 🔧 Maintenance and Updates
 
 ### Application Updates
+
 ```bash
 # Pull latest code
 git pull origin main
 
-# Deploy new version
-./deploy.sh v1.1.0
+# Rebuild and deploy
+./scripts/deploy-production.sh v1.1.0 --push-to-ghcr
+
+# Run migrations
+docker-compose exec app php artisan migrate
+```
+
+### Container Updates
+
+```bash
+# Update base images
+docker-compose pull
+
+# Rebuild with latest dependencies
+docker-compose up -d --build
+
+# Clean up old images
+docker image prune -f
 ```
 
 ### Database Maintenance
-```bash
-# Create backup
-PGPASSWORD="CS1edu_1!1#" pg_dump -h 10.53.149.111 -p 6435 -U learningcenter_user learningcenter > backup_$(date +%Y%m%d).sql
 
-# Run migrations
-docker compose -f docker-compose.production.yml exec app php artisan migrate
+```bash
+# Update statistics
+ANALYZE;
+
+# Vacuum tables
+VACUUM ANALYZE;
+
+# Check database size
+SELECT pg_size_pretty(pg_database_size('learningcenter_production'));
 ```
 
-### Container Maintenance
-```bash
-# Update base images
-docker compose -f docker-compose.production.yml pull
-
-# Clean up unused images
-docker system prune -f
-
-# Restart services
-docker compose -f docker-compose.production.yml restart
-```
-
-## 📞 Support and Troubleshooting
+## 📞 Support and Emergency Procedures
 
 ### Log Locations
-- Application logs: `docker compose -f docker-compose.production.yml logs app`
-- Redis logs: `docker compose -f docker-compose.production.yml logs redis`
-- System logs: `/var/log/syslog`
+
+```bash
+# Application logs
+docker-compose logs app
+
+# Laravel logs
+docker-compose exec app tail -f storage/logs/laravel.log
+
+# Web server logs
+docker-compose exec app tail -f /var/log/caddy/access.log
+
+# Database logs (if accessible)
+tail -f /var/log/postgresql/postgresql.log
+```
 
 ### Common Commands
+
 ```bash
-# View all container status
-docker compose -f docker-compose.production.yml ps
+# Restart application
+docker-compose restart app
 
-# Access application shell
-docker compose -f docker-compose.production.yml exec app bash
+# Clear application cache
+docker-compose exec app php artisan cache:clear
 
-# Run Laravel commands
-docker compose -f docker-compose.production.yml exec app php artisan <command>
+# Run database migrations
+docker-compose exec app php artisan migrate
 
-# Stop all services
-docker compose -f docker-compose.production.yml down
-
-# Start all services
-docker compose -f docker-compose.production.yml up -d
+# Check application status
+curl -f https://your-domain.com/health
 ```
 
 ### Emergency Procedures
 
-#### Complete System Recovery
-```bash
-# Stop all containers
-docker compose -f docker-compose.production.yml down
+**Application Down**
+1. Check container status: `docker-compose ps`
+2. Check logs: `docker-compose logs app`
+3. Restart containers: `docker-compose restart`
+4. If persistent, rollback: `docker pull ghcr.io/user/learningcenter:previous-version`
 
-# Remove all containers and volumes (DESTRUCTIVE)
-docker system prune -a --volumes
+**Database Issues**
+1. Test connectivity: `psql -h $DB_HOST -U $DB_USERNAME -d $DB_DATABASE`
+2. Check database status with provider
+3. Verify network connectivity
+4. Check SSL/TLS configuration
 
-# Redeploy from scratch
-./deploy.sh v1.0.0
-```
-
-#### Database Recovery
-```bash
-# Restore from backup
-PGPASSWORD="CS1edu_1!1#" psql -h 10.53.149.111 -p 6435 -U learningcenter_user learningcenter < backup_20240115.sql
-
-# Run migrations to ensure schema is current
-docker compose -f docker-compose.production.yml exec app php artisan migrate
-```
+**Performance Issues**
+1. Check resource usage: `docker stats`
+2. Monitor database performance
+3. Clear application caches
+4. Scale containers if needed
 
 ## 🎯 Success Criteria
 
-After successful deployment, verify:
+A successful deployment should have:
 
-1. ✅ Application accessible at https://learning.csi-academy.id
-2. ✅ Health check endpoint returns 200 OK
-3. ✅ Database connectivity from container works
-4. ✅ Redis caching functional
-5. ✅ SSL/HTTPS working correctly
-6. ✅ Admin panel accessible at /admin
-7. ✅ All container health checks passing
+- ✅ Application accessible via HTTPS
+- ✅ Database connectivity working
+- ✅ Redis caching functional
+- ✅ Health checks passing
+- ✅ SSL certificates auto-renewed
+- ✅ Logs properly configured
+- ✅ Backup procedures in place
+- ✅ Monitoring alerts configured
 
 ## 📚 Additional Resources
 
 - [Laravel Documentation](https://laravel.com/docs)
-- [FrankenPHP Documentation](https://frankenphp.dev/)
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
+- [Filament Documentation](https://filamentphp.com/docs)
+- [Docker Documentation](https://docs.docker.com/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Caddy Documentation](https://caddyserver.com/docs/)
+- [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
 
 ---
 
-**Note**: This deployment guide addresses the specific Docker networking issue where containers cannot connect to external PostgreSQL clusters. The solutions provided ensure reliable connectivity while maintaining security and performance.
+**For quick reference commands and troubleshooting, see the main [README.md](README.md)**

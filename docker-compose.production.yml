@@ -20,10 +20,10 @@ services:
     environment:
       HOME: /tmp
       XDG_CONFIG_HOME: /tmp
-      # Toggle Caddy admin API exposure (port 2019) as needed
-      CADDY_ADMIN_ENABLED: "true"
       OCTANE_HTTPS: "true"
       APP_ENV: production
+      CADDY_ADMIN_LISTEN: "127.0.0.1:2019"  # optional; matches our Caddyfile
+      CADDY_ADMIN_ORIGIN: ${CADDY_API_ORIGIN}
 
     # Persist application and logs
     volumes:

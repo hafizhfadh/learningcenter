@@ -10,12 +10,14 @@ use Illuminate\Support\Facades\Log;
 class CaddyService
 {
     private string $caddyApiUrl;
+    private string $origin;
     private int $timeout;
 
     public function __construct()
     {
         $this->caddyApiUrl = config('services.caddy.api_url', 'http://localhost:2019');
-        $this->timeout = config('services.caddy.timeout', 30);
+        $this->origin      = config('services.caddy.origin', 'myapp-admin-secret');
+        $this->timeout     = config('services.caddy.timeout', 30);
     }
 
     /**
@@ -25,9 +27,11 @@ class CaddyService
     {
         try {
             $config = $this->buildDomainConfig($domain);
-            
             $response = Http::timeout($this->timeout)
-                ->withHeaders(['Content-Type' => 'application/json'])
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Origin'       => $this->origin, // enforce_origin requirement
+                ])
                 ->post($this->caddyApiUrl . '/load', $config);
 
             if ($response->successful()) {
@@ -39,7 +43,7 @@ class CaddyService
                 'status' => $response->status(),
                 'body' => $response->body()
             ]);
-            
+
             return false;
         } catch (Exception $e) {
             Log::error("Exception adding domain {$domain} to Caddy: " . $e->getMessage());
@@ -55,14 +59,14 @@ class CaddyService
         try {
             // Get current configuration
             $currentConfig = $this->getCurrentConfig();
-            
+
             if (!$currentConfig) {
                 return false;
             }
 
             // Remove the domain from routes
             $updatedConfig = $this->removeDomainFromConfig($currentConfig, $domain);
-            
+
             $response = Http::timeout($this->timeout)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($this->caddyApiUrl . '/load', $updatedConfig);
@@ -76,7 +80,7 @@ class CaddyService
                 'status' => $response->status(),
                 'body' => $response->body()
             ]);
-            
+
             return false;
         } catch (Exception $e) {
             Log::error("Exception removing domain {$domain} from Caddy: " . $e->getMessage());
@@ -101,7 +105,7 @@ class CaddyService
                 'status' => $response->status(),
                 'body' => $response->body()
             ]);
-            
+
             return null;
         } catch (Exception $e) {
             Log::error('Exception getting Caddy configuration: ' . $e->getMessage());
@@ -182,14 +186,16 @@ class CaddyService
         $filteredRoutes = [];
 
         foreach ($routes as $route) {
-            if (isset($route['match'][0]['host']) && 
-                !in_array($domain, $route['match'][0]['host'])) {
+            if (
+                isset($route['match'][0]['host']) &&
+                !in_array($domain, $route['match'][0]['host'])
+            ) {
                 $filteredRoutes[] = $route;
             }
         }
 
         $config['apps']['http']['servers']['srv0']['routes'] = $filteredRoutes;
-        
+
         return $config;
     }
 
@@ -207,7 +213,7 @@ class CaddyService
     public function getConfiguredDomains(): array
     {
         $config = $this->getCurrentConfig();
-        
+
         if (!$config || !isset($config['apps']['http']['servers']['srv0']['routes'])) {
             return [];
         }

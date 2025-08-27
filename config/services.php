@@ -37,6 +37,7 @@ return [
 
     'caddy' => [
         'api_url' => env('CADDY_API_URL', 'http://localhost:2019'),
+        'origin'  => env('CADDY_API_ORIGIN', 'myapp-admin-secret'),
         'timeout' => env('CADDY_API_TIMEOUT', 30),
     ],
 

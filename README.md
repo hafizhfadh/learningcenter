@@ -1,51 +1,29 @@
 # Laravel Learning Center
 
-<p align="center">
-<a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a>
-</p>
+A modern learning management system built with Laravel 12, Filament 4, and FrankenPHP.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## 🚀 Features
 
-## 🎓 About Laravel Learning Center
+- **Modern Tech Stack**: Laravel 12, Filament 4, FrankenPHP, PostgreSQL
+- **Admin Panel**: Comprehensive admin interface with Filament 4
+- **High Performance**: FrankenPHP for optimal performance
+- **Containerized**: Docker-ready with production configurations
+- **Database**: PostgreSQL with optimized configurations
+- **Caching**: Redis for session and cache management
+- **Security**: Built-in security best practices
+- **GitHub Container Registry**: Automated image building and deployment
+- **External Database Support**: Compatible with managed PostgreSQL services
 
-Laravel Learning Center is a modern, production-ready educational platform built with Laravel 12, designed for high-performance learning management. The application features a robust admin panel powered by Filament 4 and is optimized for deployment with external PostgreSQL clusters.
+## 🛠️ Technology Stack
 
-### ✨ Key Features
-
-- **🚀 High Performance**: Built with FrankenPHP and Laravel Octane for maximum throughput
-- **🛡️ Security First**: Comprehensive authentication, authorization, and security measures
-- **📊 Admin Dashboard**: Powerful Filament 4 admin panel with advanced resource management
-- **🔄 Scalable Architecture**: Designed for horizontal scaling with external database clusters
-- **🐳 Container Ready**: Docker-optimized with multi-stage builds and production configurations
-- **📱 Modern UI**: Responsive design with Tailwind CSS v4 and Alpine.js
-- **🔍 Advanced Search**: Full-text search capabilities with PostgreSQL
-- **📈 Monitoring**: Built-in health checks and performance monitoring
-
-## 🏗️ Technology Stack
-
-### Backend
-- **Framework**: Laravel 12 (PHP 8.3+)
-- **Database**: PostgreSQL 14+ (External Cluster Support)
-- **Cache**: Redis for sessions and application caching
-- **Runtime**: FrankenPHP with Laravel Octane
-- **Admin Panel**: Filament 4 with advanced resources and widgets
-
-### Frontend
-- **CSS Framework**: Tailwind CSS v4
-- **JavaScript**: Alpine.js for micro-interactions
-- **Build Tool**: Vite for asset compilation
-- **Icons**: Heroicons and custom SVG icons
-
-### Infrastructure
-- **Containerization**: Docker with multi-stage builds
-- **Web Server**: Caddy with HTTP/3 and automatic HTTPS
-- **Orchestration**: Docker Compose for development and production
-- **Monitoring**: Built-in health checks and logging
+- **Backend**: Laravel 12
+- **Admin Panel**: Filament 4
+- **Web Server**: FrankenPHP (PHP + Caddy)
+- **Database**: PostgreSQL 16
+- **Cache**: Redis 7
+- **Containerization**: Docker & Docker Compose
+- **Process Manager**: Supervisor
+- **Container Registry**: GitHub Container Registry (GHCR)
 
 ## 🚀 Quick Start
 
@@ -216,12 +194,26 @@ php artisan test --parallel
 For detailed production deployment instructions, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ```bash
-# On your production server
-cd /srv/learningcenter
+# Set environment variables
+export GITHUB_TOKEN="your_github_token"
+export GITHUB_REPOSITORY_OWNER="your_username"
+export DB_HOST="your-postgres-cluster.example.com"
+export DB_PASSWORD="secure_password"
 
-# Configure .env.production with your settings
-# Run automated deployment
-./deploy.sh v1.0.0
+# Deploy with GHCR upload
+./scripts/deploy-production.sh v1.0.0 --push-to-ghcr
+
+# Or deploy without GHCR
+./scripts/deploy-production.sh v1.0.0
+```
+
+### External PostgreSQL Setup
+```bash
+# Test connectivity
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT version();"
+
+# Deploy
+docker-compose -f docker-compose.production.yml up -d
 ```
 
 ### Production Features
@@ -231,6 +223,103 @@ cd /srv/learningcenter
 - **📊 Monitoring**: Health checks, logging, and performance metrics
 - **🔄 Scalability**: Horizontal scaling with external PostgreSQL clusters
 - **🛡️ Reliability**: Automated backups and disaster recovery procedures
+
+## 🔧 Quick Reference Commands
+
+### Docker Commands
+```bash
+# Start development environment
+docker-compose up -d
+
+# View logs
+docker-compose logs -f app
+
+# Run artisan commands
+docker-compose exec app php artisan migrate
+
+# Access container shell
+docker-compose exec app bash
+```
+
+### GHCR Commands
+```bash
+# Login to GitHub Container Registry
+echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_REPOSITORY_OWNER --password-stdin
+
+# Pull image from GHCR
+docker pull ghcr.io/$GITHUB_REPOSITORY_OWNER/learningcenter:v1.0.0
+
+# Check deployment status
+docker-compose ps
+```
+
+### Health Checks
+```bash
+# Application health
+curl -f http://localhost:8080/health
+
+# Database connectivity
+psql -h $DB_HOST -p $DB_PORT -U $DB_USERNAME -d $DB_DATABASE -c "SELECT 1;"
+
+# Redis connectivity
+redis-cli -h redis -p 6379 -a $REDIS_PASSWORD ping
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+**Database Connection Issues**
+```bash
+# Test database connection
+psql -h $DB_HOST -p $DB_PORT -U $DB_USERNAME -d $DB_DATABASE -c "\l"
+
+# Check SSL requirements
+psql "postgresql://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_DATABASE?sslmode=$DB_SSLMODE"
+```
+
+**Docker Issues**
+```bash
+# Rebuild containers
+docker-compose down
+docker-compose up -d --build
+
+# Clean up Docker resources
+docker system prune -f
+```
+
+**GHCR Authentication Issues**
+```bash
+# Test GitHub token
+curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user
+
+# Re-login to GHCR
+docker logout ghcr.io
+echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_REPOSITORY_OWNER --password-stdin
+```
+
+### Performance Optimization
+
+**Laravel Optimization**
+```bash
+# Clear and cache config
+docker-compose exec app php artisan config:cache
+
+# Clear and cache routes
+docker-compose exec app php artisan route:cache
+
+# Clear and cache views
+docker-compose exec app php artisan view:cache
+```
+
+**Docker Optimization**
+```bash
+# Clean up unused images
+docker image prune -f
+
+# Clean up unused volumes
+docker volume prune -f
+```
 
 ## 🤝 Contributing
 
