@@ -1,146 +1,48 @@
 {
-	# Global options for production
-	http_port 80
-	https_port 443
+    # Global options
+    http_port 80
+    https_port 443
 
-	# Email for Lets Encrypt certificate registration
-	email {$ACME_EMAIL:firman@csi-edu.id}
+    # Enable HTTP/1.1, HTTP/2 and HTTP/3
+    servers {
+        protocols h1 h2 h3  # note the plural “protocols”:contentReference[oaicite:1]{index=1}
+    }
 
-	# Disable admin API for production security
-	admin off
+    # Disable the admin API in production for security
+    admin off
 
-	# Production logging
-	log {
-		output stdout
-		format json
-		level INFO
-	}
-
-	# Enable HTTP/3 for better performance
-	servers {
-		protocol {
-			experimental_http3
-		}
-	}
+    # Structured JSON logging to stdout (Docker-friendly)
+    log {
+        output stdout
+        format json
+        level info
+    }
 }
 
-# Production site with HTTPS
-{$APP_URL:learning.csi-academy.id} {
-	# Enable compression with multiple algorithms
-	encode {
-		gzip
-		zstd
-		minimum_length 1000
-	}
+# Main site (use your domain here; no http:// or https://)
+learning.csi-academy.id {
+    # Compress responses
+    encode zstd gzip
 
-	# Security headers
-	header {
-		# HSTS
-		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-		# XSS Protection
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
-		X-XSS-Protection "1; mode=block"
-		# CSP (adjust as needed for your app)
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';"
-		# Referrer Policy
-		Referrer-Policy "strict-origin-when-cross-origin"
-		# Remove server info
-		-Server
-		-X-Powered-By
-	}
+    # Serve static assets with long caching
+    @assets {
+        path *.ico *.css *.js *.png *.jpg *.jpeg *.svg *.webp *.gif *.woff *.woff2 *.ttf *.eot *.otf
+        path /build/* /assets/*
+    }
+    handle @assets {
+        root * /app/public
+        file_server
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
 
-	# Health check endpoint
-	handle /health {
-		respond "OK" 200
-	}
+    # Fallback to Laravel (FrankenPHP handles PHP)
+    handle {
+        root * /app/public
+        try_files {path} {path}/ /index.php?{query}
+        php {
+            root /app/public
+        }
+    }
 
-	# Static files with aggressive caching
-	@static {
-		path /build/* /assets/* /css/* /js/* /fonts/* *.ico *.css *.js *.png *.jpg *.jpeg *.svg *.webp *.gif *.woff *.woff2 *.ttf *.eot *.otf
-	}
-	handle @static {
-		root * /app/public
-		file_server {
-			precompressed br gzip
-		}
-		header Cache-Control "public, max-age=31536000, immutable"
-		header Vary "Accept-Encoding"
-	}
-
-	# API routes with shorter cache
-	@api {
-		path /api/*
-	}
-	handle @api {
-		root * /app/public
-		try_files {path} {path}/ /index.php?{query}
-		php {
-			root /app/public
-		}
-		header Cache-Control "no-cache, no-store, must-revalidate"
-	}
-
-	# Laravel front controller
-	handle {
-		root * /app/public
-		try_files {path} {path}/ /index.php?{query}
-		php {
-			root /app/public
-		}
-		# Cache control for dynamic content
-		header Cache-Control "no-cache, no-store, must-revalidate"
-	}
-
-	# Rate limiting (adjust as needed)
-	rate_limit {
-		zone dynamic {
-			key {remote_host}
-			events 100
-			window 1m
-		}
-	}
-}
-
-# HTTP to HTTPS redirect
-http://{$APP_URL:learning.csi-academy.id} {
-	redir https://{host}{uri} permanent
-}
-
-# Local development fallback (when DOMAIN is not set)
-localhost {
-	# Use self-signed certificate for local HTTPS
-	tls internal
-
-	encode gzip
-
-	# Security headers (relaxed for development)
-	header {
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "SAMEORIGIN"
-		-Server
-		-X-Powered-By
-	}
-
-	# Health check
-	handle /health {
-		respond "OK" 200
-	}
-
-	@static {
-		path /build/* /assets/* /css/* /js/* /fonts/* *.ico *.css *.js *.png *.jpg *.jpeg *.svg *.webp *.gif *.woff *.woff2 *.ttf *.eot *.otf
-	}
-	handle @static {
-		root * /app/public
-		file_server
-		header Cache-Control "public, max-age=3600"
-	}
-
-	handle {
-		root * /app/public
-		try_files {path} {path}/ /index.php?{query}
-		php {
-			root /app/public
-		}
-	}
+    # HTTP→HTTPS redirect happens automatically via Caddy’s auto_https mechanism
 }
