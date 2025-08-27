@@ -1,91 +1,44 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-# Colour definitions for pretty output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 
 echo -e "${GREEN}🚀 Starting Laravel application with FrankenPHP...${NC}"
 
-check_required_env() {
-  local required=("APP_KEY" "DB_CONNECTION" "DB_HOST" "DB_DATABASE" "DB_USERNAME" "DB_PASSWORD")
-  local missing=()
-  for var in "${required[@]}"; do
-    if [[ -z "${!var}" ]]; then
-      missing+=("$var")
-    fi
-  done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    echo -e "${RED}❌ Missing required environment variables:${NC}"
-    printf '%s\n' "${missing[@]}"
-    exit 1
-  fi
-}
-
-# Ensure PsySH writes its config to a writable directory (avoid /config/psysh)
+# Ensure writable config for PsySH if ever used
 export HOME="${HOME:-/tmp}"
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-/tmp}"
 
-# Function to test network connectivity and DB readiness
-test_network_connectivity() {
-    echo -e "${YELLOW}🔍 Checking network connectivity to $DB_HOST:${DB_PORT:-5432}...${NC}"
-
-    # Optional: basic TCP check
-    if command -v nc >/dev/null 2>&1; then
-        if nc -z -w5 "$DB_HOST" "${DB_PORT:-5432}" >/dev/null 2>&1; then
-            echo -e "${GREEN}✅ Port $DB_PORT open on $DB_HOST${NC}"
-        else
-            echo -e "${RED}❌ Cannot reach $DB_HOST:${DB_PORT:-5432}${NC}"
-            return 1
-        fi
-    fi
-
-    # Check server readiness using pg_isready or psql
-    if command -v pg_isready >/dev/null 2>&1; then
-        if pg_isready -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" >/dev/null 2>&1; then
-            echo -e "${GREEN}✅ PostgreSQL server is ready${NC}"
-        else
-            echo -e "${RED}❌ PostgreSQL server not accepting connections${NC}"
-            return 1
-        fi
-    elif command -v psql >/dev/null 2>&1; then
-        if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "${DB_PORT:-5432}" \
-              -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT 1;" >/dev/null 2>&1; then
-            echo -e "${GREEN}✅ PostgreSQL accepted a connection${NC}"
-        else
-            echo -e "${RED}❌ Could not connect to PostgreSQL with psql${NC}"
-            return 1
-        fi
-    else
-        echo -e "${YELLOW}⚠️  Neither pg_isready nor psql available; skipping DB probe${NC}"
-    fi
-
-    return 0
-}
+required=(APP_KEY DB_CONNECTION DB_HOST DB_DATABASE DB_USERNAME DB_PASSWORD)
+missing=()
+for v in "${required[@]}"; do
+  [[ -z "${!v:-}" ]] && missing+=("$v")
+done
+if (( ${#missing[@]} )); then
+  echo -e "${RED}❌ Missing env vars:${NC} ${missing[*]}"; exit 1
+fi
 
 wait_for_db() {
   echo "Waiting for PostgreSQL connection..."
   for i in {1..30}; do
-    if pg_isready -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" >/dev/null 2>&1; then
-      echo "PostgreSQL is accepting connections"
-      return 0
+    if command -v pg_isready >/dev/null 2>&1; then
+      if pg_isready -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" >/dev/null 2>&1; then
+        echo "PostgreSQL is accepting connections"; return 0
+      fi
+    elif command -v psql >/dev/null 2>&1; then
+      if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT 1;" >/dev/null 2>&1; then
+        echo "PostgreSQL accepted a connection"; return 0
+      fi
     fi
     sleep 3
   done
-  echo "Failed to connect to PostgreSQL"
-  exit 1
+  echo -e "${RED}❌ Could not connect to PostgreSQL after retries${NC}"; exit 1
 }
 
 run_migrations() {
   echo -e "${YELLOW}📦 Running database migrations...${NC}"
-  if php artisan migrate --force --no-interaction; then
-    echo -e "${GREEN}✅ Database migrations completed${NC}"
-  else
-    echo -e "${RED}❌ Database migrations failed${NC}"
-    exit 1
-  fi
+  php artisan migrate --force --no-interaction || { echo -e "${RED}❌ Migrations failed${NC}"; exit 1; }
+  echo -e "${GREEN}✅ Database migrations completed${NC}"
 }
 
 optimize_laravel() {
@@ -100,24 +53,17 @@ optimize_laravel() {
 }
 
 setup_health_check() {
-  # Add a health check route if it doesn't exist
   if ! grep -q "Route::get('/health'" routes/web.php; then
-    echo -e "${YELLOW}🩺 Adding /health endpoint...${NC}"
     cat <<'EOF' >> routes/web.php
 
 // Health check endpoint
 Route::get('/health', function () {
-    return response()->json([
-        'status' => 'ok',
-        'timestamp' => now()->toISOString(),
-    ]);
+    return response()->json(['status' => 'ok', 'ts' => now()->toISOString()]);
 });
 EOF
   fi
 }
 
-# Main
-check_required_env
 wait_for_db
 run_migrations
 optimize_laravel
