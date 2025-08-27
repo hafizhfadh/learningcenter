@@ -58,6 +58,9 @@ COPY --from=node_build /app/public /app/public
 # Copy the rest of the app
 COPY . .
 
+# Copy Caddyfile to the expected location for FrankenPHP
+RUN mkdir -p /etc/frankenphp && cp Caddyfile /etc/frankenphp/Caddyfile
+
 # Optimize autoload (no scripts)
 RUN composer dump-autoload -o
 
