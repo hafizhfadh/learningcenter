@@ -143,7 +143,6 @@ USER ${USER}
 COPY --link --chown=${WWWUSER}:${WWWUSER} . .
 
 RUN composer install \
-    --no-dev \
     --no-interaction \
     --no-autoloader \
     --no-ansi \
