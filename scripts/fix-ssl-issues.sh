@@ -68,7 +68,7 @@ check_dns() {
 check_containers() {
     print_status "Checking container status..."
     
-    if docker compose -f docker-compose.production.yml ps | grep -q "learningcenter_app.*Up"; then
+    if docker compose --env-file .env.production -f docker-compose.production.yml ps | grep -q "learningcenter_app.*Up"; then
         print_success "Production containers are running"
     else
         print_error "Production containers are not running"
@@ -80,7 +80,7 @@ check_containers() {
 check_caddy_logs() {
     print_status "Checking Caddy logs for SSL/certificate errors..."
     
-    LOGS=$(docker compose -f docker-compose.production.yml logs app 2>&1 | tail -20)
+    LOGS=$(docker compose --env-file .env.production -f docker-compose.production.yml logs app 2>&1 | tail -20)
     
     if echo "$LOGS" | grep -q "certificate"; then
         print_warning "Certificate-related messages found in logs:"
@@ -123,7 +123,7 @@ fix_local_development() {
     
     # Stop current containers
     print_status "Stopping current containers..."
-    docker compose -f docker-compose.production.yml down
+    docker compose --env-file .env.production -f docker-compose.production.yml down
     
     # Copy local Caddyfile
     print_status "Using local development Caddyfile..."
