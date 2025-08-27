@@ -68,7 +68,7 @@ check_dns() {
 check_containers() {
     print_status "Checking container status..."
     
-    if docker-compose -f docker-compose.production.yml ps | grep -q "learningcenter_app.*Up"; then
+    if docker compose -f docker-compose.production.yml ps | grep -q "learningcenter_app.*Up"; then
         print_success "Production containers are running"
     else
         print_error "Production containers are not running"
@@ -80,7 +80,7 @@ check_containers() {
 check_caddy_logs() {
     print_status "Checking Caddy logs for SSL/certificate errors..."
     
-    LOGS=$(docker-compose -f docker-compose.production.yml logs app 2>&1 | tail -20)
+    LOGS=$(docker compose -f docker-compose.production.yml logs app 2>&1 | tail -20)
     
     if echo "$LOGS" | grep -q "certificate"; then
         print_warning "Certificate-related messages found in logs:"
@@ -123,7 +123,7 @@ fix_local_development() {
     
     # Stop current containers
     print_status "Stopping current containers..."
-    docker-compose -f docker-compose.production.yml down
+    docker compose -f docker-compose.production.yml down
     
     # Copy local Caddyfile
     print_status "Using local development Caddyfile..."
@@ -131,7 +131,7 @@ fix_local_development() {
     
     # Start containers
     print_status "Starting containers with local configuration..."
-    docker-compose -f docker-compose.production.yml up -d
+    docker compose --env-file .env.production -f docker-compose.production.yml up -d
     
     # Wait for startup
     sleep 10
@@ -141,7 +141,7 @@ fix_local_development() {
     if curl -s http://localhost | grep -q "Laravel\|Filament\|<!DOCTYPE"; then
         print_success "Local development setup complete! Access via http://localhost"
     else
-        print_error "Local setup failed. Check logs with: docker-compose -f docker-compose.production.yml logs app"
+        print_error "Local setup failed. Check logs with: docker compose -f docker-compose.production.yml logs app"
     fi
 }
 
@@ -167,11 +167,11 @@ fix_production_deployment() {
     
     # Stop current containers
     print_status "Stopping current containers..."
-    docker-compose -f docker-compose.production.yml down
+    docker compose --env-file .env.production -f docker-compose.production.yml down
     
     # Start containers
     print_status "Starting containers with production configuration..."
-    docker-compose -f docker-compose.production.yml up -d
+    docker compose --env-file .env.production -f docker-compose.production.yml up -d
     
     # Wait for startup and certificate acquisition
     print_status "Waiting for SSL certificate acquisition (this may take up to 2 minutes)..."
@@ -203,7 +203,7 @@ main() {
     
     if ! check_containers; then
         print_status "Starting containers first..."
-        docker-compose -f docker-compose.production.yml up -d
+        docker compose --env-file .env.production -f docker-compose.production.yml up -d
         sleep 10
     fi
     
@@ -229,7 +229,7 @@ main() {
             ;;
         3)
             echo "\n📋 Recent application logs:"
-            docker-compose -f docker-compose.production.yml logs --tail=50 app
+            docker compose --env-file .env.production -f docker-compose.production.yml logs --tail=50 app
             ;;
         4)
             print_status "Exiting..."
