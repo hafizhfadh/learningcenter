@@ -70,10 +70,21 @@ optimize_laravel
 setup_health_check
 
 echo -e "${GREEN}🚀 Launching Octane with FrankenPHP...${NC}"
-exec php artisan octane:frankenphp \
-  --host=0.0.0.0 \
-  --port=443 \
-  --admin-port=2019 \
-  --https \
-  --http-redirect \
-  --caddyfile=/etc/frankenphp/Caddyfile
+
+# Check if we're in local development mode (no HTTPS)
+if [[ "${APP_ENV:-production}" == "local" ]] || [[ "${OCTANE_HTTPS:-true}" == "false" ]]; then
+  echo -e "${YELLOW}🔧 Starting in HTTP mode for local development (no Caddyfile)${NC}"
+  exec php artisan octane:frankenphp \
+    --host=0.0.0.0 \
+    --port=80 \
+    --admin-port=2019
+else
+  echo -e "${GREEN}🔒 Starting in HTTPS mode for production${NC}"
+  exec php artisan octane:frankenphp \
+    --host=0.0.0.0 \
+    --port=443 \
+    --admin-port=2019 \
+    --https \
+    --http-redirect \
+    --caddyfile=/etc/frankenphp/Caddyfile
+fi

@@ -21,7 +21,9 @@ services:
       HOME: /tmp
       XDG_CONFIG_HOME: /tmp
       # Toggle Caddy admin API exposure (port 2019) as needed
-      CADDY_ADMIN_ENABLED: "false"
+      CADDY_ADMIN_ENABLED: "true"
+      OCTANE_HTTPS: "true"
+      APP_ENV: production
 
     # Persist application and logs, and mount the Caddyfile
     volumes:
@@ -62,7 +64,7 @@ services:
     env_file:
       - .env.production
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
