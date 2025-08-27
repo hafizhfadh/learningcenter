@@ -38,8 +38,11 @@ WORKDIR /app
 # Production php.ini
 RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
 
-# Runtime extensions (covers your earlier composer errors: intl, zip, etc.)
-RUN install-php-extensions \
+# Install PostgreSQL client tools and runtime extensions
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      postgresql-client \
+  && rm -rf /var/lib/apt/lists/* \
+  && install-php-extensions \
       intl zip pdo_pgsql pgsql gd bcmath pcntl redis opcache
 
 # Non-root user
