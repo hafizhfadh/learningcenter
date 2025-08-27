@@ -3,9 +3,6 @@
 	http_port 80
 	https_port 443
 
-	# Enable automatic HTTPS for production
-	auto_https on
-
 	# Email for Lets Encrypt certificate registration
 	email {$ACME_EMAIL:firman@csi-edu.id}
 
