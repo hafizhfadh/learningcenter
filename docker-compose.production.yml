@@ -25,10 +25,9 @@ services:
       OCTANE_HTTPS: "true"
       APP_ENV: production
 
-    # Persist application and logs, and mount the Caddyfile
+    # Persist application and logs
     volumes:
       - app_storage:/app/storage
-      - ./etc/frankenphp/Caddyfile:/etc/frankenphp/Caddyfile:ro
 
     depends_on:
       redis:
