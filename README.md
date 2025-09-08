@@ -7,12 +7,10 @@ A modern learning management system built with Laravel 12, Filament 4, and Frank
 - **Modern Tech Stack**: Laravel 12, Filament 4, FrankenPHP, PostgreSQL
 - **Admin Panel**: Comprehensive admin interface with Filament 4
 - **High Performance**: FrankenPHP for optimal performance
-- **Containerized**: Docker-ready with production configurations
+- **Containerized**: Docker-ready for development
 - **Database**: PostgreSQL with optimized configurations
 - **Caching**: Redis for session and cache management
 - **Security**: Built-in security best practices
-- **GitHub Container Registry**: Automated image building and deployment
-- **External Database Support**: Compatible with managed PostgreSQL services
 
 ## 🛠️ Technology Stack
 
@@ -23,7 +21,7 @@ A modern learning management system built with Laravel 12, Filament 4, and Frank
 - **Cache**: Redis 7
 - **Containerization**: Docker & Docker Compose
 - **Process Manager**: Supervisor
-- **Container Registry**: GitHub Container Registry (GHCR)
+
 
 ## 🚀 Quick Start
 
@@ -33,7 +31,7 @@ A modern learning management system built with Laravel 12, Filament 4, and Frank
 - Composer 2.0+
 - Node.js 18+ and npm
 - Docker and Docker Compose V2
-- PostgreSQL 14+ (local or external cluster)
+- PostgreSQL 14+
 - Redis 6+
 
 ### Local Development Setup
@@ -105,7 +103,6 @@ Access the application at `http://localhost:8000`
 ## 📚 Documentation
 
 ### Core Documentation
-- **[Production Deployment Guide](DEPLOYMENT.md)** - Comprehensive production deployment instructions
 - **[API Documentation](docs/api.md)** - REST API endpoints and usage
 - **[Admin Panel Guide](docs/admin.md)** - Filament admin panel documentation
 - **[Development Guide](docs/development.md)** - Local development setup and guidelines
@@ -187,42 +184,7 @@ php artisan test --parallel
 - **Feature Tests**: `tests/Feature/` - Test application features and workflows
 - **Browser Tests**: `tests/Browser/` - Laravel Dusk browser automation tests
 
-## 🚀 Production Deployment
 
-### Quick Production Deployment
-
-For detailed production deployment instructions, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
-
-```bash
-# Set environment variables
-export GITHUB_TOKEN="your_github_token"
-export GITHUB_REPOSITORY_OWNER="your_username"
-export DB_HOST="your-postgres-cluster.example.com"
-export DB_PASSWORD="secure_password"
-
-# Deploy with GHCR upload
-./scripts/deploy-production.sh v1.0.0 --push-to-ghcr
-
-# Or deploy without GHCR
-./scripts/deploy-production.sh v1.0.0
-```
-
-### External PostgreSQL Setup
-```bash
-# Test connectivity
-PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT version();"
-
-# Deploy
-docker-compose -f docker-compose.production.yml up -d
-```
-
-### Production Features
-
-- **🔒 Security**: SSL/TLS encryption, CSRF protection, input validation
-- **⚡ Performance**: FrankenPHP + Octane for high concurrency
-- **📊 Monitoring**: Health checks, logging, and performance metrics
-- **🔄 Scalability**: Horizontal scaling with external PostgreSQL clusters
-- **🛡️ Reliability**: Automated backups and disaster recovery procedures
 
 ## 🔧 Quick Reference Commands
 
@@ -239,15 +201,6 @@ docker-compose exec app php artisan migrate
 
 # Access container shell
 docker-compose exec app bash
-```
-
-### GHCR Commands
-```bash
-# Login to GitHub Container Registry
-echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_REPOSITORY_OWNER --password-stdin
-
-# Pull image from GHCR
-docker pull ghcr.io/$GITHUB_REPOSITORY_OWNER/learningcenter:v1.0.0
 
 # Check deployment status
 docker-compose ps
@@ -288,15 +241,7 @@ docker-compose up -d --build
 docker system prune -f
 ```
 
-**GHCR Authentication Issues**
-```bash
-# Test GitHub token
-curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user
 
-# Re-login to GHCR
-docker logout ghcr.io
-echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_REPOSITORY_OWNER --password-stdin
-```
 
 ### Performance Optimization
 
@@ -365,7 +310,7 @@ composer update
 - **Redis Caching**: Application and session caching
 - **Database Optimization**: Query optimization and indexing
 - **Asset Optimization**: Vite for efficient asset bundling
-- **HTTP/3 Support**: Modern protocol support via Caddy
+
 
 ### Monitoring
 
@@ -390,7 +335,7 @@ composer update
 - Regular security updates
 - Environment variable protection
 - Secure session configuration
-- HTTPS enforcement in production
+
 - Database connection encryption
 
 ## 📞 Support
@@ -406,8 +351,8 @@ composer update
 
 Common issues and solutions:
 
-1. **Database Connection Issues**: Check [DEPLOYMENT.md](DEPLOYMENT.md#database-connection-issues)
-2. **Docker Problems**: See [Docker troubleshooting](DEPLOYMENT.md#container-issues)
+1. **Database Connection Issues**: Check database configuration in .env
+2. **Docker Problems**: Use `docker-compose logs` to debug issues
 3. **Performance Issues**: Review [Performance Guide](docs/performance.md)
 4. **Security Concerns**: Check [Security Guide](docs/security.md)
 
@@ -419,11 +364,11 @@ The Laravel Learning Center is open-sourced software licensed under the [MIT lic
 
 - **Laravel Team**: For the amazing Laravel framework
 - **Filament Team**: For the powerful admin panel
-- **FrankenPHP Team**: For the high-performance PHP server
+
 - **Community Contributors**: For their valuable contributions
 
 ---
 
 <p align="center">
-Built with ❤️ using Laravel, Filament, and FrankenPHP
+Built with ❤️ using Laravel and Filament
 </p>
