@@ -60,6 +60,7 @@ class LessonSeeder extends Seeder
                         'content_body' => $this->getLessonContent($lessonType),
                         'order_index' => $i,
                         'course_id' => $course->id,
+                        'is_published' => true,
                         'lesson_section_id' => $section->id,
                     ]);
                 }

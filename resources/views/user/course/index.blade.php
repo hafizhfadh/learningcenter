@@ -81,14 +81,14 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="{{ route('category.index') }}">Category</a>
+                        <a href="{{ route('user.learning-path.index') }}">{{ $exam }}</a>
                     </li>
                     <li class="breadcrumb-item active" aria-current="page">Course</li>
                 </ol>
             </nav>
 
             <h1 class="h3 mb-0 text-gray-800">Course</h1>
-            <form action="{{ route('course.index', $exam) }}" method="GET">
+            <form action="{{ route('user.course.index', $exam) }}" method="GET">
                 <div class="form-group mb-0">
                     <div class="input-group">
                         <input type="text" name="q" class="form-control" placeholder="Search category ..."
@@ -138,7 +138,7 @@
 
                     <button class="btn mt-auto btn-start-course" data-course-title="{{ $item->title }}"
                         style="color: #ffffff; background-color: #42c3ca; border: 1px solid #42c3ca;"
-                        data-course-url="{{ route('lesson.index', [$exam, $item->slug]) }}" data-toggle="modal"
+                        data-course-url="{{ route('user.lesson.index', [$exam, $item->slug]) }}" data-toggle="modal"
                         data-target="#startCourseModal">
                         Start Course
                     </button>
@@ -191,6 +191,52 @@
                 var url = $(this).data('course-url');
                 $('#modalCourseTitle').text(title);
                 $('#confirmStartCourse').attr('href', url);
+                
+                // Store the course URL for later use
+                $('#confirmStartCourse').data('course-url', url);
+            });
+
+            // Handle the "Yes, Start" button click
+            $('#confirmStartCourse').on('click', function(e) {
+                e.preventDefault();
+                
+                var courseUrl = $(this).data('course-url');
+                var $button = $(this);
+                var originalText = $button.text();
+                
+                // Extract exam and course slug from the URL
+                var urlParts = courseUrl.split('/');
+                var exam = urlParts[urlParts.length - 3]; // exam is 3rd from end
+                var courseSlug = urlParts[urlParts.length - 2]; // course slug is 2nd from end
+                
+                // Disable button and show loading state
+                $button.prop('disabled', true).text('Starting...');
+                
+                // Make AJAX call to track course initiation
+                $.ajax({
+                    url: '{{ url("/user") }}/' + exam + '/' + courseSlug + '/initiate',
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Redirect to the course
+                            window.location.href = response.redirect_url;
+                        } else {
+                            alert('Error: ' + response.message);
+                            $button.prop('disabled', false).text(originalText);
+                        }
+                    },
+                    error: function(xhr) {
+                        var errorMessage = 'An error occurred while starting the course.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        alert('Error: ' + errorMessage);
+                        $button.prop('disabled', false).text(originalText);
+                    }
+                });
             });
         });
     </script>

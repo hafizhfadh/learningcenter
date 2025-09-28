@@ -23,17 +23,24 @@ Route::post('/login', [App\Http\Controllers\User\LoginController::class, 'authen
 Route::post('/logout', [App\Http\Controllers\User\LoginController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', [App\Http\Controllers\User\DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/category', [App\Http\Controllers\User\CategoryController::class, 'index'])->name('category.index');
+    // Route Group Under /user including route naming prefix 'user.'
+    // All routes in this group will have 'user.' prefix in their names
+    Route::prefix('/user')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\User\DashboardController::class, 'index'])->name('user.dashboard');
+        Route::get('/learning-path', [App\Http\Controllers\User\LearningPathController::class, 'index'])->name('user.learning-path.index');
 
-    Route::get('/{exam}/course', [App\Http\Controllers\User\CourseController::class, 'index'])->name('course.index');
+        Route::get('/{exam}/course', [App\Http\Controllers\User\CourseController::class, 'index'])->name('user.course.index');
 
-    // List lessons in a course
-    Route::get('/{exam}/{courseSlug}/lesson', [App\Http\Controllers\User\LessonController::class, 'index'])->name('lesson.index');
+        // Post route to initiate course and track progress
+        Route::post('/{exam}/{courseSlug}/initiate', [App\Http\Controllers\User\LessonController::class, 'initiateCourse'])->name('user.course.initiate');
 
-    // Show a specific lesson using slug for lesson binding
-    Route::get('/{exam}/{courseSlug}/lesson/{lesson:slug}', [App\Http\Controllers\User\LessonController::class, 'show'])->name('lesson.show');
+        // List lessons in a course
+        Route::get('/{exam}/{courseSlug}/lesson', [App\Http\Controllers\User\LessonController::class, 'index'])->name('user.lesson.index');
 
-    // Post route to mark lesson as completed and go to next
-    Route::post('/{exam}/{courseSlug}/lesson/{lesson:slug}/next', [App\Http\Controllers\User\LessonController::class, 'nextLesson'])->name('lesson.next');
+        // Show a specific lesson using slug for lesson binding
+        Route::get('/{exam}/{courseSlug}/lesson/{lesson:slug}', [App\Http\Controllers\User\LessonController::class, 'show'])->name('user.lesson.show');
+
+        // Post route to mark lesson as completed and go to next
+        Route::post('/{exam}/{courseSlug}/lesson/{lesson:slug}/next', [App\Http\Controllers\User\LessonController::class, 'nextLesson'])->name('user.lesson.next'); 
+    });
 });

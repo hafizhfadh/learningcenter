@@ -9,6 +9,9 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
+    {{-- Laravel CSRF Token --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <title>Learning Center - Dashboard</title>
 
     <!-- Custom fonts for this template-->
@@ -39,7 +42,7 @@
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
             <!-- Sidebar - Brand -->
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('user.dashboard') }}">
                 <div class="sidebar-brand-text">Learning Center</div>
             </a>
 
@@ -47,8 +50,8 @@
             <hr class="sidebar-divider my-0">
 
             <!-- Nav Item - Dashboard -->
-            <li class="nav-item {{ request()->is('dashboard') ? 'active' : '' }}">
-                <a class="nav-link" href="{{ route('dashboard') }}">
+            <li class="nav-item {{ request()->is('user/dashboard') ? 'active' : '' }}">
+                <a class="nav-link" href="{{ route('user.dashboard') }}">
                     <i class="fas fa-fw fa-home"></i>
                     <span>Dashboard</span>
                 </a>
@@ -70,7 +73,7 @@
 
             <!-- Nav Item - Pages Collapse Menu -->
             @php
-                $examActive = request()->routeIs('category.index') ?? false;
+                $examActive = request()->routeIs('learning-path.index') ?? false;
                 $courseActive = request()->routeIs('course.index') ?? false;
                 $lessonActive = request()->routeIs('lesson.index') ?? false;
                 $courseLessonExpanded = $examActive || $courseActive || $lessonActive ? 'show' : '';
@@ -86,16 +89,16 @@
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <a class="collapse-item {{ $examActive ? 'active' : '' }}"
-                            href="{{ route('category.index') }}">Category</a>
+                            href="{{ route('user.learning-path.index') }}">Learning Path</a>
 
                         @if ($courseActive || $lessonActive)
                             <a class="collapse-item {{ $courseActive ? 'active' : '' }}"
-                                href="{{ route('course.index', ['exam' => $exam]) }}">Course</a>
+                                href="{{ route('user.course.index', ['exam' => $exam]) }}">Course</a>
                         @endif
 
                         @if ($lessonActive)
                             <a class="collapse-item {{ $lessonActive ? 'active' : '' }}"
-                                href="{{ route('lesson.index', ['exam' => $exam, 'course' => $course]) }}">Lesson</a>
+                                href="{{ route('user.lesson.index', ['exam' => $exam, 'course' => $course]) }}">Lesson</a>
                         @endif
                     </div>
                 </div>

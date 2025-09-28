@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('lesson_type')->default('video'); // 'video','pages','quiz'
             $table->string('lesson_banner')->default('');
             $table->string('lesson_video')->default('');
+            $table->boolean('is_published')->default(false);
 
             $table->string('title');
             $table->string('slug')->unique(); // this will be used for the url and will content the order_index of the lesson
