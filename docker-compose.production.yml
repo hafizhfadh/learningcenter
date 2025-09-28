@@ -1,0 +1,319 @@
+version: '3.8'
+
+services:
+  # Nginx Reverse Proxy with SSL Termination
+  nginx:
+    build:
+      context: ./docker/production/nginx
+      dockerfile: Dockerfile
+    container_name: "${APP_NAME:-laravel}_nginx"
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/production/nginx/sites-available:/etc/nginx/sites-available:ro
+      - ./docker/production/nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx_cache:/var/cache/nginx
+      - nginx_logs:/var/log/nginx
+      - certbot_webroot:/var/www/certbot:ro
+      - ssl_certs:/etc/nginx/ssl:ro
+    environment:
+      - DOMAIN=${APP_DOMAIN:-localhost}
+    depends_on:
+      - caddy
+    networks:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=false"
+      - "com.docker.compose.service=nginx"
+
+  # Caddy Web Server for Multi-Domain Routing
+  caddy:
+    image: caddy:2.7-alpine
+    container_name: "${APP_NAME:-laravel}_caddy"
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./docker/production/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - app_storage:/app/storage:ro
+    environment:
+      - CADDY_ADMIN=0.0.0.0:2019
+      - UPSTREAM_HOST=app
+      - UPSTREAM_PORT=8000
+    depends_on:
+      - app
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.docker.compose.service=caddy"
+
+  # Laravel Application with FrankenPHP and Octane
+  app:
+    build:
+      context: .
+      dockerfile: ./docker/production/Dockerfile
+      args:
+        - PHP_VERSION=${PHP_VERSION:-8.3}
+        - COMPOSER_VERSION=${COMPOSER_VERSION:-2.6}
+    container_name: "${APP_NAME:-laravel}_app"
+    restart: unless-stopped
+    expose:
+      - "8000"
+    volumes:
+      - app_storage:/app/storage
+      - app_bootstrap_cache:/app/bootstrap/cache
+      - app_logs:/app/storage/logs
+      - ./docker/production/php.ini:/usr/local/etc/php/conf.d/99-production.ini:ro
+      - ./docker/production/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY}
+      - APP_URL=${APP_URL:-https://localhost}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - BROADCAST_DRIVER=redis
+      - OCTANE_SERVER=frankenphp
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - SUPERVISOR_PHP_COMMAND=/usr/local/bin/php
+      - SUPERVISOR_PHP_USER=www-data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "com.docker.compose.service=app"
+
+  # PostgreSQL Database (External connection)
+  postgres:
+    image: postgres:16-alpine
+    container_name: "${APP_NAME:-laravel}_postgres"
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/production/postgres/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.docker.compose.service=postgres"
+
+  # Redis Cache and Session Store (External connection)
+  redis:
+    image: redis:7-alpine
+    container_name: "${APP_NAME:-laravel}_redis"
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/production/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.docker.compose.service=redis"
+
+  # Horizon Queue Worker
+  horizon:
+    build:
+      context: .
+      dockerfile: ./docker/production/Dockerfile
+      args:
+        - PHP_VERSION=${PHP_VERSION:-8.3}
+        - COMPOSER_VERSION=${COMPOSER_VERSION:-2.6}
+    container_name: "${APP_NAME:-laravel}_horizon"
+    restart: unless-stopped
+    command: php artisan horizon
+    volumes:
+      - app_storage:/app/storage
+      - app_logs:/app/storage/logs
+      - ./docker/production/php.ini:/usr/local/etc/php/conf.d/99-production.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - BROADCAST_DRIVER=redis
+    depends_on:
+      - app
+      - redis
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "com.docker.compose.service=horizon"
+
+  # Scheduler
+  scheduler:
+    build:
+      context: .
+      dockerfile: ./docker/production/Dockerfile
+      args:
+        - PHP_VERSION=${PHP_VERSION:-8.3}
+        - COMPOSER_VERSION=${COMPOSER_VERSION:-2.6}
+    container_name: "${APP_NAME:-laravel}_scheduler"
+    restart: unless-stopped
+    command: php artisan schedule:work
+    volumes:
+      - app_storage:/app/storage
+      - app_logs:/app/storage/logs
+      - ./docker/production/php.ini:/usr/local/etc/php/conf.d/99-production.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+    depends_on:
+      - app
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "schedule:work"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "com.docker.compose.service=scheduler"
+
+  # Certbot for SSL Certificate Management
+  certbot:
+    image: certbot/certbot:latest
+    container_name: "${APP_NAME:-laravel}_certbot"
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - ssl_certs:/etc/letsencrypt
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${CERTBOT_EMAIL} --agree-tos --no-eff-email -d ${APP_DOMAIN}
+    depends_on:
+      - nginx
+    networks:
+      - frontend
+    labels:
+      - "com.docker.compose.service=certbot"
+
+networks:
+  frontend:
+    driver: bridge
+    name: "${APP_NAME:-laravel}_frontend"
+  backend:
+    driver: bridge
+    name: "${APP_NAME:-laravel}_backend"
+
+volumes:
+  # Application volumes
+  app_storage:
+    name: "${APP_NAME:-laravel}_app_storage"
+  app_bootstrap_cache:
+    name: "${APP_NAME:-laravel}_app_bootstrap_cache"
+  app_logs:
+    name: "${APP_NAME:-laravel}_app_logs"
+  
+  # Database volumes
+  postgres_data:
+    name: "${APP_NAME:-laravel}_postgres_data"
+  redis_data:
+    name: "${APP_NAME:-laravel}_redis_data"
+  
+  # Web server volumes
+  nginx_cache:
+    name: "${APP_NAME:-laravel}_nginx_cache"
+  nginx_logs:
+    name: "${APP_NAME:-laravel}_nginx_logs"
+  caddy_data:
+    name: "${APP_NAME:-laravel}_caddy_data"
+  caddy_config:
+    name: "${APP_NAME:-laravel}_caddy_config"
+  
+  # SSL volumes
+  ssl_certs:
+    name: "${APP_NAME:-laravel}_ssl_certs"
+  certbot_webroot:
+    name: "${APP_NAME:-laravel}_certbot_webroot"

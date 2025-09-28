@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -e
+
+# Function to log with timestamp
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+log "Starting Laravel Learning Center production container..."
+
+# Wait for database to be ready
+log "Waiting for database connection..."
+until php artisan tinker --execute="DB::connection()->getPdo();" > /dev/null 2>&1; do
+    log "Database not ready, waiting 5 seconds..."
+    sleep 5
+done
+log "Database connection established"
+
+# Wait for Redis to be ready
+log "Waiting for Redis connection..."
+until php artisan tinker --execute="Redis::ping();" > /dev/null 2>&1; do
+    log "Redis not ready, waiting 5 seconds..."
+    sleep 5
+done
+log "Redis connection established"
+
+# Run Laravel optimizations
+log "Running Laravel optimizations..."
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache
+
+# Run database migrations
+log "Running database migrations..."
+php artisan migrate --force
+
+# Clear and warm up caches
+log "Warming up application caches..."
+php artisan cache:clear
+php artisan queue:restart
+
+# Create storage symlink if it doesn't exist
+if [ ! -L /app/public/storage ]; then
+    log "Creating storage symlink..."
+    php artisan storage:link
+fi
+
+# Set proper permissions
+log "Setting file permissions..."
+chown -R www-data:www-data /app/storage /app/bootstrap/cache
+chmod -R 775 /app/storage /app/bootstrap/cache
+
+# Create log directories
+mkdir -p /var/log/supervisor
+chown -R www-data:www-data /var/log/supervisor
+
+# Start Supervisor to manage all processes
+log "Starting Supervisor..."
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

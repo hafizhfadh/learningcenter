@@ -1,0 +1,127 @@
+# AppArmor profile for Docker Nginx container
+# /etc/apparmor.d/docker-nginx
+
+#include <tunables/global>
+
+profile docker-nginx flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+  #include <abstractions/openssl>
+  #include <abstractions/ssl_certs>
+
+  # Capabilities
+  capability chown,
+  capability dac_override,
+  capability setgid,
+  capability setuid,
+  capability net_bind_service,
+
+  # Network access
+  network inet tcp,
+  network inet udp,
+  network inet6 tcp,
+  network inet6 udp,
+
+  # File system access
+  / r,
+  /bin/ r,
+  /bin/** ix,
+  /dev/null rw,
+  /dev/random r,
+  /dev/urandom r,
+  /dev/zero r,
+  /etc/ r,
+  /etc/** r,
+  /lib/ r,
+  /lib/** mr,
+  /lib64/ r,
+  /lib64/** mr,
+  /proc/ r,
+  /proc/*/stat r,
+  /proc/cpuinfo r,
+  /proc/meminfo r,
+  /proc/sys/kernel/hostname r,
+  /run/ r,
+  /run/** rw,
+  /sys/ r,
+  /sys/** r,
+  /tmp/ rw,
+  /tmp/** rw,
+  /usr/ r,
+  /usr/** mr,
+  /var/ r,
+  /var/** rw,
+
+  # Nginx specific paths
+  /etc/nginx/ r,
+  /etc/nginx/** r,
+  /etc/ssl/ r,
+  /etc/ssl/** r,
+  /usr/sbin/nginx ix,
+  /usr/share/nginx/ r,
+  /usr/share/nginx/** r,
+  /var/cache/nginx/ rw,
+  /var/cache/nginx/** rw,
+  /var/log/nginx/ rw,
+  /var/log/nginx/** rw,
+  /var/run/nginx.pid rw,
+
+  # Docker specific
+  /proc/*/cgroup r,
+  /proc/*/mountinfo r,
+  /proc/*/mounts r,
+
+  # Signal handling
+  signal (receive) set=(kill,term,int,quit,usr1,usr2) peer=unconfined,
+
+  # Deny dangerous operations
+  deny /bin/su x,
+  deny /usr/bin/sudo x,
+  deny /bin/mount x,
+  deny /bin/umount x,
+  deny /sbin/mount.* x,
+  deny /usr/bin/passwd x,
+  deny /etc/shadow rw,
+  deny /etc/passwd w,
+  deny /etc/group w,
+  deny /etc/gshadow rw,
+  deny /proc/sys/kernel/core_pattern w,
+  deny /proc/sys/vm/panic_on_oom w,
+  deny /proc/sys/kernel/panic w,
+  deny /proc/sys/kernel/panic_on_oops w,
+  deny /proc/kcore r,
+  deny /proc/kallsyms r,
+  deny /proc/*/mem r,
+  deny /sys/kernel/debug/ r,
+  deny /sys/kernel/debug/** rw,
+
+  # Ptrace restrictions
+  ptrace (read,trace) peer=@{profile_name},
+  deny ptrace (read,trace) peer=unconfined,
+
+  # Mount restrictions
+  deny mount,
+  deny umount,
+
+  # Capability restrictions
+  deny capability sys_admin,
+  deny capability sys_module,
+  deny capability sys_rawio,
+  deny capability sys_ptrace,
+  deny capability sys_pacct,
+  deny capability sys_boot,
+  deny capability sys_nice,
+  deny capability sys_resource,
+  deny capability sys_time,
+  deny capability sys_tty_config,
+  deny capability mknod,
+  deny capability lease,
+  deny capability audit_write,
+  deny capability audit_control,
+  deny capability setfcap,
+  deny capability mac_override,
+  deny capability mac_admin,
+  deny capability syslog,
+  deny capability wake_alarm,
+  deny capability block_suspend,
+}

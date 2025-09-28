@@ -133,12 +133,15 @@ class CaddyService
      */
     private function buildDomainConfig(string $domain): array
     {
+        $upstreamHost = config('services.caddy.upstream_host', 'app');
+        $upstreamPort = config('services.caddy.upstream_port', '8000');
+        
         return [
             'apps' => [
                 'http' => [
                     'servers' => [
                         'srv0' => [
-                            'listen' => ['443'],
+                            'listen' => [':80', ':443'],
                             'routes' => [
                                 [
                                     'match' => [['host' => [$domain]]],
@@ -146,23 +149,92 @@ class CaddyService
                                         [
                                             'handler' => 'subroute',
                                             'routes' => [
+                                                // Health check endpoint
                                                 [
+                                                    'match' => [['path' => ['/health']]],
                                                     'handle' => [
                                                         [
-                                                            'handler' => 'file_server',
-                                                            'root' => '/app/public'
+                                                            'handler' => 'static_response',
+                                                            'status_code' => 200,
+                                                            'body' => 'OK'
                                                         ]
                                                     ]
                                                 ],
+                                                // Static assets with caching
+                                                [
+                                                    'match' => [['path' => ['/build/*', '/storage/*', '/favicon.ico', '/robots.txt']]],
+                                                    'handle' => [
+                                                        [
+                                                            'handler' => 'headers',
+                                                            'response' => [
+                                                                'set' => [
+                                                                    'Cache-Control' => ['public, max-age=31536000'],
+                                                                    'Expires' => ['{http.time_now.add_duration.31536000s}']
+                                                                ]
+                                                            ]
+                                                        ],
+                                                        [
+                                                            'handler' => 'reverse_proxy',
+                                                            'upstreams' => [
+                                                                ['dial' => $upstreamHost . ':' . $upstreamPort]
+                                                            ],
+                                                            'headers' => [
+                                                                'request' => [
+                                                                    'set' => [
+                                                                        'X-Forwarded-Host' => ['{http.request.host}'],
+                                                                        'X-Forwarded-Proto' => ['{http.request.scheme}'],
+                                                                        'X-Real-IP' => ['{http.request.remote_host}']
+                                                                    ]
+                                                                ]
+                                                            ]
+                                                        ]
+                                                    ]
+                                                ],
+                                                // All other requests to Laravel Octane
                                                 [
                                                     'handle' => [
                                                         [
-                                                            'handler' => 'php_server'
+                                                            'handler' => 'reverse_proxy',
+                                                            'upstreams' => [
+                                                                ['dial' => $upstreamHost . ':' . $upstreamPort]
+                                                            ],
+                                                            'headers' => [
+                                                                'request' => [
+                                                                    'set' => [
+                                                                        'X-Forwarded-Host' => ['{http.request.host}'],
+                                                                        'X-Forwarded-Proto' => ['{http.request.scheme}'],
+                                                                        'X-Real-IP' => ['{http.request.remote_host}']
+                                                                    ]
+                                                                ]
+                                                            ],
+                                                            'health_checks' => [
+                                                                'active' => [
+                                                                    'path' => '/health',
+                                                                    'interval' => '30s',
+                                                                    'timeout' => '5s'
+                                                                ]
+                                                            ]
                                                         ]
                                                     ]
                                                 ]
                                             ]
                                         ]
+                                    ],
+                                    'terminal' => true
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                'tls' => [
+                    'automation' => [
+                        'policies' => [
+                            [
+                                'subjects' => [$domain],
+                                'issuers' => [
+                                    [
+                                        'module' => 'acme',
+                                        'email' => config('services.caddy.acme_email', 'admin@example.com')
                                     ]
                                 ]
                             ]

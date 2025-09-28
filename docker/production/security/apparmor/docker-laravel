@@ -1,0 +1,174 @@
+# AppArmor profile for Docker Laravel application container
+# /etc/apparmor.d/docker-laravel
+
+#include <tunables/global>
+
+profile docker-laravel flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+  #include <abstractions/openssl>
+  #include <abstractions/php>
+  #include <abstractions/ssl_certs>
+
+  # Capabilities
+  capability chown,
+  capability dac_override,
+  capability setgid,
+  capability setuid,
+  capability fowner,
+  capability fsetid,
+
+  # Network access
+  network inet tcp,
+  network inet udp,
+  network inet6 tcp,
+  network inet6 udp,
+
+  # File system access
+  / r,
+  /bin/ r,
+  /bin/** ix,
+  /dev/null rw,
+  /dev/random r,
+  /dev/urandom r,
+  /dev/zero r,
+  /etc/ r,
+  /etc/** r,
+  /lib/ r,
+  /lib/** mr,
+  /lib64/ r,
+  /lib64/** mr,
+  /proc/ r,
+  /proc/*/stat r,
+  /proc/cpuinfo r,
+  /proc/meminfo r,
+  /proc/sys/kernel/hostname r,
+  /run/ r,
+  /run/** rw,
+  /sys/ r,
+  /sys/** r,
+  /tmp/ rw,
+  /tmp/** rw,
+  /usr/ r,
+  /usr/** mr,
+  /var/ r,
+  /var/** rw,
+
+  # PHP specific paths
+  /etc/php/ r,
+  /etc/php/** r,
+  /usr/bin/php* ix,
+  /usr/lib/php/ r,
+  /usr/lib/php/** mr,
+  /usr/share/php/ r,
+  /usr/share/php/** r,
+
+  # Laravel application paths
+  /var/www/ r,
+  /var/www/** rw,
+  /var/www/html/ r,
+  /var/www/html/** rw,
+  /var/www/storage/ rw,
+  /var/www/storage/** rw,
+  /var/www/bootstrap/cache/ rw,
+  /var/www/bootstrap/cache/** rw,
+
+  # Composer and dependencies
+  /home/*/.composer/ r,
+  /home/*/.composer/** r,
+  /var/www/vendor/ r,
+  /var/www/vendor/** r,
+
+  # Log files
+  /var/log/ r,
+  /var/log/** rw,
+
+  # Docker specific
+  /proc/*/cgroup r,
+  /proc/*/mountinfo r,
+  /proc/*/mounts r,
+
+  # Signal handling
+  signal (receive) set=(kill,term,int,quit,usr1,usr2) peer=unconfined,
+
+  # Artisan and Laravel commands
+  /var/www/artisan r,
+  /usr/bin/php /var/www/artisan ix,
+
+  # Supervisor (if used)
+  /etc/supervisor/ r,
+  /etc/supervisor/** r,
+  /usr/bin/supervisord ix,
+  /usr/bin/supervisorctl ix,
+
+  # Cron (if used)
+  /usr/sbin/cron ix,
+  /etc/cron.d/ r,
+  /etc/cron.d/** r,
+  /var/spool/cron/ r,
+  /var/spool/cron/** rw,
+
+  # Queue workers
+  /usr/bin/php /var/www/artisan queue:work ix,
+  /usr/bin/php /var/www/artisan horizon ix,
+
+  # Deny dangerous operations
+  deny /bin/su x,
+  deny /usr/bin/sudo x,
+  deny /bin/mount x,
+  deny /bin/umount x,
+  deny /sbin/mount.* x,
+  deny /usr/bin/passwd x,
+  deny /etc/shadow rw,
+  deny /etc/passwd w,
+  deny /etc/group w,
+  deny /etc/gshadow rw,
+  deny /proc/sys/kernel/core_pattern w,
+  deny /proc/sys/vm/panic_on_oom w,
+  deny /proc/sys/kernel/panic w,
+  deny /proc/sys/kernel/panic_on_oops w,
+  deny /proc/kcore r,
+  deny /proc/kallsyms r,
+  deny /proc/*/mem r,
+  deny /sys/kernel/debug/ r,
+  deny /sys/kernel/debug/** rw,
+
+  # Restrict file execution outside allowed paths
+  deny /tmp/** x,
+  deny /var/tmp/** x,
+  deny /dev/shm/** x,
+
+  # Ptrace restrictions
+  ptrace (read,trace) peer=@{profile_name},
+  deny ptrace (read,trace) peer=unconfined,
+
+  # Mount restrictions
+  deny mount,
+  deny umount,
+
+  # Capability restrictions
+  deny capability sys_admin,
+  deny capability sys_module,
+  deny capability sys_rawio,
+  deny capability sys_ptrace,
+  deny capability sys_pacct,
+  deny capability sys_boot,
+  deny capability sys_nice,
+  deny capability sys_resource,
+  deny capability sys_time,
+  deny capability sys_tty_config,
+  deny capability mknod,
+  deny capability lease,
+  deny capability audit_write,
+  deny capability audit_control,
+  deny capability setfcap,
+  deny capability mac_override,
+  deny capability mac_admin,
+  deny capability syslog,
+  deny capability wake_alarm,
+  deny capability block_suspend,
+
+  # Network restrictions (allow only necessary ports)
+  deny network packet,
+  deny network raw,
+}
