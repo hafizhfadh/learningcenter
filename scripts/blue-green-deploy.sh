@@ -93,8 +93,7 @@ services:
     networks:
       - laravel-blue
     depends_on:
-      - postgres
-      - redis
+      - caddy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -138,50 +137,11 @@ services:
       - postgres
       - redis
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: laravel-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: laravel_production
-      POSTGRES_USER: laravel
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/production/postgres/init:/docker-entrypoint-initdb.d
-    networks:
-      - laravel-blue
-      - laravel-green
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U laravel"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  redis:
-    image: redis:7-alpine
-    container_name: laravel-redis
-    restart: unless-stopped
-    command: redis-server /usr/local/etc/redis/redis.conf
-    volumes:
-      - redis_data:/data
-      - ./docker/production/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - laravel-blue
-      - laravel-green
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
 networks:
   laravel-blue:
     driver: bridge
 
 volumes:
-  postgres_data:
-  redis_data:
 EOF
 
     # Green environment (port 8002)
@@ -231,8 +191,7 @@ services:
     networks:
       - laravel-green
     depends_on:
-      - postgres
-      - redis
+      - caddy-green
 
   scheduler-green:
     build:
@@ -249,59 +208,19 @@ services:
     networks:
       - laravel-green
     depends_on:
-      - postgres
-      - redis
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: laravel-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: laravel_production
-      POSTGRES_USER: laravel
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/production/postgres/init:/docker-entrypoint-initdb.d
-    networks:
-      - laravel-blue
-      - laravel-green
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U laravel"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  redis:
-    image: redis:7-alpine
-    container_name: laravel-redis
-    restart: unless-stopped
-    command: redis-server /usr/local/etc/redis/redis.conf
-    volumes:
-      - redis_data:/data
-      - ./docker/production/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - laravel-blue
-      - laravel-green
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - caddy-green
 
 networks:
   laravel-green:
     driver: bridge
 
 volumes:
-  postgres_data:
-  redis_data:
 EOF
 
     success "Docker Compose files generated"
 }
 
-# Update Nginx configuration to point to active environment
+# Update node-level Nginx configuration to point to active environment
 update_nginx_config() {
     local target_env="$1"
     local target_port=""
@@ -312,20 +231,22 @@ update_nginx_config() {
         target_port="8002"
     fi
     
-    log "Updating Nginx configuration to point to $target_env environment (port $target_port)..."
+    log "Updating node-level Nginx configuration to point to $target_env environment (port $target_port)..."
     
-    # Update upstream configuration
-    cat > "$NGINX_CONFIG_DIR/conf.d/upstream.conf" << EOF
+    # Update upstream configuration on the node
+    local nginx_config_path="/etc/nginx/conf.d/upstream.conf"
+    
+    sudo tee "$nginx_config_path" > /dev/null << EOF
 upstream laravel_app {
     server 127.0.0.1:$target_port max_fails=3 fail_timeout=30s;
     keepalive 32;
 }
 EOF
     
-    # Reload Nginx configuration
-    if docker-compose -f docker-compose.production.yml exec nginx nginx -t; then
-        docker-compose -f docker-compose.production.yml exec nginx nginx -s reload
-        success "Nginx configuration updated and reloaded"
+    # Test and reload Nginx configuration
+    if sudo nginx -t; then
+        sudo systemctl reload nginx
+        success "Node-level Nginx configuration updated and reloaded"
     else
         error "Nginx configuration test failed"
         return 1

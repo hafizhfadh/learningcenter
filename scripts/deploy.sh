@@ -16,6 +16,15 @@ HEALTH_CHECK_URL="${HEALTH_CHECK_URL:-http://localhost/health}"
 HEALTH_CHECK_TIMEOUT="${HEALTH_CHECK_TIMEOUT:-300}"
 BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
 
+# Load environment variables for external services
+if [[ -f "$PROJECT_ROOT/.env.production" ]]; then
+    source "$PROJECT_ROOT/.env.production"
+elif [[ -f "$PROJECT_ROOT/.env" ]]; then
+    source "$PROJECT_ROOT/.env"
+else
+    warning "No environment file found. External database and Redis connections may fail."
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -89,11 +98,12 @@ create_backup() {
     local backup_dir="$PROJECT_ROOT/backups/$(date +%Y%m%d_%H%M%S)"
     mkdir -p "$backup_dir"
     
-    # Backup database
-    if docker-compose -f "$DOCKER_COMPOSE_FILE" exec -T postgres pg_dump -U laravel laravel_production > "$backup_dir/database.sql"; then
+    # Backup database from external PostgreSQL server
+    log "Creating database backup from external PostgreSQL server..."
+    if PGPASSWORD="$DB_PASSWORD" pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" "$DB_DATABASE" > "$backup_dir/database.sql"; then
         success "Database backup created"
     else
-        error "Failed to create database backup"
+        error "Failed to create database backup from external server"
         return 1
     fi
     
@@ -224,12 +234,10 @@ rollback() {
         fi
     done
     
-    # Restore database
+    # Restore database to external PostgreSQL server
     if [[ -f "$backup_dir/database.sql" ]]; then
-        log "Restoring database..."
-        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d postgres
-        sleep 10
-        docker-compose -f "$DOCKER_COMPOSE_FILE" exec -T postgres psql -U laravel -d laravel_production < "$backup_dir/database.sql"
+        log "Restoring database to external PostgreSQL server..."
+        PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" < "$backup_dir/database.sql"
     fi
     
     # Restore storage

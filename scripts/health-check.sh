@@ -9,6 +9,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DOCKER_COMPOSE_FILE="${DOCKER_COMPOSE_FILE:-docker-compose.production.yml}"
+
+# Load environment variables for external services
+if [[ -f "$PROJECT_ROOT/.env.production" ]]; then
+    source "$PROJECT_ROOT/.env.production"
+elif [[ -f "$PROJECT_ROOT/.env" ]]; then
+    source "$PROJECT_ROOT/.env"
+fi
 HEALTH_CHECK_TIMEOUT="${HEALTH_CHECK_TIMEOUT:-30}"
 SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
 EMAIL_RECIPIENT="${EMAIL_RECIPIENT:-}"
@@ -63,7 +70,7 @@ add_result() {
 check_containers() {
     log "Checking Docker containers..."
     
-    local services=("nginx" "caddy" "app" "postgres" "redis" "horizon" "scheduler")
+    local services=("caddy" "app" "horizon" "scheduler")
     
     for service in "${services[@]}"; do
         if docker-compose -f "$DOCKER_COMPOSE_FILE" ps "$service" | grep -q "Up"; then
@@ -92,33 +99,38 @@ check_app_health() {
     fi
 }
 
-# Check database connectivity
+# Check external database connectivity
 check_database() {
-    log "Checking database connectivity..."
+    log "Checking external database connectivity..."
     
-    if docker-compose -f "$DOCKER_COMPOSE_FILE" exec -T postgres pg_isready -U laravel > /dev/null 2>&1; then
-        add_result "database" "PASS" "Database is accepting connections"
+    if PGPASSWORD="$DB_PASSWORD" pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" > /dev/null 2>&1; then
+        add_result "database" "PASS" "External database is accepting connections"
         
         # Check database size and connections
-        local db_info=$(docker-compose -f "$DOCKER_COMPOSE_FILE" exec -T postgres psql -U laravel -d laravel_production -t -c "SELECT pg_database_size('laravel_production'), count(*) FROM pg_stat_activity WHERE datname='laravel_production';")
+        local db_info=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -t -c "SELECT pg_database_size('$DB_DATABASE'), count(*) FROM pg_stat_activity WHERE datname='$DB_DATABASE';" 2>/dev/null || echo "Unable to retrieve stats")
         add_result "database-stats" "PASS" "Database stats: $db_info"
     else
-        add_result "database" "FAIL" "Database is not accepting connections"
+        add_result "database" "FAIL" "External database is not accepting connections"
     fi
 }
 
-# Check Redis connectivity
+# Check external Redis connectivity
 check_redis() {
-    log "Checking Redis connectivity..."
+    log "Checking external Redis connectivity..."
     
-    if docker-compose -f "$DOCKER_COMPOSE_FILE" exec -T redis redis-cli ping | grep -q "PONG"; then
-        add_result "redis" "PASS" "Redis is responding to ping"
+    local redis_cmd="redis-cli -h $REDIS_HOST -p $REDIS_PORT"
+    if [[ -n "$REDIS_PASSWORD" ]]; then
+        redis_cmd="$redis_cmd -a $REDIS_PASSWORD"
+    fi
+    
+    if $redis_cmd ping | grep -q "PONG" 2>/dev/null; then
+        add_result "redis" "PASS" "External Redis is responding to ping"
         
         # Check Redis memory usage
-        local redis_info=$(docker-compose -f "$DOCKER_COMPOSE_FILE" exec -T redis redis-cli info memory | grep used_memory_human)
+        local redis_info=$($redis_cmd info memory 2>/dev/null | grep used_memory_human || echo "Unable to retrieve memory info")
         add_result "redis-memory" "PASS" "Redis memory: $redis_info"
     else
-        add_result "redis" "FAIL" "Redis is not responding"
+        add_result "redis" "FAIL" "External Redis is not responding"
     fi
 }
 
