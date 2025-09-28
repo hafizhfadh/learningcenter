@@ -1,0 +1,74 @@
+.solution-section {
+    padding: 20px 0;
+}
+
+.solution-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+}
+
+.solution-card {
+    flex: 0 0 calc(33.333% - 16px);
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(136, 144, 195, 0.2),
+        0 5px 15px rgba(37, 44, 97, 0.15);
+    border-radius: 15px;
+    padding: 20px;
+    position: relative;
+    transition: 0.3s;
+    overflow: hidden;
+}
+
+.solution-card:hover {
+    background: #309df0;
+    color: #fff;
+    transform: scale(1.03);
+    z-index: 10;
+}
+
+.solution-card:hover .solution-title,
+.solution-card:hover .solution-description {
+    color: #fff;
+}
+
+.solution-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #212121;
+}
+
+.solution-description {
+    font-size: 15px;
+    margin-bottom: 15px;
+}
+
+.solution-card a {
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(140deg, #42c3ca 0%, #42c3cac7 100%);
+    color: #fff;
+    font-weight: 500;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.solution-card:hover button {
+    background: #fff;
+    color: #309df0;
+}
+
+@media (max-width: 768px) {
+    .solution-card {
+        flex: 0 0 calc(50% - 16px);
+    }
+}
+
+@media (max-width: 576px) {
+    .solution-card {
+        flex: 0 0 100%;
+    }
+}
