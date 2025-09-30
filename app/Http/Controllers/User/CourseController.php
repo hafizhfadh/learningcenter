@@ -4,8 +4,6 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\LearningPath;
-use App\Models\Course;
-use Illuminate\Http\Request;
 
 class CourseController extends Controller
 {
@@ -14,9 +12,10 @@ class CourseController extends Controller
         $learningPath = LearningPath::where('slug', $exam)->firstOrFail();
 
         $courses = $learningPath->courses()
-            ->when(request()->q, function($query) {
-                $query->where('title', 'like', '%'. request()->q . '%');
+            ->when(request('q'), function ($query, $q) {
+                $query->where('title', 'like', '%' . $q . '%');
             })
+            ->where('is_published', true)
             ->latest()
             ->paginate(6);
 

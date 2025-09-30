@@ -25,7 +25,7 @@ services:
             - sail
         depends_on:
             - pgsql
-            - valkey
+            - redis
             - mailpit
     pgsql:
         image: 'postgres:17'
@@ -52,18 +52,26 @@ services:
                 - '${DB_USERNAME}'
             retries: 3
             timeout: 5s
-    valkey:
-        image: 'valkey/valkey:alpine'
+    redis:
+        image: 'redis:alpine'
         ports:
-            - '${FORWARD_VALKEY_PORT:-6379}:6379'
+            - '${FORWARD_REDIS_PORT:-6379}:6379'
         volumes:
-            - 'sail-valkey:/data'
+            - 'sail-redis:/data'
         networks:
             - sail
+        environment:
+            REDIS_PASSWORD: '${REDIS_PASSWORD:-}'
+        command: >
+            sh -c 'if [ -n "$${REDIS_PASSWORD}" ]; then
+                redis-server --requirepass "$${REDIS_PASSWORD}"
+            else
+                redis-server
+            fi'
         healthcheck:
             test:
                 - CMD
-                - valkey-cli
+                - redis-cli
                 - ping
             retries: 3
             timeout: 5s
@@ -80,5 +88,5 @@ networks:
 volumes:
     sail-pgsql:
         driver: local
-    sail-valkey:
+    sail-redis:
         driver: local

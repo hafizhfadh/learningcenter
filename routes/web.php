@@ -27,20 +27,20 @@ Route::middleware('auth')->group(function () {
     // All routes in this group will have 'user.' prefix in their names
     Route::prefix('/user')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\User\DashboardController::class, 'index'])->name('user.dashboard');
-        Route::get('/learning-path', [App\Http\Controllers\User\LearningPathController::class, 'index'])->name('user.learning-path.index');
+        Route::get('/learningPath', [App\Http\Controllers\User\LearningPathController::class, 'index'])->name('user.learning-path.index');
 
-        Route::get('/{exam}/course', [App\Http\Controllers\User\CourseController::class, 'index'])->name('user.course.index');
+        Route::get('/{learningPath}/course', [App\Http\Controllers\User\CourseController::class, 'index'])->name('user.course.index');
 
         // Post route to initiate course and track progress
-        Route::post('/{exam}/{courseSlug}/initiate', [App\Http\Controllers\User\LessonController::class, 'initiateCourse'])->name('user.course.initiate');
+        Route::post('/{learningPath}/{courseSlug}/initiate', [App\Http\Controllers\User\LessonController::class, 'initiateCourse'])->name('user.course.initiate');
 
         // List lessons in a course
-        Route::get('/{exam}/{courseSlug}/lesson', [App\Http\Controllers\User\LessonController::class, 'index'])->name('user.lesson.index');
+        Route::get('/{learningPath}/{courseSlug}/lesson', [App\Http\Controllers\User\LessonController::class, 'index'])->name('user.lesson.index');
 
         // Show a specific lesson using slug for lesson binding
-        Route::get('/{exam}/{courseSlug}/lesson/{lesson:slug}', [App\Http\Controllers\User\LessonController::class, 'show'])->name('user.lesson.show');
+        Route::get('/{learningPath}/{courseSlug}/lesson/{lesson:slug}', [App\Http\Controllers\User\LessonController::class, 'show'])->name('user.lesson.show');
 
         // Post route to mark lesson as completed and go to next
-        Route::post('/{exam}/{courseSlug}/lesson/{lesson:slug}/next', [App\Http\Controllers\User\LessonController::class, 'nextLesson'])->name('user.lesson.next'); 
+        Route::post('/{learningPath}/{courseSlug}/lesson/{lesson:slug}/next', [App\Http\Controllers\User\LessonController::class, 'nextLesson'])->name('user.lesson.next'); 
     });
 });

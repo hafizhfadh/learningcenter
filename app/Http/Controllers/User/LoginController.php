@@ -21,7 +21,7 @@ class LoginController extends Controller
 
         if (Auth::attempt([$loginType => $credentials['login'], 'password' => $credentials['password']])) {
             $request->session()->regenerate();
-            return redirect()->intended('/dashboard'); 
+            return redirect()->intended('/user/dashboard'); 
         }
 
         return back()->withErrors([

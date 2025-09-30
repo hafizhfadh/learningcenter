@@ -9,6 +9,7 @@ use App\Models\ProgressLog;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class LessonService
 {
@@ -49,31 +50,64 @@ class LessonService
         $cacheKey = "course_progress_{$course->id}_{$userId}";
         
         return Cache::remember($cacheKey, self::PROGRESS_CACHE_TTL, function () use ($course, $userId) {
-            // Use a single query to get both counts
-            $progressData = DB::table('progress_logs')
-                ->where('user_id', $userId)
-                ->where('course_id', $course->id)
-                ->selectRaw('
-                    COUNT(*) as total_progress_entries,
-                    SUM(CASE WHEN status IN ("completed", "mastered") THEN 1 ELSE 0 END) as completed_lessons
-                ')
-                ->first();
+            try {
+                // Use a single query to get both counts
+                $progressData = DB::table('progress_logs')
+                    ->where('user_id', $userId)
+                    ->where('course_id', $course->id)
+                    ->whereNull('deleted_at') // Respect soft deletes
+                    ->selectRaw('
+                        COUNT(*) as total_progress_entries,
+                        SUM(CASE WHEN action = "completed" THEN 1 ELSE 0 END) as completed_lessons
+                    ')
+                    ->first();
 
-            // Get total lessons count efficiently
-            $totalLessons = DB::table('lessons')
-                ->join('lesson_sections', 'lessons.lesson_section_id', '=', 'lesson_sections.id')
-                ->where('lesson_sections.course_id', $course->id)
-                ->where('lessons.is_published', true)
-                ->count();
+                // Get total lessons count efficiently
+                $totalLessons = DB::table('lessons')
+                    ->join('lesson_sections', 'lessons.lesson_section_id', '=', 'lesson_sections.id')
+                    ->where('lesson_sections.course_id', $course->id)
+                    ->where('lessons.is_published', true)
+                    ->whereNull('lessons.deleted_at') // Respect soft deletes for lessons
+                    ->whereNull('lesson_sections.deleted_at') // Respect soft deletes for sections
+                    ->count();
 
-            $completedLessons = $progressData->completed_lessons ?? 0;
-            $progress = $totalLessons > 0 ? round(($completedLessons / $totalLessons) * 100) : 0;
+                $completedLessons = $progressData->completed_lessons ?? 0;
+                $progress = $totalLessons > 0 ? round(($completedLessons / $totalLessons) * 100) : 0;
 
-            return [
-                'completed_lessons' => $completedLessons,
-                'total_lessons' => $totalLessons,
-                'progress_percentage' => $progress
-            ];
+                return [
+                    'completed_lessons' => $completedLessons,
+                    'total_lessons' => $totalLessons,
+                    'progress_percentage' => $progress
+                ];
+            } catch (\Illuminate\Database\QueryException $e) {
+                Log::error('Database error in calculateCourseProgress', [
+                    'course_id' => $course->id,
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                    'sql' => $e->getSql() ?? 'N/A',
+                    'bindings' => $e->getBindings() ?? []
+                ]);
+                
+                // Return safe defaults when database query fails
+                return [
+                    'completed_lessons' => 0,
+                    'total_lessons' => 0,
+                    'progress_percentage' => 0
+                ];
+            } catch (\Exception $e) {
+                Log::error('Unexpected error in calculateCourseProgress', [
+                    'course_id' => $course->id,
+                    'user_id' => $userId,
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Return safe defaults for any other errors
+                return [
+                    'completed_lessons' => 0,
+                    'total_lessons' => 0,
+                    'progress_percentage' => 0
+                ];
+            }
         });
     }
 
@@ -349,6 +383,164 @@ class LessonService
         $this->invalidateUserProgressCache($course->id, $userId);
 
         return $progressLog;
+    }
+
+    /**
+     * Check if user is eligible for course self-initiation
+     */
+    public function isUserEligibleForSelfInitiation(Course $course, int $userId): array
+    {
+        $eligibilityResult = [
+            'eligible' => false,
+            'reasons' => [],
+            'auto_enroll_available' => false
+        ];
+
+        // Check if course is published
+        if ($course->is_published) {
+            $eligibilityResult['reasons'][] = 'Course is not currently available for enrollment.';
+            return $eligibilityResult;
+        }
+
+        // Check if course has lessons
+        $firstLesson = $this->getFirstLesson($course);
+        if (!$firstLesson) {
+            $eligibilityResult['reasons'][] = 'Course has no available lessons.';
+            return $eligibilityResult;
+        }
+
+        // Check if user is already enrolled
+        $existingEnrollment = Enrollment::where('user_id', $userId)
+            ->where('course_id', $course->id)
+            ->first();
+
+        if ($existingEnrollment) {
+            if ($existingEnrollment->enrollment_status === 'enrolled') {
+                $eligibilityResult['reasons'][] = 'You are already enrolled in this course.';
+                $eligibilityResult['eligible'] = true;
+                return $eligibilityResult;
+            } elseif ($existingEnrollment->enrollment_status === 'completed') {
+                $eligibilityResult['reasons'][] = 'You have already completed this course.';
+                return $eligibilityResult;
+            } elseif ($existingEnrollment->enrollment_status === 'suspended') {
+                $eligibilityResult['reasons'][] = 'Your enrollment in this course has been suspended.';
+                return $eligibilityResult;
+            }
+        }
+
+        // If no enrollment exists or enrollment is inactive, user can self-enroll
+        $eligibilityResult['eligible'] = true;
+        $eligibilityResult['auto_enroll_available'] = true;
+
+        return $eligibilityResult;
+    }
+
+    /**
+     * Automatically enroll user in a course for self-initiation
+     */
+    public function autoEnrollUser(Course $course, int $userId): Enrollment
+    {
+        // Check if enrollment already exists
+        $existingEnrollment = Enrollment::where('user_id', $userId)
+            ->where('course_id', $course->id)
+            ->first();
+
+        if ($existingEnrollment) {
+            // Reactivate if inactive
+            if ($existingEnrollment->enrollment_status !== 'enrolled') {
+                $existingEnrollment->update([
+                    'enrollment_status' => 'enrolled',
+                    'enrolled_at' => now(),
+                    'progress' => 0
+                ]);
+            }
+            return $existingEnrollment;
+        }
+
+        // Create new enrollment
+        return Enrollment::create([
+            'user_id' => $userId,
+            'course_id' => $course->id,
+            'enrollment_status' => 'enrolled',
+            'progress' => 0,
+            'enrolled_at' => now()
+        ]);
+    }
+
+    /**
+     * Enhanced course initiation tracking with detailed logging
+     */
+    public function trackSelfInitiatedCourseStart(Course $course, int $userId, bool $wasAutoEnrolled = false): array
+    {
+        $result = [
+            'success' => false,
+            'progress_log' => null,
+            'enrollment' => null,
+            'first_lesson' => null,
+            'message' => ''
+        ];
+
+        try {
+            DB::transaction(function () use ($course, $userId, $wasAutoEnrolled, &$result) {
+                // Get the first lesson
+                $firstLesson = $this->getFirstLesson($course);
+                if (!$firstLesson) {
+                    throw new \Exception('Course has no available lessons.');
+                }
+
+                // Get or create enrollment
+                $enrollment = Enrollment::where('user_id', $userId)
+                    ->where('course_id', $course->id)
+                    ->where('enrollment_status', 'enrolled')
+                    ->first();
+
+                if (!$enrollment) {
+                    throw new \Exception('User is not enrolled in this course.');
+                }
+
+                // Check if course initiation has already been tracked
+                $existingLog = ProgressLog::where('user_id', $userId)
+                    ->where('course_id', $course->id)
+                    ->where('lesson_id', $firstLesson->id)
+                    ->where('action', 'course_started')
+                    ->first();
+
+                if (!$existingLog) {
+                    // Create a new progress log for course initiation
+                    $progressLog = ProgressLog::create([
+                        'user_id' => $userId,
+                        'course_id' => $course->id,
+                        'lesson_id' => $firstLesson->id,
+                        'action' => 'course_started',
+                        'status' => 'in_progress',
+                        'progress_percentage' => 0,
+                        'started_at' => now(),
+                        'metadata' => json_encode([
+                            'self_initiated' => true,
+                            'auto_enrolled' => $wasAutoEnrolled,
+                            'initiation_timestamp' => now()->toISOString()
+                        ])
+                    ]);
+                } else {
+                    $progressLog = $existingLog;
+                }
+
+                // Invalidate relevant caches
+                $this->invalidateUserProgressCache($course->id, $userId);
+
+                $result['success'] = true;
+                $result['progress_log'] = $progressLog;
+                $result['enrollment'] = $enrollment;
+                $result['first_lesson'] = $firstLesson;
+                $result['message'] = $wasAutoEnrolled 
+                    ? 'Successfully enrolled and initiated course.' 
+                    : 'Course initiated successfully.';
+            });
+        } catch (\Exception $e) {
+            $result['message'] = $e->getMessage();
+        }
+
+        return $result;
     }
 
     /**

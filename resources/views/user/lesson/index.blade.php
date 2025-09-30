@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('user.layouts.app')
 
 @section('title', $course->title . ' - Lessons')
 
@@ -7,19 +7,19 @@
     <div class="max-w-4xl mx-auto">
         @include('user.lesson.partials.course-header', [
             'course' => $course,
-            'completionPercentage' => $completionPercentage,
-            'exam' => $exam
+            'completionPercentage' => $completedLessons,
+            'learningPath' => $learningPath
         ])
 
         @if($groupedLessons->isNotEmpty())
             @include('user.lesson.partials.lesson-sections', [
                 'groupedLessons' => $groupedLessons,
-                'exam' => $exam,
+                'learningPath' => $learningPath,
                 'course' => $course
             ])
         @else
             @include('user.lesson.partials.no-lessons', [
-                'exam' => $exam
+                'learningPath' => $learningPath
             ])
         @endif
     </div>
