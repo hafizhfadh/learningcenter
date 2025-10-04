@@ -57,28 +57,51 @@ class CaddyService
     public function removeDomain(string $domain): bool
     {
         try {
-            // Get current configuration
-            $currentConfig = $this->getCurrentConfig();
+            // Get current routes
+            $response = Http::timeout($this->timeout)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Origin' => $this->origin,
+                ])
+                ->get($this->caddyApiUrl . '/config/apps/http/servers/srv0/routes');
 
-            if (!$currentConfig) {
+            if (!$response->successful()) {
+                Log::error("Failed to get current routes from Caddy", [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
                 return false;
             }
 
-            // Remove the domain from routes
-            $updatedConfig = $this->removeDomainFromConfig($currentConfig, $domain);
+            $routes = $response->json();
+            $filteredRoutes = [];
 
-            $response = Http::timeout($this->timeout)
-                ->withHeaders(['Content-Type' => 'application/json'])
-                ->post($this->caddyApiUrl . '/load', $updatedConfig);
+            // Filter out routes that contain the domain
+            foreach ($routes as $route) {
+                if (
+                    isset($route['match'][0]['host']) &&
+                    !in_array($domain, $route['match'][0]['host'])
+                ) {
+                    $filteredRoutes[] = $route;
+                }
+            }
 
-            if ($response->successful()) {
+            // Update the routes
+            $updateResponse = Http::timeout($this->timeout)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Origin' => $this->origin,
+                ])
+                ->put($this->caddyApiUrl . '/config/apps/http/servers/srv0/routes', $filteredRoutes);
+
+            if ($updateResponse->successful()) {
                 Log::info("Domain {$domain} removed from Caddy successfully");
                 return true;
             }
 
             Log::error("Failed to remove domain {$domain} from Caddy", [
-                'status' => $response->status(),
-                'body' => $response->body()
+                'status' => $updateResponse->status(),
+                'body' => $updateResponse->body()
             ]);
 
             return false;
@@ -120,7 +143,7 @@ class CaddyService
     {
         try {
             $response = Http::timeout(5)
-                ->get($this->caddyApiUrl . '/config/');
+                ->get($this->caddyApiUrl . '/health');
 
             return $response->successful();
         } catch (Exception $e) {
@@ -276,6 +299,27 @@ class CaddyService
      */
     public function isValidDomain(string $domain): bool
     {
+        // Check for empty string
+        if (empty($domain)) {
+            return false;
+        }
+
+        // Check for leading or trailing dots
+        if (str_starts_with($domain, '.') || str_ends_with($domain, '.')) {
+            return false;
+        }
+
+        // Check for consecutive dots
+        if (str_contains($domain, '..')) {
+            return false;
+        }
+
+        // Check for URL schemes
+        if (str_contains($domain, '://')) {
+            return false;
+        }
+
+        // Use PHP's built-in domain validation
         return filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false;
     }
 
@@ -284,21 +328,31 @@ class CaddyService
      */
     public function getConfiguredDomains(): array
     {
-        $config = $this->getCurrentConfig();
+        try {
+            $response = Http::timeout($this->timeout)
+                ->get($this->caddyApiUrl . '/config/apps/http/servers/srv0/routes');
 
-        if (!$config || !isset($config['apps']['http']['servers']['srv0']['routes'])) {
+            if (!$response->successful()) {
+                Log::error('Failed to get configured domains from Caddy', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return [];
+            }
+
+            $routes = $response->json();
+            $domains = [];
+
+            foreach ($routes as $route) {
+                if (isset($route['match'][0]['host'])) {
+                    $domains = array_merge($domains, $route['match'][0]['host']);
+                }
+            }
+
+            return array_unique($domains);
+        } catch (Exception $e) {
+            Log::error('Exception getting configured domains: ' . $e->getMessage());
             return [];
         }
-
-        $domains = [];
-        $routes = $config['apps']['http']['servers']['srv0']['routes'];
-
-        foreach ($routes as $route) {
-            if (isset($route['match'][0]['host'])) {
-                $domains = array_merge($domains, $route['match'][0]['host']);
-            }
-        }
-
-        return array_unique($domains);
     }
 }
