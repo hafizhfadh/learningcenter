@@ -1,4 +1,4 @@
-name: Build and Deploy Learning Center
+name: Build and Deploy Laravel Learning Center
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: learning_center_test
@@ -43,54 +43,81 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Go
-      uses: actions/setup-go@v4
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
       with:
-        go-version: '1.23'
-        cache-dependency-path: |
-          apps/api/go.sum
-          go.work.sum
+        php-version: '8.2'
+        extensions: mbstring, dom, fileinfo, pgsql, redis, gd, zip, bcmath, pcntl
+        coverage: xdebug
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'pnpm'
+        cache: 'npm'
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
+    - name: Copy environment file
+      run: cp .env.example .env
 
-    - name: Install dependencies
-      run: pnpm install
+    - name: Install Composer dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest --optimize-autoloader
 
-    - name: Run Go tests
-      working-directory: apps/api
+    - name: Install NPM dependencies
+      run: npm ci
+
+    - name: Generate application key
+      run: php artisan key:generate
+
+    - name: Set up database
       env:
+        DB_CONNECTION: pgsql
         DB_HOST: localhost
         DB_PORT: 5432
         DB_DATABASE: learning_center_test
         DB_USERNAME: postgres
         DB_PASSWORD: postgres
-        REDIS_ADDR: localhost:6379
-        APP_ENV: testing
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
       run: |
-        go mod download
-        go test -v ./...
+        php artisan config:cache
+        php artisan migrate --force
 
-    - name: Run Frontend tests
-      working-directory: apps/web
+    - name: Build frontend assets
+      run: npm run build
+
+    - name: Run PHP tests
+      env:
+        DB_CONNECTION: pgsql
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_DATABASE: learning_center_test
+        DB_USERNAME: postgres
+        DB_PASSWORD: postgres
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        APP_ENV: testing
+      run: php artisan test --coverage
+
+    - name: Run PHP Static Analysis
       run: |
-        pnpm test:ci
+        composer require --dev phpstan/phpstan --no-update
+        composer update phpstan/phpstan
+        vendor/bin/phpstan analyse --memory-limit=2G
 
     - name: Run security checks
       run: |
-        # Go vulnerability check
-        cd apps/api && go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        # PHP security audit
+        composer audit
         
         # Frontend audit
-        cd apps/web && pnpm audit --audit-level moderate
+        npm audit --audit-level moderate
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
 
   build:
     needs: test
@@ -138,13 +165,15 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./apps/api/Dockerfile
+        file: ./docker/production/Dockerfile
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
         platforms: linux/amd64,linux/arm64
+        build-args: |
+          APP_ENV=production
 
     - name: Generate SBOM
       uses: anchore/sbom-action@v0
@@ -154,7 +183,7 @@ jobs:
         output-file: sbom.spdx.json
 
     - name: Upload SBOM
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sbom
         path: sbom.spdx.json
@@ -177,7 +206,7 @@ jobs:
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
@@ -196,11 +225,35 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Deploy to staging
+      env:
+        STAGING_HOST: ${{ secrets.STAGING_HOST }}
+        STAGING_USER: ${{ secrets.STAGING_USER }}
+        STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+        IMAGE_TAG: ${{ github.sha }}
       run: |
-        echo "Deploying to staging environment..."
-        # Add staging deployment logic here
-        # This could trigger a webhook to your staging server
-        # or use a deployment service like Portainer, Watchtower, etc.
+        echo "Deploying Laravel Learning Center to staging..."
+        
+        # Setup SSH
+        mkdir -p ~/.ssh
+        echo "$STAGING_SSH_KEY" > ~/.ssh/staging_key
+        chmod 600 ~/.ssh/staging_key
+        
+        # Deploy via SSH
+        ssh -i ~/.ssh/staging_key -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST << 'EOF'
+          cd /var/www/learning-center
+          export IMAGE_TAG=${{ github.sha }}
+          docker-compose -f docker-compose.production.yml pull
+          docker-compose -f docker-compose.production.yml up -d
+          docker-compose exec -T app php artisan migrate --force
+          docker-compose exec -T app php artisan config:cache
+          docker-compose exec -T app php artisan route:cache
+          docker-compose exec -T app php artisan view:cache
+        EOF
+
+    - name: Run staging health check
+      run: |
+        sleep 30
+        curl -f https://staging.learning-center.example.com/health || exit 1
 
   deploy-production:
     needs: [build, security-scan]
@@ -220,20 +273,58 @@ jobs:
       run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
     - name: Deploy to production
+      env:
+        PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+        PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+        PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+        IMAGE_TAG: ${{ steps.tag.outputs.tag }}
       run: |
-        echo "Deploying version ${{ steps.tag.outputs.tag }} to production..."
-        # This could trigger a webhook to your production servers
-        # or use a deployment service
+        echo "Deploying Laravel Learning Center v${{ steps.tag.outputs.tag }} to production..."
         
-        # Example webhook call:
-        # curl -X POST "${{ secrets.PRODUCTION_WEBHOOK_URL }}" \
-        #   -H "Authorization: Bearer ${{ secrets.PRODUCTION_WEBHOOK_TOKEN }}" \
-        #   -H "Content-Type: application/json" \
-        #   -d '{
-        #     "image_tag": "${{ steps.tag.outputs.tag }}",
-        #     "repository": "${{ github.repository }}",
-        #     "commit_sha": "${{ github.sha }}"
-        #   }'
+        # Setup SSH
+        mkdir -p ~/.ssh
+        echo "$PRODUCTION_SSH_KEY" > ~/.ssh/production_key
+        chmod 600 ~/.ssh/production_key
+        
+        # Blue-Green deployment
+        ssh -i ~/.ssh/production_key -o StrictHostKeyChecking=no $PRODUCTION_USER@$PRODUCTION_HOST << 'EOF'
+          cd /var/www/learning-center
+          
+          # Run blue-green deployment script
+          export IMAGE_TAG=${{ steps.tag.outputs.tag }}
+          ./scripts/blue-green-deploy.sh
+          
+          # Run post-deployment tasks
+          docker-compose exec -T app php artisan migrate --force
+          docker-compose exec -T app php artisan config:cache
+          docker-compose exec -T app php artisan route:cache
+          docker-compose exec -T app php artisan view:cache
+          docker-compose exec -T app php artisan queue:restart
+        EOF
+
+    - name: Run production health check
+      run: |
+        sleep 60
+        curl -f https://learning-center.example.com/health || exit 1
+
+    - name: Create GitHub release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        release_name: Release ${{ steps.tag.outputs.tag }}
+        body: |
+          ## Changes in this Release
+          - Automated deployment of Laravel Learning Center
+          - Docker image: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}`
+          
+          ## Deployment Information
+          - **Environment**: Production
+          - **Deployed at**: ${{ github.event.head_commit.timestamp }}
+          - **Commit**: ${{ github.sha }}
+        draft: false
+        prerelease: false
 
   notify:
     needs: [deploy-staging, deploy-production]
@@ -242,17 +333,32 @@ jobs:
 
     steps:
     - name: Notify deployment status
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       run: |
         if [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
           echo "✅ Staging deployment successful"
+          STATUS_STAGING="✅ Success"
         elif [[ "${{ needs.deploy-staging.result }}" == "failure" ]]; then
           echo "❌ Staging deployment failed"
+          STATUS_STAGING="❌ Failed"
+        else
+          STATUS_STAGING="⏭️ Skipped"
         fi
         
         if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
           echo "✅ Production deployment successful"
+          STATUS_PRODUCTION="✅ Success"
         elif [[ "${{ needs.deploy-production.result }}" == "failure" ]]; then
           echo "❌ Production deployment failed"
+          STATUS_PRODUCTION="❌ Failed"
+        else
+          STATUS_PRODUCTION="⏭️ Skipped"
         fi
         
-        # Add Slack/Discord/email notifications here if needed
+        # Send Slack notification if webhook is configured
+        if [[ -n "$SLACK_WEBHOOK_URL" ]]; then
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚀 Laravel Learning Center Deployment\n• Staging: $STATUS_STAGING\n• Production: $STATUS_PRODUCTION\n• Commit: ${{ github.sha }}\n• Branch: ${{ github.ref_name }}\"}" \
+            $SLACK_WEBHOOK_URL
+        fi
