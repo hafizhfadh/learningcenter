@@ -1,246 +1,189 @@
 version: '3.8'
 
 services:
-  # Caddy Web Server for Application Management
-  caddy:
-    image: caddy:2.7-alpine
-    container_name: "${APP_NAME:-laravel}_caddy"
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-      - "8443:443"
-    volumes:
-      - ./docker/production/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-      - app_storage:/app/storage:ro
-    environment:
-      - CADDY_ADMIN=0.0.0.0:2019
-      - UPSTREAM_HOST=app
-      - UPSTREAM_PORT=8000
-      - APP_DOMAIN=${APP_DOMAIN:-localhost}
-    depends_on:
-      - app
-    networks:
-      - app_network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    labels:
-      - "com.docker.compose.service=caddy"
-
-  # Laravel Application with FrankenPHP and Octane
+  # Laravel Application
   app:
-    build:
-      context: .
-      dockerfile: ./docker/production/Dockerfile
-      args:
-        - PHP_VERSION=${PHP_VERSION:-8.3}
-        - COMPOSER_VERSION=${COMPOSER_VERSION:-2.6}
-    container_name: "${APP_NAME:-laravel}_app"
+    image: ghcr.io/${GITHUB_REPOSITORY}/learning-center:${IMAGE_TAG:-latest}
+    container_name: learning-center-app
     restart: unless-stopped
-    expose:
-      - "8000"
-    volumes:
-      - app_storage:/app/storage
-      - app_bootstrap_cache:/app/bootstrap/cache
-      - app_logs:/app/storage/logs
-      - ./docker/production/php.ini:/usr/local/etc/php/conf.d/99-production.ini:ro
-      - ./docker/production/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
     environment:
-      # Application Configuration
       - APP_ENV=production
       - APP_DEBUG=false
       - APP_KEY=${APP_KEY}
-      - APP_URL=${APP_URL:-https://localhost}
-      
-      # External Database Configuration (PostgreSQL on separate server)
+      - APP_URL=${APP_URL}
       - DB_CONNECTION=pgsql
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT:-5432}
       - DB_DATABASE=${DB_DATABASE}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_SSLMODE=${DB_SSLMODE:-require}
-      
-      # External Redis Configuration (Redis on separate server)
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_DB=${REDIS_DB:-0}
-      
-      # Cache and Session Configuration
       - CACHE_DRIVER=redis
       - SESSION_DRIVER=redis
       - QUEUE_CONNECTION=redis
-      - BROADCAST_DRIVER=redis
-      
-      # Octane Configuration
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
-      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
-      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
-      
-      # Supervisor Configuration
-      - SUPERVISOR_PHP_COMMAND=/usr/local/bin/php
-      - SUPERVISOR_PHP_USER=www-data
-      
-      # Logging Configuration
-      - LOG_CHANNEL=${LOG_CHANNEL:-stack}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      
-      # Mail Configuration
-      - MAIL_MAILER=${MAIL_MAILER:-smtp}
+      - MAIL_MAILER=${MAIL_MAILER}
       - MAIL_HOST=${MAIL_HOST}
-      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_PORT=${MAIL_PORT}
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
-      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION}
+    volumes:
+      - app_storage:/var/www/html/storage
+      - app_logs:/var/www/html/storage/logs
     networks:
       - app_network
+    depends_on:
+      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
-    labels:
-      - "com.docker.compose.service=app"
+      start_period: 40s
 
-  # Horizon Queue Worker
-  horizon:
-    build:
-      context: .
-      dockerfile: ./docker/production/Dockerfile
-      args:
-        - PHP_VERSION=${PHP_VERSION:-8.3}
-        - COMPOSER_VERSION=${COMPOSER_VERSION:-2.6}
-    container_name: "${APP_NAME:-laravel}_horizon"
+  # Redis Cache & Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: learning-center-redis
     restart: unless-stopped
-    command: php artisan horizon
-    volumes:
-      - app_storage:/app/storage
-      - app_logs:/app/storage/logs
-      - ./docker/production/php.ini:/usr/local/etc/php/conf.d/99-production.ini:ro
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 512mb --maxmemory-policy allkeys-lru
     environment:
-      # Application Configuration
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - APP_KEY=${APP_KEY}
-      
-      # External Database Configuration
-      - DB_CONNECTION=pgsql
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT:-5432}
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_SSLMODE=${DB_SSLMODE:-require}
-      
-      # External Redis Configuration
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_DB=${REDIS_DB:-0}
-      
-      # Queue Configuration
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-      - BROADCAST_DRIVER=redis
-      
-      # Logging Configuration
-      - LOG_CHANNEL=${LOG_CHANNEL:-stack}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-    depends_on:
-      - app
+    volumes:
+      - redis_data:/data
+      - ./docker/production/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - app_network
     healthcheck:
-      test: ["CMD", "php", "artisan", "horizon:status"]
-      interval: 60s
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
-    labels:
-      - "com.docker.compose.service=horizon"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
-  # Scheduler
-  scheduler:
-    build:
-      context: .
-      dockerfile: ./docker/production/Dockerfile
-      args:
-        - PHP_VERSION=${PHP_VERSION:-8.3}
-        - COMPOSER_VERSION=${COMPOSER_VERSION:-2.6}
-    container_name: "${APP_NAME:-laravel}_scheduler"
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: learning-center-nginx
     restart: unless-stopped
-    command: php artisan schedule:work
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - app_storage:/app/storage
-      - app_logs:/app/storage/logs
-      - ./docker/production/php.ini:/usr/local/etc/php/conf.d/99-production.ini:ro
-    environment:
-      # Application Configuration
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - APP_KEY=${APP_KEY}
-      
-      # External Database Configuration
-      - DB_CONNECTION=pgsql
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT:-5432}
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_SSLMODE=${DB_SSLMODE:-require}
-      
-      # External Redis Configuration
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_DB=${REDIS_DB:-0}
-      
-      # Cache Configuration
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-      
-      # Logging Configuration
-      - LOG_CHANNEL=${LOG_CHANNEL:-stack}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-    depends_on:
-      - app
+      - ./docker/production/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/production/nginx/ssl.conf:/etc/nginx/conf.d/ssl.conf:ro
+      - ./docker/production/ssl:/etc/nginx/ssl:ro
+      - app_logs:/var/log/nginx
     networks:
       - app_network
+    depends_on:
+      - app
     healthcheck:
-      test: ["CMD", "pgrep", "-f", "schedule:work"]
-      interval: 60s
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
-    labels:
-      - "com.docker.compose.service=scheduler"
+
+  # Lightweight Monitoring - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: learning-center-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/production/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/production/monitoring/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    networks:
+      - app_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Node Exporter for System Metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: learning-center-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - app_network
+
+  # cAdvisor for Container Metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: learning-center-cadvisor
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - app_network
+
+  # Redis Exporter for Redis Metrics
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: learning-center-redis-exporter
+    restart: unless-stopped
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      - app_network
+    depends_on:
+      - redis
 
 networks:
   app_network:
     driver: bridge
-    name: "${APP_NAME:-laravel}_network"
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 volumes:
-  # Application volumes
   app_storage:
-    name: "${APP_NAME:-laravel}_app_storage"
-  app_bootstrap_cache:
-    name: "${APP_NAME:-laravel}_app_bootstrap_cache"
+    driver: local
   app_logs:
-    name: "${APP_NAME:-laravel}_app_logs"
-  
-  # Caddy volumes
-  caddy_data:
-    name: "${APP_NAME:-laravel}_caddy_data"
-  caddy_config:
-    name: "${APP_NAME:-laravel}_caddy_config"
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local

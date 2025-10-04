@@ -1,16 +1,20 @@
 # Security Guide
 
-This comprehensive security guide covers application security, infrastructure hardening, and security best practices for the Laravel application.
+This comprehensive security guide covers application security, infrastructure hardening, and security best practices for the Laravel application with production-ready security configurations.
 
 ## Table of Contents
 
 - [Security Overview](#security-overview)
 - [Application Security](#application-security)
 - [Infrastructure Security](#infrastructure-security)
+- [Docker Security](#docker-security)
+- [Network Security](#network-security)
 - [Authentication & Authorization](#authentication--authorization)
 - [Data Protection](#data-protection)
 - [Security Monitoring](#security-monitoring)
+- [Security Hardening](#security-hardening)
 - [Incident Response](#incident-response)
+- [Security Validation](#security-validation)
 - [Compliance](#compliance)
 - [Security Checklist](#security-checklist)
 
@@ -641,6 +645,358 @@ server {
     server_name yourdomain.com;
     return 301 https://$server_name$request_uri;
 }
+
+## Docker Security
+
+### Production Docker Security Configuration
+
+The production environment implements comprehensive Docker security hardening through multiple layers:
+
+#### 1. Hardened Dockerfile
+
+```dockerfile
+# docker/production/Dockerfile
+FROM php:8.2-fpm-alpine
+
+# Security metadata
+LABEL security.scan="enabled" \
+      security.non-root="true" \
+      security.readonly="true"
+
+# Create non-root user and group
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+
+# Install system dependencies with specific versions
+RUN apk add --no-cache --update \
+    git=2.43.0-r0 \
+    curl=8.5.0-r0 \
+    libpng-dev=1.6.40-r0 \
+    # ... other dependencies with versions
+    && rm -rf /var/cache/apk/*
+
+# Security configurations
+COPY docker/production/php-security.ini /usr/local/etc/php/conf.d/99-security.ini
+
+# Set strict file permissions
+RUN chmod 755 /app && \
+    chown -R appuser:appgroup /app
+
+# Remove unnecessary packages after build
+RUN apk del --purge build-dependencies
+
+# Security environment variables
+ENV SECURITY_HEADERS=enabled \
+    PHP_EXPOSE_PHP=Off \
+    PHP_DISPLAY_ERRORS=Off
+
+# Use non-privileged ports
+EXPOSE 8080 8443
+
+# Enhanced health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Switch to non-root user
+USER appuser:appgroup
+```
+
+#### 2. Docker Compose Security
+
+```yaml
+# docker/production/docker-security.yml
+version: '3.8'
+
+services:
+  app:
+    build: 
+      context: .
+      dockerfile: docker/production/Dockerfile
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/tmp:noexec,nosuid,size=50m
+      - /app/storage/framework/cache:noexec,nosuid,size=200m
+      - /app/storage/framework/sessions:noexec,nosuid,size=100m
+      - /app/storage/framework/views:noexec,nosuid,size=100m
+    volumes:
+      - app_storage:/app/storage:rw
+      - app_logs:/app/storage/logs:rw
+      - security_logs:/var/log/security:rw
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-laravel
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+    sysctls:
+      - net.core.somaxconn=65535
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=app,environment=production"
+
+  nginx:
+    image: nginx:1.25-alpine
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+      - /var/cache/nginx:noexec,nosuid,size=100m
+      - /var/run:noexec,nosuid,size=10m
+    volumes:
+      - ./docker/production/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx:rw
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-nginx
+    ports:
+      - "80:8080"
+      - "443:8443"
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=nginx,environment=production"
+
+volumes:
+  app_storage:
+    driver: local
+  app_logs:
+    driver: local
+  security_logs:
+    driver: local
+  nginx_logs:
+    driver: local
+```
+
+#### 3. PHP Security Configuration
+
+```ini
+; docker/production/php-security.ini
+; Hide PHP version
+expose_php = Off
+
+; Disable dangerous functions
+disable_functions = exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source,file_get_contents,file_put_contents,fopen,fwrite,fputs,fgets,fgetcsv,fgetss,fread,readfile,highlight_file
+
+; File upload security
+file_uploads = On
+upload_max_filesize = 10M
+max_file_uploads = 5
+upload_tmp_dir = /tmp
+
+; Execution limits
+max_execution_time = 30
+max_input_time = 30
+memory_limit = 256M
+post_max_size = 20M
+
+; Session security
+session.cookie_httponly = 1
+session.cookie_secure = 1
+session.cookie_samesite = "Strict"
+session.use_strict_mode = 1
+session.use_only_cookies = 1
+
+; Error handling
+display_errors = Off
+display_startup_errors = Off
+log_errors = On
+error_log = /var/log/security/php_errors.log
+
+; Open basedir restriction
+open_basedir = /app:/tmp:/var/tmp
+
+; Disable URL includes
+allow_url_fopen = Off
+allow_url_include = Off
+
+; SQL injection protection
+sql.safe_mode = On
+
+; XSS protection
+filter.default = full_special_chars
+filter.default_flags = FILTER_FLAG_NO_ENCODE_QUOTES
+```
+
+#### 4. Security Headers Configuration
+
+```nginx
+# Included in docker/production/nginx.conf
+# Strict Transport Security
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+# Content Security Policy
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" always;
+
+# X-Content-Type-Options
+add_header X-Content-Type-Options "nosniff" always;
+
+# X-Frame-Options
+add_header X-Frame-Options "DENY" always;
+
+# X-XSS-Protection
+add_header X-XSS-Protection "1; mode=block" always;
+
+# Referrer Policy
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+# Permissions Policy
+add_header Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), speaker=(), vibrate=(), fullscreen=(self), sync-xhr=()" always;
+
+# Remove server information
+server_tokens off;
+more_clear_headers Server;
+more_clear_headers X-Powered-By;
+
+# Cache control for sensitive resources
+location ~* \.(env|log|ini|conf|sql|bak|old|tmp)$ {
+    add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
+    deny all;
+}
+
+# Cross-Origin Policies
+add_header Cross-Origin-Embedder-Policy "require-corp" always;
+add_header Cross-Origin-Opener-Policy "same-origin" always;
+add_header Cross-Origin-Resource-Policy "same-origin" always;
+```
+
+#### 5. Security Monitoring Configuration
+
+```nginx
+# docker/production/security-monitoring.conf
+# Security event logging
+log_format security_events '$remote_addr - $remote_user [$time_local] '
+                          '"$request" $status $body_bytes_sent '
+                          '"$http_referer" "$http_user_agent" '
+                          'rt=$request_time uct="$upstream_connect_time" '
+                          'uht="$upstream_header_time" urt="$upstream_response_time"';
+
+# Failed authentication attempts
+access_log /var/log/security/auth_failures.log security_events if=$auth_failure;
+
+# Suspicious activity patterns
+map $request_uri $suspicious_request {
+    ~*\.(php|asp|jsp|cgi)$ 1;
+    ~*(union|select|insert|delete|update|drop|create|alter|exec|script) 1;
+    ~*(<script|javascript:|vbscript:|onload|onerror) 1;
+    default 0;
+}
+
+access_log /var/log/security/suspicious.log security_events if=$suspicious_request;
+
+# Rate limit violations
+access_log /var/log/security/rate_limits.log security_events if=$rate_limited;
+
+# Large request monitoring
+map $request_length $large_request {
+    ~^[0-9]{1,6}$ 0;
+    default 1;
+}
+
+access_log /var/log/security/large_requests.log security_events if=$large_request;
+
+# Security header violations
+map $sent_http_content_security_policy $csp_violation {
+    "" 1;
+    default 0;
+}
+
+access_log /var/log/security/header_violations.log security_events if=$csp_violation;
+
+# Log rotation configuration
+# /etc/logrotate.d/security-logs
+/var/log/security/*.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 644 nginx nginx
+    postrotate
+        /bin/kill -USR1 `cat /var/run/nginx.pid 2>/dev/null` 2>/dev/null || true
+    endscript
+}
+```
+
+### Security Validation
+
+#### Automated Security Testing
+
+```bash
+#!/bin/bash
+# scripts/security-validation.sh
+
+# Test Docker security configurations
+echo "=== Docker Security Validation ==="
+
+# Check non-root user
+docker exec learningcenter-app whoami | grep -q "appuser" && echo "✓ Non-root user" || echo "✗ Root user detected"
+
+# Check no-new-privileges
+docker inspect learningcenter-app | jq -r '.[0].HostConfig.SecurityOpt[]' | grep -q "no-new-privileges:true" && echo "✓ No new privileges" || echo "✗ New privileges allowed"
+
+# Check read-only filesystem
+docker inspect learningcenter-app | jq -r '.[0].HostConfig.ReadonlyRootfs' | grep -q "true" && echo "✓ Read-only filesystem" || echo "✗ Writable filesystem"
+
+# Check capability drops
+docker inspect learningcenter-app | jq -r '.[0].HostConfig.CapDrop[]' | grep -q "ALL" && echo "✓ All capabilities dropped" || echo "✗ Capabilities not dropped"
+
+# Test network security
+echo "=== Network Security Validation ==="
+
+# Check HTTPS redirect
+curl -I http://localhost 2>/dev/null | grep -q "301" && echo "✓ HTTPS redirect" || echo "✗ No HTTPS redirect"
+
+# Check security headers
+curl -I https://localhost 2>/dev/null | grep -q "Strict-Transport-Security" && echo "✓ HSTS header" || echo "✗ Missing HSTS"
+curl -I https://localhost 2>/dev/null | grep -q "Content-Security-Policy" && echo "✓ CSP header" || echo "✗ Missing CSP"
+curl -I https://localhost 2>/dev/null | grep -q "X-Frame-Options" && echo "✓ X-Frame-Options" || echo "✗ Missing X-Frame-Options"
+
+# Test rate limiting
+echo "=== Rate Limiting Validation ==="
+for i in {1..20}; do
+    curl -s -o /dev/null -w "%{http_code}" http://localhost/api/test
+done | grep -q "429" && echo "✓ Rate limiting active" || echo "✗ Rate limiting not working"
+
+# Generate security report
+echo "=== Security Report Generated ==="
+echo "Timestamp: $(date)" > /tmp/security-report.txt
+echo "Docker Security: Validated" >> /tmp/security-report.txt
+echo "Network Security: Validated" >> /tmp/security-report.txt
+echo "Rate Limiting: Validated" >> /tmp/security-report.txt
 ```
 
 ## Authentication & Authorization

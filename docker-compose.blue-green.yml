@@ -1,0 +1,303 @@
+version: '3.8'
+
+# Blue-Green Deployment for Learning Center SaaS
+# Optimized for 4vCPU/4GB RAM Ubuntu 24.04 VPS
+# Resource allocation: 1.5GB per environment + 1GB shared services
+
+services:
+  # ===========================================
+  # SHARED SERVICES (Always Running)
+  # ===========================================
+  
+  postgres:
+    image: postgres:16-alpine
+    container_name: learning_postgres
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - app_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: learning_redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - app_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # ===========================================
+  # LOAD BALANCER (Traffic Router)
+  # ===========================================
+  
+  nginx-lb:
+    image: nginx:alpine
+    container_name: learning_nginx_lb
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - app_network
+    depends_on:
+      - app-blue
+      - app-green
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ===========================================
+  # BLUE ENVIRONMENT
+  # ===========================================
+  
+  app-blue:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: production
+    container_name: learning_app_blue
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=${APP_URL}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - OCTANE_SERVER=frankenphp
+      - OCTANE_WORKERS=2
+      - OCTANE_TASK_WORKERS=1
+      - DEPLOYMENT_COLOR=blue
+    volumes:
+      - app_storage_blue:/app/storage
+      - app_logs_blue:/app/storage/logs
+    networks:
+      - app_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: '1.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    profiles:
+      - blue
+
+  horizon-blue:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: production
+    container_name: learning_horizon_blue
+    command: php artisan horizon
+    environment:
+      - APP_ENV=production
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - DEPLOYMENT_COLOR=blue
+    volumes:
+      - app_storage_blue:/app/storage
+      - app_logs_blue:/app/storage/logs
+    networks:
+      - app_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - blue
+
+  # ===========================================
+  # GREEN ENVIRONMENT
+  # ===========================================
+  
+  app-green:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: production
+    container_name: learning_app_green
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=${APP_URL}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - OCTANE_SERVER=frankenphp
+      - OCTANE_WORKERS=2
+      - OCTANE_TASK_WORKERS=1
+      - DEPLOYMENT_COLOR=green
+    volumes:
+      - app_storage_green:/app/storage
+      - app_logs_green:/app/storage/logs
+    networks:
+      - app_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: '1.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    profiles:
+      - green
+
+  horizon-green:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+      target: production
+    container_name: learning_horizon_green
+    command: php artisan horizon
+    environment:
+      - APP_ENV=production
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - DEPLOYMENT_COLOR=green
+    volumes:
+      - app_storage_green:/app/storage
+      - app_logs_green:/app/storage/logs
+    networks:
+      - app_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - green
+
+networks:
+  app_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_storage_blue:
+    driver: local
+  app_storage_green:
+    driver: local
+  app_logs_blue:
+    driver: local
+  app_logs_green:
+    driver: local
+  nginx_logs:
+    driver: local

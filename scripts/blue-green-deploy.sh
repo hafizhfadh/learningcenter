@@ -1,20 +1,20 @@
 #!/bin/bash
 
-# Blue-Green Deployment Script
-# This script implements true zero-downtime deployments using blue-green strategy
+# Blue-Green Deployment Script for Learning Center SaaS
+# Optimized for 4vCPU/4GB RAM Ubuntu 24.04 VPS
+# Zero-downtime deployment with health checks and rollback
 
 set -euo pipefail
 
-# Configuration
+# ===========================================
+# CONFIGURATION
+# ===========================================
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-BLUE_COMPOSE_FILE="docker-compose.blue.yml"
-GREEN_COMPOSE_FILE="docker-compose.green.yml"
-NGINX_CONFIG_DIR="$PROJECT_ROOT/docker/production/nginx"
-HEALTH_CHECK_URL_BLUE="http://localhost:8001/health"
-HEALTH_CHECK_URL_GREEN="http://localhost:8002/health"
-HEALTH_CHECK_TIMEOUT="${HEALTH_CHECK_TIMEOUT:-120}"
-TRAFFIC_SWITCH_DELAY="${TRAFFIC_SWITCH_DELAY:-10}"
+COMPOSE_FILE="$PROJECT_ROOT/docker-compose.blue-green.yml"
+NGINX_CONFIG="$PROJECT_ROOT/infra/nginx/nginx.conf"
+ENV_FILE="$PROJECT_ROOT/.env"
 
 # Colors for output
 RED='\033[0;31m'
@@ -23,473 +23,329 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Current active environment
-ACTIVE_ENV=""
-INACTIVE_ENV=""
+# Deployment settings
+HEALTH_CHECK_TIMEOUT=120
+HEALTH_CHECK_INTERVAL=5
+GRACEFUL_SHUTDOWN_TIMEOUT=30
 
-# Logging functions
+# ===========================================
+# LOGGING FUNCTIONS
+# ===========================================
+
 log() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
 }
 
-error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
+log_success() {
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] ✅ $1${NC}"
 }
 
-success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+log_warning() {
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] ⚠️  $1${NC}"
 }
 
-warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+log_error() {
+    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ❌ $1${NC}"
 }
 
-# Determine current active environment
-detect_active_environment() {
-    log "Detecting current active environment..."
+# ===========================================
+# UTILITY FUNCTIONS
+# ===========================================
+
+check_dependencies() {
+    log "Checking dependencies..."
     
-    if [[ -f "$PROJECT_ROOT/.active_env" ]]; then
-        ACTIVE_ENV=$(cat "$PROJECT_ROOT/.active_env")
-    else
-        # Default to blue if no active environment is set
-        ACTIVE_ENV="blue"
-        echo "$ACTIVE_ENV" > "$PROJECT_ROOT/.active_env"
+    if ! command -v docker &> /dev/null; then
+        log_error "Docker is not installed"
+        exit 1
     fi
     
-    if [[ "$ACTIVE_ENV" == "blue" ]]; then
-        INACTIVE_ENV="green"
-    else
-        INACTIVE_ENV="blue"
+    if ! command -v docker-compose &> /dev/null; then
+        log_error "Docker Compose is not installed"
+        exit 1
     fi
     
-    log "Active environment: $ACTIVE_ENV"
-    log "Inactive environment: $INACTIVE_ENV"
-}
-
-# Generate Docker Compose files for blue-green deployment
-generate_compose_files() {
-    log "Generating Docker Compose files for blue-green deployment..."
-    
-    # Blue environment (port 8001)
-    cat > "$PROJECT_ROOT/$BLUE_COMPOSE_FILE" << 'EOF'
-version: '3.8'
-
-services:
-  app-blue:
-    build:
-      context: .
-      dockerfile: docker/production/Dockerfile
-    container_name: laravel-app-blue
-    restart: unless-stopped
-    ports:
-      - "8001:8000"
-    environment:
-      - APP_ENV=production
-      - CONTAINER_ROLE=app
-      - OCTANE_SERVER=frankenphp
-    volumes:
-      - ./storage:/var/www/html/storage
-      - ./bootstrap/cache:/var/www/html/bootstrap/cache
-    networks:
-      - laravel-blue
-    depends_on:
-      - caddy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  horizon-blue:
-    build:
-      context: .
-      dockerfile: docker/production/Dockerfile
-    container_name: laravel-horizon-blue
-    restart: unless-stopped
-    environment:
-      - APP_ENV=production
-      - CONTAINER_ROLE=horizon
-    volumes:
-      - ./storage:/var/www/html/storage
-      - ./bootstrap/cache:/var/www/html/bootstrap/cache
-    networks:
-      - laravel-blue
-    depends_on:
-      - postgres
-      - redis
-
-  scheduler-blue:
-    build:
-      context: .
-      dockerfile: docker/production/Dockerfile
-    container_name: laravel-scheduler-blue
-    restart: unless-stopped
-    environment:
-      - APP_ENV=production
-      - CONTAINER_ROLE=scheduler
-    volumes:
-      - ./storage:/var/www/html/storage
-      - ./bootstrap/cache:/var/www/html/bootstrap/cache
-    networks:
-      - laravel-blue
-    depends_on:
-      - postgres
-      - redis
-
-networks:
-  laravel-blue:
-    driver: bridge
-
-volumes:
-EOF
-
-    # Green environment (port 8002)
-    cat > "$PROJECT_ROOT/$GREEN_COMPOSE_FILE" << 'EOF'
-version: '3.8'
-
-services:
-  app-green:
-    build:
-      context: .
-      dockerfile: docker/production/Dockerfile
-    container_name: laravel-app-green
-    restart: unless-stopped
-    ports:
-      - "8002:8000"
-    environment:
-      - APP_ENV=production
-      - CONTAINER_ROLE=app
-      - OCTANE_SERVER=frankenphp
-    volumes:
-      - ./storage:/var/www/html/storage
-      - ./bootstrap/cache:/var/www/html/bootstrap/cache
-    networks:
-      - laravel-green
-    depends_on:
-      - postgres
-      - redis
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  horizon-green:
-    build:
-      context: .
-      dockerfile: docker/production/Dockerfile
-    container_name: laravel-horizon-green
-    restart: unless-stopped
-    environment:
-      - APP_ENV=production
-      - CONTAINER_ROLE=horizon
-    volumes:
-      - ./storage:/var/www/html/storage
-      - ./bootstrap/cache:/var/www/html/bootstrap/cache
-    networks:
-      - laravel-green
-    depends_on:
-      - caddy-green
-
-  scheduler-green:
-    build:
-      context: .
-      dockerfile: docker/production/Dockerfile
-    container_name: laravel-scheduler-green
-    restart: unless-stopped
-    environment:
-      - APP_ENV=production
-      - CONTAINER_ROLE=scheduler
-    volumes:
-      - ./storage:/var/www/html/storage
-      - ./bootstrap/cache:/var/www/html/bootstrap/cache
-    networks:
-      - laravel-green
-    depends_on:
-      - caddy-green
-
-networks:
-  laravel-green:
-    driver: bridge
-
-volumes:
-EOF
-
-    success "Docker Compose files generated"
-}
-
-# Update node-level Nginx configuration to point to active environment
-update_nginx_config() {
-    local target_env="$1"
-    local target_port=""
-    
-    if [[ "$target_env" == "blue" ]]; then
-        target_port="8001"
-    else
-        target_port="8002"
+    if [[ ! -f "$ENV_FILE" ]]; then
+        log_error ".env file not found at $ENV_FILE"
+        exit 1
     fi
     
-    log "Updating node-level Nginx configuration to point to $target_env environment (port $target_port)..."
-    
-    # Update upstream configuration on the node
-    local nginx_config_path="/etc/nginx/conf.d/upstream.conf"
-    
-    sudo tee "$nginx_config_path" > /dev/null << EOF
-upstream laravel_app {
-    server 127.0.0.1:$target_port max_fails=3 fail_timeout=30s;
-    keepalive 32;
-}
-EOF
-    
-    # Test and reload Nginx configuration
-    if sudo nginx -t; then
-        sudo systemctl reload nginx
-        success "Node-level Nginx configuration updated and reloaded"
-    else
-        error "Nginx configuration test failed"
-        return 1
-    fi
+    log_success "All dependencies are available"
 }
 
-# Health check function
-health_check() {
-    local url="$1"
-    local timeout="$2"
-    local start_time=$(date +%s)
-    
-    log "Performing health check on $url (timeout: ${timeout}s)..."
-    
-    while true; do
-        local current_time=$(date +%s)
-        local elapsed=$((current_time - start_time))
-        
-        if [[ $elapsed -gt $timeout ]]; then
-            error "Health check timed out after ${timeout}s"
-            return 1
+get_current_environment() {
+    # Check which environment is currently active
+    if docker-compose -f "$COMPOSE_FILE" --profile blue ps -q app-blue 2>/dev/null | grep -q .; then
+        if [[ $(docker-compose -f "$COMPOSE_FILE" --profile blue ps app-blue --format "table {{.State}}" | tail -n +2 | grep -c "Up") -gt 0 ]]; then
+            echo "blue"
+            return
         fi
-        
-        if curl -f -s -o /dev/null "$url"; then
-            success "Health check passed"
+    fi
+    
+    if docker-compose -f "$COMPOSE_FILE" --profile green ps -q app-green 2>/dev/null | grep -q .; then
+        if [[ $(docker-compose -f "$COMPOSE_FILE" --profile green ps app-green --format "table {{.State}}" | tail -n +2 | grep -c "Up") -gt 0 ]]; then
+            echo "green"
+            return
+        fi
+    fi
+    
+    echo "none"
+}
+
+get_target_environment() {
+    local current="$1"
+    case "$current" in
+        "blue") echo "green" ;;
+        "green") echo "blue" ;;
+        "none") echo "blue" ;;
+        *) echo "blue" ;;
+    esac
+}
+
+wait_for_health() {
+    local environment="$1"
+    local container_name="learning_app_$environment"
+    local elapsed=0
+    
+    log "Waiting for $environment environment to be healthy..."
+    
+    while [[ $elapsed -lt $HEALTH_CHECK_TIMEOUT ]]; do
+        if docker exec "$container_name" curl -f -s http://localhost:8000/health > /dev/null 2>&1; then
+            log_success "$environment environment is healthy"
             return 0
         fi
         
-        log "Health check failed, retrying in 5 seconds... (${elapsed}s elapsed)"
-        sleep 5
+        sleep $HEALTH_CHECK_INTERVAL
+        elapsed=$((elapsed + HEALTH_CHECK_INTERVAL))
+        echo -n "."
     done
+    
+    echo ""
+    log_error "$environment environment failed health check after ${HEALTH_CHECK_TIMEOUT}s"
+    return 1
 }
 
-# Deploy to inactive environment
-deploy_to_inactive() {
-    log "Deploying to $INACTIVE_ENV environment..."
+update_nginx_upstream() {
+    local target_environment="$1"
+    local backup_config="$NGINX_CONFIG.backup.$(date +%s)"
     
-    local compose_file=""
-    local health_url=""
+    log "Updating Nginx upstream to $target_environment environment..."
     
-    if [[ "$INACTIVE_ENV" == "blue" ]]; then
-        compose_file="$BLUE_COMPOSE_FILE"
-        health_url="$HEALTH_CHECK_URL_BLUE"
+    # Backup current config
+    cp "$NGINX_CONFIG" "$backup_config"
+    
+    # Update upstream configuration
+    if [[ "$target_environment" == "blue" ]]; then
+        sed -i.tmp 's/server learning_app_green:8000/server learning_app_blue:8000/' "$NGINX_CONFIG"
+        sed -i.tmp 's/# server learning_app_blue:8000 backup;/server learning_app_green:8000 backup;/' "$NGINX_CONFIG"
+        sed -i.tmp 's/server learning_app_blue:8000 backup;/# server learning_app_blue:8000 backup;/' "$NGINX_CONFIG"
     else
-        compose_file="$GREEN_COMPOSE_FILE"
-        health_url="$HEALTH_CHECK_URL_GREEN"
+        sed -i.tmp 's/server learning_app_blue:8000/server learning_app_green:8000/' "$NGINX_CONFIG"
+        sed -i.tmp 's/# server learning_app_green:8000 backup;/server learning_app_blue:8000 backup;/' "$NGINX_CONFIG"
+        sed -i.tmp 's/server learning_app_green:8000 backup;/# server learning_app_green:8000 backup;/' "$NGINX_CONFIG"
     fi
     
-    # Stop inactive environment if running
-    log "Stopping $INACTIVE_ENV environment..."
-    docker-compose -f "$compose_file" down --remove-orphans || true
+    rm -f "$NGINX_CONFIG.tmp"
     
-    # Build new images
-    log "Building new images for $INACTIVE_ENV environment..."
-    docker-compose -f "$compose_file" build --no-cache app-$INACTIVE_ENV
+    # Reload Nginx configuration
+    if docker exec learning_nginx_lb nginx -t; then
+        docker exec learning_nginx_lb nginx -s reload
+        log_success "Nginx configuration updated and reloaded"
+    else
+        log_error "Nginx configuration test failed, restoring backup"
+        cp "$backup_config" "$NGINX_CONFIG"
+        return 1
+    fi
+}
+
+run_migrations() {
+    local environment="$1"
+    local container_name="learning_app_$environment"
     
-    # Start inactive environment
-    log "Starting $INACTIVE_ENV environment..."
-    docker-compose -f "$compose_file" up -d
+    log "Running database migrations in $environment environment..."
     
-    # Wait for containers to be ready
-    log "Waiting for $INACTIVE_ENV environment to be ready..."
-    sleep 30
+    if docker exec "$container_name" php artisan migrate --force; then
+        log_success "Database migrations completed"
+    else
+        log_error "Database migrations failed"
+        return 1
+    fi
+}
+
+clear_caches() {
+    local environment="$1"
+    local container_name="learning_app_$environment"
+    
+    log "Clearing caches in $environment environment..."
+    
+    docker exec "$container_name" php artisan config:cache
+    docker exec "$container_name" php artisan route:cache
+    docker exec "$container_name" php artisan view:cache
+    docker exec "$container_name" php artisan event:cache
+    
+    log_success "Caches cleared and warmed up"
+}
+
+graceful_shutdown() {
+    local environment="$1"
+    
+    if [[ "$environment" == "none" ]]; then
+        return 0
+    fi
+    
+    log "Gracefully shutting down $environment environment..."
+    
+    # Stop accepting new requests (handled by Nginx upstream change)
+    # Wait for existing requests to complete
+    sleep $GRACEFUL_SHUTDOWN_TIMEOUT
+    
+    # Stop the environment
+    docker-compose -f "$COMPOSE_FILE" --profile "$environment" stop
+    docker-compose -f "$COMPOSE_FILE" --profile "$environment" rm -f
+    
+    log_success "$environment environment shut down gracefully"
+}
+
+# ===========================================
+# DEPLOYMENT FUNCTIONS
+# ===========================================
+
+deploy() {
+    local git_ref="${1:-HEAD}"
+    
+    log "Starting blue-green deployment..."
+    log "Git reference: $git_ref"
+    
+    # Check dependencies
+    check_dependencies
+    
+    # Determine current and target environments
+    local current_env
+    current_env=$(get_current_environment)
+    local target_env
+    target_env=$(get_target_environment "$current_env")
+    
+    log "Current environment: $current_env"
+    log "Target environment: $target_env"
+    
+    # Ensure shared services are running
+    log "Starting shared services..."
+    docker-compose -f "$COMPOSE_FILE" up -d postgres redis nginx-lb
+    
+    # Wait for shared services to be healthy
+    log "Waiting for shared services to be ready..."
+    sleep 10
+    
+    # Build and start target environment
+    log "Building and starting $target_env environment..."
+    docker-compose -f "$COMPOSE_FILE" --profile "$target_env" build --no-cache
+    docker-compose -f "$COMPOSE_FILE" --profile "$target_env" up -d
+    
+    # Wait for target environment to be healthy
+    if ! wait_for_health "$target_env"; then
+        log_error "Deployment failed: $target_env environment is not healthy"
+        log "Cleaning up failed deployment..."
+        docker-compose -f "$COMPOSE_FILE" --profile "$target_env" down
+        exit 1
+    fi
     
     # Run database migrations
-    log "Running database migrations in $INACTIVE_ENV environment..."
-    docker-compose -f "$compose_file" exec -T app-$INACTIVE_ENV php artisan migrate --force
-    
-    # Optimize application
-    log "Optimizing $INACTIVE_ENV environment..."
-    docker-compose -f "$compose_file" exec -T app-$INACTIVE_ENV php artisan config:cache
-    docker-compose -f "$compose_file" exec -T app-$INACTIVE_ENV php artisan route:cache
-    docker-compose -f "$compose_file" exec -T app-$INACTIVE_ENV php artisan view:cache
-    docker-compose -f "$compose_file" exec -T app-$INACTIVE_ENV php artisan event:cache
-    
-    # Health check
-    if ! health_check "$health_url" "$HEALTH_CHECK_TIMEOUT"; then
-        error "Health check failed for $INACTIVE_ENV environment"
-        return 1
+    if ! run_migrations "$target_env"; then
+        log_error "Deployment failed: database migrations failed"
+        log "Cleaning up failed deployment..."
+        docker-compose -f "$COMPOSE_FILE" --profile "$target_env" down
+        exit 1
     fi
     
-    success "$INACTIVE_ENV environment deployed and healthy"
-}
-
-# Switch traffic to new environment
-switch_traffic() {
-    log "Switching traffic from $ACTIVE_ENV to $INACTIVE_ENV..."
+    # Clear and warm up caches
+    clear_caches "$target_env"
     
-    # Update Nginx configuration
-    if ! update_nginx_config "$INACTIVE_ENV"; then
-        error "Failed to update Nginx configuration"
-        return 1
+    # Update load balancer to point to new environment
+    if ! update_nginx_upstream "$target_env"; then
+        log_error "Deployment failed: could not update load balancer"
+        log "Cleaning up failed deployment..."
+        docker-compose -f "$COMPOSE_FILE" --profile "$target_env" down
+        exit 1
     fi
     
-    # Wait for traffic to settle
-    log "Waiting ${TRAFFIC_SWITCH_DELAY}s for traffic to settle..."
-    sleep "$TRAFFIC_SWITCH_DELAY"
+    # Wait a bit to ensure traffic is flowing to new environment
+    log "Verifying traffic routing..."
+    sleep 10
     
-    # Update active environment
-    echo "$INACTIVE_ENV" > "$PROJECT_ROOT/.active_env"
-    
-    # Swap environment variables
-    local temp_env="$ACTIVE_ENV"
-    ACTIVE_ENV="$INACTIVE_ENV"
-    INACTIVE_ENV="$temp_env"
-    
-    success "Traffic switched to $ACTIVE_ENV environment"
-}
-
-# Stop old environment
-stop_old_environment() {
-    log "Stopping old $INACTIVE_ENV environment..."
-    
-    local compose_file=""
-    
-    if [[ "$INACTIVE_ENV" == "blue" ]]; then
-        compose_file="$BLUE_COMPOSE_FILE"
-    else
-        compose_file="$GREEN_COMPOSE_FILE"
+    # Final health check through load balancer
+    if ! curl -f -s http://localhost/health > /dev/null; then
+        log_error "Deployment failed: health check through load balancer failed"
+        rollback "$current_env" "$target_env"
+        exit 1
     fi
     
-    # Gracefully stop the old environment
-    docker-compose -f "$compose_file" stop
+    # Gracefully shutdown old environment
+    graceful_shutdown "$current_env"
     
-    success "Old $INACTIVE_ENV environment stopped"
+    log_success "Deployment completed successfully!"
+    log_success "Active environment: $target_env"
 }
 
-# Rollback to previous environment
 rollback() {
-    error "Deployment failed, initiating rollback..."
+    local previous_env="$1"
+    local failed_env="$2"
     
-    log "Rolling back to $ACTIVE_ENV environment..."
+    log_warning "Rolling back deployment..."
     
-    # Switch traffic back to active environment
-    if ! update_nginx_config "$ACTIVE_ENV"; then
-        error "Failed to rollback Nginx configuration"
-        exit 1
+    if [[ "$previous_env" != "none" ]]; then
+        # Restore load balancer to previous environment
+        update_nginx_upstream "$previous_env"
+        log_success "Load balancer restored to $previous_env environment"
     fi
     
-    # Stop failed deployment
-    local failed_compose_file=""
-    if [[ "$INACTIVE_ENV" == "blue" ]]; then
-        failed_compose_file="$BLUE_COMPOSE_FILE"
-    else
-        failed_compose_file="$GREEN_COMPOSE_FILE"
-    fi
+    # Clean up failed environment
+    docker-compose -f "$COMPOSE_FILE" --profile "$failed_env" down
+    log_success "Failed $failed_env environment cleaned up"
     
-    docker-compose -f "$failed_compose_file" down --remove-orphans
-    
-    success "Rollback completed"
+    log_success "Rollback completed"
 }
 
-# Main blue-green deployment function
-blue_green_deploy() {
-    log "Starting blue-green deployment..."
-    
-    # Detect current environment
-    detect_active_environment
-    
-    # Generate compose files
-    generate_compose_files
-    
-    # Deploy to inactive environment
-    if ! deploy_to_inactive; then
-        rollback
-        exit 1
-    fi
-    
-    # Switch traffic
-    if ! switch_traffic; then
-        rollback
-        exit 1
-    fi
-    
-    # Stop old environment
-    stop_old_environment
-    
-    success "Blue-green deployment completed successfully!"
-    log "Active environment is now: $ACTIVE_ENV"
-}
-
-# Show current status
-show_status() {
-    detect_active_environment
-    
-    echo "Blue-Green Deployment Status"
-    echo "============================"
-    echo "Active Environment: $ACTIVE_ENV"
-    echo "Inactive Environment: $INACTIVE_ENV"
+status() {
+    log "Deployment Status:"
     echo ""
     
-    # Check if environments are running
-    if docker-compose -f "$BLUE_COMPOSE_FILE" ps app-blue 2>/dev/null | grep -q "Up"; then
-        echo "Blue Environment: RUNNING"
-    else
-        echo "Blue Environment: STOPPED"
-    fi
+    local current_env
+    current_env=$(get_current_environment)
     
-    if docker-compose -f "$GREEN_COMPOSE_FILE" ps app-green 2>/dev/null | grep -q "Up"; then
-        echo "Green Environment: RUNNING"
-    else
-        echo "Green Environment: STOPPED"
-    fi
-}
-
-# Script usage
-usage() {
-    echo "Usage: $0 [OPTIONS]"
+    echo "Current active environment: $current_env"
     echo ""
-    echo "Options:"
-    echo "  deploy          Perform blue-green deployment"
-    echo "  status          Show current deployment status"
-    echo "  switch          Switch traffic between environments"
-    echo "  rollback        Rollback to previous environment"
-    echo "  stop-inactive   Stop inactive environment"
-    echo "  -h, --help      Show this help message"
+    
+    echo "Container Status:"
+    docker-compose -f "$COMPOSE_FILE" ps
+    echo ""
+    
+    echo "Resource Usage:"
+    docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
 }
 
-# Main script logic
+# ===========================================
+# MAIN SCRIPT
+# ===========================================
+
 case "${1:-}" in
-    deploy)
-        blue_green_deploy
+    "deploy")
+        deploy "${2:-HEAD}"
         ;;
-    status)
-        show_status
+    "status")
+        status
         ;;
-    switch)
-        detect_active_environment
-        switch_traffic
-        ;;
-    rollback)
-        detect_active_environment
-        rollback
-        ;;
-    stop-inactive)
-        detect_active_environment
-        stop_old_environment
-        ;;
-    -h|--help)
-        usage
+    "rollback")
+        current_env=$(get_current_environment)
+        target_env=$(get_target_environment "$current_env")
+        rollback "$target_env" "$current_env"
         ;;
     *)
-        usage
+        echo "Usage: $0 {deploy|status|rollback} [git-ref]"
+        echo ""
+        echo "Commands:"
+        echo "  deploy [git-ref]  - Deploy application (default: HEAD)"
+        echo "  status           - Show deployment status"
+        echo "  rollback         - Rollback to previous environment"
         exit 1
         ;;
 esac

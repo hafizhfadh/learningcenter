@@ -38,7 +38,7 @@ return [
     |
     */
 
-    'server' => env('OCTANE_SERVER', 'roadrunner'),
+    'server' => env('OCTANE_SERVER', 'frankenphp'),
 
     /*
     |--------------------------------------------------------------------------
@@ -206,7 +206,7 @@ return [
     |
     */
 
-    'garbage' => 50,
+    'garbage' => 32, // Optimized for 4GB RAM - reduced from 50MB
 
     /*
     |--------------------------------------------------------------------------
@@ -214,11 +214,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | The following setting configures the maximum execution time for requests
-    | being handled by Octane. You may set this value to 0 to indicate that
-    | there isn't a specific time limit on Octane request execution time.
+    | being handled by Octane. You should set this value to the maximum time
+    | (in seconds) you expect any single request to your application to take.
     |
     */
 
-    'max_execution_time' => 30,
+    'max_execution_time' => 60, // Increased for complex SaaS operations
 
 ];
