@@ -118,9 +118,10 @@ jobs:
 
     - name: Run PHP Static Analysis
       run: |
-        composer require --dev phpstan/phpstan --no-update
-        composer update phpstan/phpstan
-        vendor/bin/phpstan analyse --memory-limit=2G
+        # Ensure PHPStan temp directory exists
+        mkdir -p storage/phpstan
+        # Run PHPStan analysis with configuration
+        vendor/bin/phpstan analyse --memory-limit=2G --error-format=github
 
     - name: Run security checks
       run: |
