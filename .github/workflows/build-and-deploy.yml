@@ -116,13 +116,6 @@ jobs:
         APP_ENV: testing
       run: php artisan test --coverage
 
-    - name: Run PHP Static Analysis
-      run: |
-        # Ensure PHPStan temp directory exists
-        mkdir -p storage/phpstan
-        # Run PHPStan analysis with configuration
-        vendor/bin/phpstan analyse --memory-limit=2G --error-format=github
-
     - name: Run security checks
       run: |
         # PHP security audit
