@@ -61,6 +61,20 @@ docker-compose exec app php artisan make:filament-user
 docker-compose exec app php artisan horizon
 ```
 
+## Environment Variables
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `OCTANE_WORKERS` | Number of Octane worker processes (`auto` lets Octane determine the optimal value). | `auto` |
+| `OCTANE_TASK_WORKERS` | Dedicated task worker pool size. | `auto` |
+| `OCTANE_HTTP_PORT` | HTTP port used when Octane runs without TLS (defaults to 80 inside the container). | `80` |
+| `OCTANE_MAX_REQUESTS` | Maximum number of requests a worker should process before recycling. | `250` |
+| `OCTANE_FRANKENPHP_WORKERS` | Overrides the FrankenPHP worker flag passed to `octane:frankenphp`. Falls back to `OCTANE_WORKERS` when unset. | `auto` |
+| `OCTANE_FRANKENPHP_ADMIN_PORT` | Admin API port exposed by FrankenPHP (used by Caddy). | `2019` |
+| `OCTANE_FRANKENPHP_HTTPS` | Enables HTTPS mode for FrankenPHP in both the Octane command and Docker entrypoint. | `true` |
+| `OCTANE_FRANKENPHP_HTTP_REDIRECT` | Toggles automatic HTTP→HTTPS redirection when HTTPS is enabled. | `true` |
+| `OCTANE_FRANKENPHP_CADDYFILE` | Path to the FrankenPHP / Caddy configuration file mounted in the container. | `/etc/frankenphp/Caddyfile` |
+
 ## Application Structure
 
 ### Models & Relationships
