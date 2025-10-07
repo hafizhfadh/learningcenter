@@ -1,0 +1,284 @@
+version: "3.9"
+
+x-env-file: &app_env_file ./secrets/.env.production
+
+x-app-environment: &app_environment
+  APP_ENV: production
+  APP_DEBUG: 'false'
+  APP_URL: ${APP_URL:-https://learning.csi-academy.id}
+  APP_TIMEZONE: UTC
+  APP_LOCALE: en
+  LOG_CHANNEL: stack
+  LOG_STACK_CHANNELS: single,stderr
+  LOG_STDERR_FORMATTER: Monolog\\Formatter\\JsonFormatter
+  TRUSTED_PROXIES: caddy
+  SESSION_DRIVER: redis
+  SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+  SESSION_COOKIE: ${SESSION_COOKIE:-learningcenter_session}
+  SESSION_SECURE_COOKIE: 'true'
+  BROADCAST_DRIVER: redis
+  CACHE_DRIVER: redis
+  CACHE_PREFIX: ${CACHE_PREFIX:-learningcenter}
+  QUEUE_CONNECTION: redis
+  HORIZON_PREFIX: horizon
+  MAIL_MAILER: smtp
+  MAIL_ENCRYPTION: tls
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@csi-academy.id}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Learning Center}
+  DB_CONNECTION: pgsql
+  DB_HOST: ${DB_HOST:?database host required}
+  DB_PORT: ${DB_PORT:-5432}
+  DB_DATABASE: ${DB_DATABASE:?database name required}
+  DB_USERNAME: ${DB_USERNAME:?database username required}
+  DB_PASSWORD: ${DB_PASSWORD:?database password required}
+  DB_SSLMODE: require
+  DB_OPTIONS: "--client_encoding=UTF8"
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: ${REDIS_HOST:?redis host required}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_PASSWORD: ${REDIS_PASSWORD:?redis password required}
+  REDIS_SCHEME: tls
+  OCTANE_SERVER: frankenphp
+  OCTANE_HTTPS: 'true'
+  OCTANE_LISTEN: tcp://0.0.0.0:9000
+  OCTANE_WORKERS: ${OCTANE_WORKERS:-4}
+  OCTANE_TASK_WORKERS: ${OCTANE_TASK_WORKERS:-2}
+  OCTANE_MAX_REQUESTS: ${OCTANE_MAX_REQUESTS:-500}
+  OCTANE_SWOLE_HTTP_COMPRESSION: 'true'
+  OCTANE_WATCH: 'false'
+  HORIZON_SUPERVISOR_MEMORY_LIMIT: ${HORIZON_SUPERVISOR_MEMORY_LIMIT:-256}
+  HORIZON_TRIES: ${HORIZON_TRIES:-3}
+  MAIL_HOST: ${MAIL_HOST:?mail host required}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME:?mail username required}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:?mail password required}
+  SENTRY_LARAVEL_DSN: ${SENTRY_LARAVEL_DSN:-}
+  APP_KEY: ${APP_KEY:?application key required}
+
+x-app-base: &app_base
+  image: ${APP_IMAGE:-ghcr.io/hafizhfadh/learningcenter:latest}
+  pull_policy: always
+  restart: always
+  env_file:
+    - *app_env_file
+  environment:
+    <<: *app_environment
+  secrets:
+    - source: app_env
+      target: /var/www/html/.env
+      uid: "1000"
+      gid: "1000"
+      mode: 0400
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:size=64m
+    - /var/run:size=8m
+  ulimits:
+    nofile:
+      soft: 65535
+      hard: 65535
+  networks:
+    - services
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+  healthcheck:
+    test:
+      - CMD-SHELL
+      - curl -fsS http://127.0.0.1:9000/health || exit 1
+    interval: 30s
+    timeout: 5s
+    retries: 5
+    start_period: 40s
+  deploy:
+    update_config:
+      order: start-first
+      parallelism: 1
+      delay: 15s
+    restart_policy:
+      condition: on-failure
+      delay: 10s
+      max_attempts: 3
+    resources:
+      limits:
+        cpus: '2.0'
+        memory: 2048M
+      reservations:
+        cpus: '1.0'
+        memory: 512M
+
+services:
+  app:
+    <<: *app_base
+    command: >-
+      php artisan octane:start
+        --server=frankenphp
+        --host=0.0.0.0
+        --port=9000
+        --workers=${OCTANE_WORKERS:-4}
+        --max-requests=${OCTANE_MAX_REQUESTS:-500}
+        --task-workers=${OCTANE_TASK_WORKERS:-2}
+    expose:
+      - "9000"
+    volumes:
+      - app_storage:/var/www/html/storage
+      - app_bootstrap_cache:/var/www/html/bootstrap/cache
+      - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
+    read_only: true
+    stop_grace_period: 60s
+
+  horizon:
+    <<: *app_base
+    command: php artisan horizon
+    volumes:
+      - app_storage:/var/www/html/storage:rw
+      - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
+      - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
+    read_only: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - php artisan horizon:status | grep -q running
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 640M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+
+  queue:
+    <<: *app_base
+    command: >-
+      php artisan queue:work redis
+        --sleep=3
+        --tries=${HORIZON_TRIES:-3}
+        --max-time=3600
+        --max-jobs=500
+    volumes:
+      - app_storage:/var/www/html/storage:rw
+      - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
+      - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
+    read_only: true
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  scheduler:
+    <<: *app_base
+    command: php artisan schedule:work
+    volumes:
+      - app_storage:/var/www/html/storage:rw
+      - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
+      - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
+    read_only: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - php artisan schedule:list >/dev/null 2>&1
+      interval: 5m
+      timeout: 10s
+      retries: 1
+      start_period: 40s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: always
+    env_file:
+      - *app_env_file
+    environment:
+      CADDY_GLOBAL_EMAIL: ${CADDY_GLOBAL_EMAIL:-admin@csi-academy.id}
+      CADDY_ACME_CA: ${CADDY_ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?cloudflare api token required}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./caddy_config/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - edge
+      - services
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      test:
+        - CMD
+        - caddy
+        - version
+      interval: 5m
+      timeout: 10s
+      retries: 3
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 512M
+        reservations:
+          cpus: '0.15'
+          memory: 256M
+
+
+networks:
+  edge:
+    driver: bridge
+  services:
+    driver: bridge
+
+volumes:
+  app_storage:
+    driver: local
+  app_bootstrap_cache:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+
+secrets:
+  app_env:
+    file: ./secrets/.env.production
