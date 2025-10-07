@@ -27,7 +27,7 @@ A modern learning management system built with Laravel, featuring course managem
 - **Application Nodes**: Run Laravel app, Redis, and core monitoring
 - **Database Servers**: Dedicated PostgreSQL instances (managed separately)
 - **Container Registry**: GitHub Container Registry (GHCR) for pre-built images
-- **Build Process**: GitHub Actions or local builds, not on production servers
+- **Build Process**: GitHub Actions or local builds for deployment
 
 ## Quick Start
 
@@ -37,54 +37,16 @@ A modern learning management system built with Laravel, featuring course managem
 - GitHub Container Registry access
 - SSL certificates (Let's Encrypt recommended)
 
-### Environment Setup
+### Development Setup
 
-1. **Clone and configure**:
 ```bash
-git clone <repository-url>
-cd learningcenter
-cp .env.example .env.production
-```
+# Start development environment with Laravel Sail
+./vendor/bin/sail up -d
 
-2. **Configure environment variables**:
-```bash
-# Application
-APP_NAME="Learning Center"
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://your-domain.com
+# Run migrations and seeders
+./vendor/bin/sail artisan migrate --seed
 
-# Database (External PostgreSQL)
-DB_CONNECTION=pgsql
-DB_HOST=your-postgres-server
-DB_PORT=5432
-DB_DATABASE=learning_center
-DB_USERNAME=your-db-user
-DB_PASSWORD=your-secure-password
-
-# Redis (Containerized)
-REDIS_HOST=redis
-REDIS_PASSWORD=your-redis-password
-
-# Container Registry
-GITHUB_REPOSITORY=your-org/learning-center
-IMAGE_TAG=latest
-
-# Mail Configuration
-MAIL_MAILER=smtp
-MAIL_HOST=your-smtp-server
-MAIL_PORT=587
-MAIL_USERNAME=your-email
-MAIL_PASSWORD=your-email-password
-```
-
-3. **Deploy**:
-```bash
-# Quick deployment
-./scripts/deploy-production.sh
-
-# Or manual deployment
-docker-compose -f docker-compose.production.yml up -d
+# Access the application at http://localhost
 ```
 
 4. **Initialize application**:
@@ -156,19 +118,19 @@ php artisan test
 php artisan test --coverage
 ```
 
-## Production Deployment
+## Development Environment
 
-### Container Images
-The application uses multi-stage Docker builds optimized for production:
-- **Base**: PHP 8.2 with required extensions
-- **Dependencies**: Composer and npm packages
-- **Production**: Optimized runtime with Laravel Octane
+### Architecture Overview
+The application uses Laravel Sail for local development:
 
-### Monitoring & Health Checks
-- **Health Endpoint**: `/health` for load balancer checks
+- **Laravel Sail**: Docker-based development environment
+- **Services**: PostgreSQL, Redis, Mailpit for local testing
+
+### Development Tools
+- **Health Endpoint**: `/health` for application status
 - **Horizon Dashboard**: Queue monitoring via Filament
-- **Prometheus Metrics**: Application and infrastructure monitoring
-- **Log Aggregation**: Centralized logging with structured output
+- **Laravel Telescope**: Debug and profiling tool
+- **Mailpit**: Email testing interface
 
 ### Security Features
 - **Authentication**: Laravel's built-in authentication
@@ -180,12 +142,10 @@ The application uses multi-stage Docker builds optimized for production:
 
 ## Documentation
 
-For detailed deployment and operational guidance, see:
-- [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT_GUIDE.md)
-- [Infrastructure Documentation](docs/INFRASTRUCTURE.md)
-- [Security Guidelines](docs/SECURITY.md)
-- [Monitoring Setup](docs/MONITORING.md)
-- [Backup & Recovery](docs/BACKUP_DISASTER_RECOVERY.md)
+For detailed development guidance, see:
+- [Development Setup](docs/DEVELOPMENT.md)
+- [API Documentation](docs/API.md)
+- [Testing Guide](docs/TESTING.md)
 
 ## License
 

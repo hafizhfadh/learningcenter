@@ -2,7 +2,8 @@
 # Makefile readme (en): <https://www.gnu.org/software/make/manual/html_node/index.html#SEC_Contents>
 
 SHELL = /bin/bash
-DC_RUN_ARGS = --env-file ./.env.production --profile app --profile administration -f docker-compose.production.yml
+# Development Docker Compose Configuration
+DC_RUN_ARGS = -f docker-compose.yml
 HOST_UID=$(shell id -u)
 HOST_GID=$(shell id -g)
 
