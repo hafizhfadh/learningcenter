@@ -21,11 +21,18 @@ class ProgressLogFactory extends Factory
     {
         $actions = ['viewed', 'completed', 'started', 'failed'];
         
+        $status = fake()->randomElement(['in_progress', 'completed', 'pending']);
+
         return [
             'user_id' => User::factory(),
             'course_id' => Course::factory(),
             'lesson_id' => Lesson::factory(),
             'action' => fake()->randomElement($actions),
+            'status' => $status,
+            'progress_percentage' => $status === 'completed' ? 100 : fake()->numberBetween(0, 90),
+            'started_at' => fake()->dateTimeBetween('-6 months', 'now'),
+            'completed_at' => $status === 'completed' ? fake()->dateTimeBetween('-3 months', 'now') : null,
+            'metadata' => null,
             'created_at' => fake()->dateTimeBetween('-6 months', 'now'),
         ];
     }
@@ -47,6 +54,9 @@ class ProgressLogFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'action' => 'completed',
+            'status' => 'completed',
+            'progress_percentage' => 100,
+            'completed_at' => now(),
         ]);
     }
     
