@@ -56,7 +56,7 @@ x-app-environment: &app_environment
   APP_KEY: ${APP_KEY:?application key required}
 
 x-app-base: &app_base
-  image: ${APP_IMAGE:-ghcr.io/your-org/learningcenter:latest}
+  image: ${APP_IMAGE:-ghcr.io/hafizhfadh/learningcenter:latest}
   pull_policy: always
   restart: always
   env_file:
@@ -78,12 +78,8 @@ x-app-base: &app_base
     nofile:
       soft: 65535
       hard: 65535
-  depends_on:
-    wireguard:
-      condition: service_healthy
   networks:
     - services
-    - observability
   logging:
     driver: json-file
     options:
@@ -108,10 +104,10 @@ x-app-base: &app_base
       max_attempts: 3
     resources:
       limits:
-        cpus: '3.5'
-        memory: 3072M
+        cpus: '2.0'
+        memory: 2048M
       reservations:
-        cpus: '1.5'
+        cpus: '1.0'
         memory: 512M
 
 services:
@@ -150,6 +146,18 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 640M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
 
   queue:
     <<: *app_base
@@ -164,6 +172,18 @@ services:
       - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
       - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
     read_only: true
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   scheduler:
     <<: *app_base
@@ -181,6 +201,18 @@ services:
       timeout: 10s
       retries: 1
       start_period: 40s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
   caddy:
     image: caddy:2.8-alpine
@@ -217,98 +249,24 @@ services:
       interval: 5m
       timeout: 10s
       retries: 3
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 512M
+        reservations:
+          cpus: '0.15'
+          memory: 256M
 
-  vector:
-    image: timberio/vector:0.38.0-debian
-    restart: always
-    user: "0:0"
-    env_file:
-      - *app_env_file
-    environment:
-      VECTOR_SELF_NODE_NAME: learningcenter
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./observability/vector.toml:/etc/vector/vector.toml:ro
-    depends_on:
-      app:
-        condition: service_started
-    networks:
-      - observability
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "3"
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
-    restart: always
-    privileged: true
-    command:
-      - --housekeeping_interval=30s
-      - --max_housekeeping_interval=40s
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    networks:
-      - observability
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "3"
-
-  node_exporter:
-    image: prom/node-exporter:v1.8.2
-    restart: always
-    network_mode: host
-    pid: host
-    command:
-      - '--path.rootfs=/host'
-      - '--collector.systemd'
-      - '--collector.processes'
-    volumes:
-      - /:/host:ro,rslave
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "3"
-
-  wireguard:
-    image: ghcr.io/linuxserver/wireguard:1.0.20210914-ls120
-    restart: always
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    environment:
-      PUID: 0
-      PGID: 0
-      TZ: UTC
-      LOG_CONFS: 'true'
-    volumes:
-      - ./secrets/wireguard:/config
-      - /lib/modules:/lib/modules:ro
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
-      - net.ipv6.conf.all.disable_ipv6=0
-    network_mode: host
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - wg show | grep -q interface
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 networks:
   edge:
     driver: bridge
   services:
-    driver: bridge
-  observability:
     driver: bridge
 
 volumes:
