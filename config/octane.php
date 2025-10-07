@@ -42,6 +42,60 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Octane Worker Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These values control how many workers Octane boots as well as how many
+    | requests each worker should process before it is recycled. The defaults
+    | map to the production Docker compose environment but remain overridable
+    | via the standard Octane environment variables.
+    |
+    */
+
+    'workers' => env('OCTANE_WORKERS', 'auto'),
+
+    'task_workers' => env('OCTANE_TASK_WORKERS', 'auto'),
+
+    'max_requests' => env('OCTANE_MAX_REQUESTS', 500),
+
+    'max_execution_time' => env('OCTANE_MAX_EXECUTION_TIME', 60),
+
+    'host' => env('OCTANE_HOST', value(function () {
+        $listen = env('OCTANE_LISTEN');
+
+        if ($listen) {
+            $parsed = parse_url($listen);
+
+            if ($parsed !== false && isset($parsed['host'])) {
+                return $parsed['host'];
+            }
+
+            return explode(':', $listen)[0] ?? '0.0.0.0';
+        }
+
+        return '0.0.0.0';
+    })),
+
+    'port' => env('OCTANE_PORT', value(function () {
+        $listen = env('OCTANE_LISTEN');
+
+        if ($listen) {
+            $parsed = parse_url($listen);
+
+            if ($parsed !== false && isset($parsed['port'])) {
+                return $parsed['port'];
+            }
+
+            $segments = explode(':', $listen);
+
+            return (int) ($segments[1] ?? 9000);
+        }
+
+        return 9000;
+    })),
+
+    /*
+    |--------------------------------------------------------------------------
     | Force HTTPS
     |--------------------------------------------------------------------------
     |
@@ -248,15 +302,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Maximum Execution Time
+    | FrankenPHP Server Defaults
     |--------------------------------------------------------------------------
     |
-    | The following setting configures the maximum execution time for requests
-    | being handled by Octane. You should set this value to the maximum time
-    | (in seconds) you expect any single request to your application to take.
+    | When serving the application with FrankenPHP we surface the most common
+    | tuning levers through environment variables so that both local Artisan
+    | commands and the container entrypoints behave consistently.
     |
     */
 
-    'max_execution_time' => 60, // Increased for complex SaaS operations
+    'frankenphp' => [
+        'config' => env('OCTANE_FRANKENPHP_CONFIG', env('FRANKENPHP_CONFIG', 'worker ./public/index.php')),
+        'worker' => env('OCTANE_FRANKENPHP_WORKER', 'public/index.php'),
+        'https' => env('OCTANE_HTTPS', false),
+        'http_redirect' => env('OCTANE_FRANKENPHP_HTTP_REDIRECT', false),
+        'caddyfile' => env('OCTANE_FRANKENPHP_CADDYFILE'),
+        'admin_server' => env('OCTANE_FRANKENPHP_ADMIN_SERVER'),
+        'admin_port' => env('OCTANE_FRANKENPHP_ADMIN_PORT'),
+        'log_level' => env('OCTANE_FRANKENPHP_LOG_LEVEL'),
+    ],
 
 ];
