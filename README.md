@@ -118,6 +118,107 @@ php artisan test
 php artisan test --coverage
 ```
 
+## Production CI/CD & Infrastructure
+
+The project ships with a production-ready deployment pattern optimised for a multi-tenant SaaS delivered via Laravel Octane and FrankenPHP. This setup assumes a dedicated application VPS (4 vCPU / 4 GB RAM) that runs the compute workloads in Docker, and a separate bare-metal VPS that hosts PostgreSQL and Redis.
+
+### Infrastructure Architecture
+
+| Component | Purpose | Hosting |
+| --- | --- | --- |
+| **Application VPS** | Runs Octane-powered Laravel app, Horizon, queues, scheduler, Caddy reverse proxy, log shipper, and supporting services | Docker (single host)
+| **Database VPS** | Managed PostgreSQL 16 and Redis 7 instances with PITR backups | Bare metal, hardened OS
+| **GitHub Actions** | CI/CD runner for building, testing, and deploying container images | GitHub-hosted runners
+| **GitHub Container Registry (GHCR)** | Stores versioned application images and shared base images | GitHub Packages
+| **Object Storage (optional)** | Stores backups, artifacts, and static assets | S3-compatible bucket
+
+Key characteristics:
+
+- **Octane + FrankenPHP Runtime**: The Laravel app runs through FrankenPHP workers managed by Octane to maximise concurrency in the limited VPS footprint.
+- **Service Isolation**: Each runtime concern (web, queue, scheduler, Horizon) is encapsulated in its own container for lifecycle management and horizontal scaling.
+- **Secure Network Segmentation**: Application containers communicate with the database VPS via WireGuard or Tailscale for encrypted east-west traffic, while Caddy terminates TLS for all tenant domains.
+
+### Deployment Workflow
+
+1. **Build & Test (CI)**
+   - A GitHub Actions workflow triggers on pushes to `main` or version tags.
+   - Steps include installing PHP dependencies with Composer, running linters and PHPUnit, executing front-end builds, and collecting coverage reports.
+   - If tests pass, the workflow builds a multi-stage Docker image (`docker/octane/Dockerfile`) that bundles the application, Octane, and FrankenPHP.
+   - The resulting image is tagged (`ghcr.io/<org>/<app>:<git-sha>` and `:latest`) and pushed to GHCR.
+
+2. **Deploy (CD)**
+   - A separate job uses an OIDC federated credential or deploy key to SSH into the application VPS (through a `deploy` user with limited privileges).
+   - Secrets (WireGuard keys, database credentials, app key) are stored as encrypted GitHub Action secrets and templated into a `.env.production` file rendered on the runner.
+   - The workflow updates the remote host via `docker compose pull` and `docker compose up -d --remove-orphans`, ensuring zero downtime by leveraging Octane's graceful worker reloads and Caddy's request buffering.
+   - After deployment, the workflow runs health checks (`/health`, Horizon queue status) and posts notifications to the team channel.
+
+3. **Rollback**
+   - Previous image tags remain in GHCR. Rolling back is as simple as redeploying with the prior tag via the `workflow_dispatch` input `image_tag`.
+
+### Domain Management & Multi-Tenant Routing
+
+The application uses Caddy as the single entry point for all domains:
+
+1. **DNS Setup**: Point wildcard A/AAAA records (`*.csi-academy.id`, `*.nf-testingcenter.org`) to the application VPS IP. Explicit records (e.g., `admin.csi-academy.id`) can coexist.
+2. **Dynamic Site Configuration**: Caddy runs in Docker with a volume-mounted `/etc/caddy/Caddyfile`. The Caddyfile delegates certificate management to Let's Encrypt and proxies to the Octane service. Example:
+
+   ```caddyfile
+   {
+     email admin@csi-academy.id
+     acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+   }
+
+   *.csi-academy.id {
+     reverse_proxy app:9000
+   }
+
+   *.nf-testingcenter.org {
+     reverse_proxy app:9000
+   }
+
+   admin.csi-academy.id {
+     reverse_proxy admin:9000
+   }
+   ```
+
+3. **Tenant Discovery**: Middleware within Laravel resolves tenant context based on the requested host, allowing `schoolone.csi-academy.id` or other client subdomains to map to tenant records.
+4. **Certificate Management**: Caddy automatically obtains and renews certificates. Staging/live toggles are handled via environment variables so that new domains are available without redeployment.
+
+### Environment Configuration
+
+- **Secret Management**: Keep runtime secrets in GitHub Actions encrypted variables. The CI/CD workflow writes them into a `secrets/.env.production` file on the runner, then securely copies it to the VPS using `scp` with `chmod 600` applied server-side. On the server, a `docker secrets`-style pattern is used: the `.env` file lives outside version control and is mounted into containers.
+- **Octane Configuration**: Set `OCTANE_SERVER=frankenphp`, configure worker counts (`OCTANE_WORKERS=4`, `OCTANE_MAX_REQUESTS=500`) to match the VPS CPU cores, and enable task queue integration with Redis.
+- **Database Connectivity**: The `.env.production` file contains the private WireGuard endpoint of the database VPS. Use managed users with least privilege, enforce SSL/TLS connections, and rotate credentials quarterly.
+- **Queue/Horizon**: Dedicated containers run `php artisan horizon` and `php artisan queue:work` with the same code image but different entrypoints. Supervisor is unnecessary because Docker restarts failed containers.
+
+### Monitoring, Logging & Maintenance
+
+- **Monitoring Stack**: Install the Prometheus Node Exporter and cAdvisor on the VPS to gather host/container metrics. Use Grafana (hosted or self-managed) to visualise application, queue, and database health.
+- **Application Metrics**: Laravel Horizon exposes queue stats; schedule a cron container to post metrics to Prometheus via pushgateway or StatsD.
+- **Logging**: Containers emit JSON logs collected by a `vector` or `fluent-bit` sidecar, which forwards to an ELK stack or a managed log service (e.g., Logtail). Caddy access logs are parsed into the same pipeline for tenant-level observability.
+- **Backups**: Database VPS performs nightly logical dumps and continuous WAL archiving. Object storage retains seven daily, four weekly, and six monthly snapshots. Application assets are synced to S3 via `rclone` scheduled tasks.
+- **Security & Patching**: Apply OS security updates weekly via unattended upgrades. Rebuild application images monthly to incorporate upstream patches.
+- **Disaster Recovery**: Document procedures for restoring from GHCR image tags, database backups, and DNS changes to a standby VPS.
+
+### Maintenance Procedures
+
+1. **Scaling Queues**: Adjust the `replicas` count for the queue worker service in `docker-compose.prod.yml` and redeploy. Monitor Horizon for throughput improvements.
+2. **Rotating Secrets**: Update values in GitHub Actions secrets, rerun the deployment workflow, and confirm that the new environment variables propagated by checking `docker compose exec app php artisan env`.
+3. **Database Maintenance**: Run `VACUUM ANALYZE` weekly via cron on the database VPS. Monitor disk usage and WAL retention to avoid storage exhaustion.
+4. **SSL Renewal Verification**: Caddy renews certificates automatically, but a cron job (`caddy reload --config /etc/caddy/Caddyfile`) ensures configuration reload without downtime when domains are added.
+
+### Troubleshooting
+
+| Symptom | Check | Resolution |
+| --- | --- | --- |
+| Requests timing out | `docker compose logs caddy`, `docker compose logs app` | Ensure Octane workers are healthy; run `docker compose restart app` for a graceful restart |
+| Queues not processing | Horizon dashboard or `docker compose logs queue` | Verify Redis connectivity and that queue workers have sufficient memory; scale replicas if needed |
+| Domain not resolving | DNS propagation via `dig`, Caddy logs | Confirm DNS record points to VPS IP and Caddy reloaded configuration |
+| Deployment failed | GitHub Actions logs | Re-run workflow with `image_tag` override after fixing underlying issue |
+| Database connectivity issues | `psql` from app container, WireGuard status | Restart tunnel (`systemctl restart wg-quick@prod`) or update firewall rules |
+
+## Application Structure
+
 ## Development Environment
 
 ### Architecture Overview
