@@ -166,6 +166,10 @@ Key characteristics:
    - `.github/workflows/ci.yml` runs on pushes to `main`, semantic tags (`v*`), and pull requests.
    - The **tests** job installs PHP dependencies with Composer, boots a testing `.env`, and executes the full PHPUnit suite (`php artisan test`) that now covers unit, integration, and end-to-end scenarios.
    - The **docker** job only runs on push events; it builds the production image with `deploy/production/Dockerfile`, embedding the Vite build artefacts, and pushes tags to GHCR (`ghcr.io/hafizhfadh/learningcenter:latest`, `:<git-sha>`, and `:<tag>` when applicable).
+<<<<<<< HEAD
+=======
+   - The production Dockerfile now uses a dedicated Composer builder, a frontend asset stage, and a slim FrankenPHP runtime layer so tests, docs, and tooling stay out of the final image while keeping build caching efficient.
+>>>>>>> f278efb (feat: align octane frankenphp config and docker build)
 
 2. **Deploy (CD)**
    - After an image is published, log into the VPS and run `make prod-pull prod-up` to pull and rollout the new container set with zero-downtime updates (the compose file uses `start-first` updates for the Octane service).
@@ -207,7 +211,14 @@ The application uses Caddy as the single entry point for all domains:
 ### Environment Configuration
 
 - **Secret Management**: Copy `deploy/production/secrets/.env.production.example` to `deploy/production/secrets/.env.production`, populate the required keys (`DB_*`, `REDIS_*`, `APP_KEY`, `CADDY_*`, `APP_IMAGE`), and keep the file only on the VPS with `chmod 600`. Git tracks the template but ignores the real secret file.
+<<<<<<< HEAD
 - **Octane Configuration**: Tune `OCTANE_WORKERS`, `OCTANE_TASK_WORKERS`, and `OCTANE_MAX_REQUESTS` inside the env file so that the total worker count fits within 4 vCPU. The defaults (`4`, `2`, `500`) map cleanly to the provided compose resource limits.
+=======
+- **Octane Configuration**:
+  - Tune `OCTANE_WORKERS`, `OCTANE_TASK_WORKERS`, `OCTANE_MAX_REQUESTS`, and `OCTANE_MAX_EXECUTION_TIME` to stay within the 4 vCPU / 4 GB VPS budget. The defaults (`4`, `2`, `500`, `60`) map cleanly to the compose resource limits.
+  - `OCTANE_LISTEN` (or the explicit `OCTANE_HOST` / `OCTANE_PORT` overrides) defines where Octane binds. The updated `config/octane.php` helper reads these values so CLI invocations and the container entrypoint stay aligned.
+- **FrankenPHP Runtime**: Configure `OCTANE_FRANKENPHP_CONFIG`, `OCTANE_FRANKENPHP_WORKER`, `OCTANE_FRANKENPHP_CADDYFILE`, `OCTANE_FRANKENPHP_ADMIN_SERVER`/`OCTANE_FRANKENPHP_ADMIN_PORT`, `OCTANE_FRANKENPHP_HTTP_REDIRECT`, and `OCTANE_FRANKENPHP_LOG_LEVEL` to control the worker script, Caddyfile, admin interface, and HTTPS redirect behaviour. These feed the new `config/octane.php` FrankenPHP block and the container entrypoint.
+>>>>>>> f278efb (feat: align octane frankenphp config and docker build)
 - **Database Connectivity**: Point `DB_HOST` at the private interface of the database VPS (or a managed PostgreSQL endpoint) and restrict access by IP allow lists + TLS. No WireGuard tunnel is required on the application host, simplifying memory consumption.
 - **Queue/Horizon**: Dedicated containers run `php artisan horizon` and `php artisan queue:work` with the same code image but different entrypoints. Supervisor is unnecessary because Docker restarts failed containers.
 

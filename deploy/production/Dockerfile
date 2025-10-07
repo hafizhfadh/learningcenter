@@ -30,6 +30,7 @@ RUN if [ -f package-lock.json ]; then npm ci; \
 COPY resources ./resources
 COPY public ./public
 COPY vite.config.js vite.config.js
+<<<<<<< HEAD
 RUN --mount=type=bind,source=postcss.config.js,target=/tmp/postcss.config.js,required=false \
     --mount=type=bind,source=tailwind.config.js,target=/tmp/tailwind.config.js,required=false \
     --mount=type=bind,source=tsconfig.json,target=/tmp/tsconfig.json,required=false \
@@ -38,6 +39,11 @@ RUN --mount=type=bind,source=postcss.config.js,target=/tmp/postcss.config.js,req
         tmp="/tmp/${file}"; \
         if [ -f "${tmp}" ]; then cp "${tmp}" "./${file}"; fi; \
     done
+=======
+COPY postcss.config.js postcss.config.js 2>/dev/null || true
+COPY tailwind.config.js tailwind.config.js 2>/dev/null || true
+COPY tsconfig.json tsconfig.json 2>/dev/null || true
+>>>>>>> f278efb (feat: align octane frankenphp config and docker build)
 RUN npm run build
 
 FROM dunglas/frankenphp:1.1.3-php8.3-alpine AS runtime
