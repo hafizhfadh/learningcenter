@@ -30,13 +30,10 @@ RUN if [ -f package-lock.json ]; then npm ci; \
 COPY resources ./resources
 COPY public ./public
 COPY vite.config.js vite.config.js
-RUN --mount=type=bind,source=postcss.config.js,target=/tmp/postcss.config.js,required=false \
-    --mount=type=bind,source=tailwind.config.js,target=/tmp/tailwind.config.js,required=false \
-    --mount=type=bind,source=tsconfig.json,target=/tmp/tsconfig.json,required=false \
+RUN --mount=type=bind,source=.,target=/context,ro \
     set -eux; \
     for file in postcss.config.js tailwind.config.js tsconfig.json; do \
-        tmp="/tmp/${file}"; \
-        if [ -f "${tmp}" ]; then cp "${tmp}" "./${file}"; fi; \
+        if [ -f "/context/${file}" ]; then cp "/context/${file}" "./${file}"; fi; \
     done
 RUN npm run build
 
