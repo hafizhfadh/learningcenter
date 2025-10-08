@@ -132,14 +132,6 @@ php artisan test
 php artisan test --coverage
 ```
 
-The suite is split into three layers so you can target specific coverage:
-
-- **Unit** tests live under `tests/Unit` (for example `Helpers/StorageHelperTest.php`) and exercise framework-agnostic helpers.
-- **Integration** tests live under `tests/Feature` and boot Laravel with an in-memory SQLite database to validate services like the lesson progress engine against real models.
-- **End-to-End** tests reside in `tests/Feature/EndToEnd` and drive complete HTTP flows (course self-initiation, enrollment, and progress tracking).
-
-Run `composer test` to clear the config cache and execute the suite locally or inside CI; the GitHub Actions workflow uses the same command.
-
 ## Production CI/CD & Infrastructure
 
 The project ships with a production-ready deployment pattern optimised for a multi-tenant SaaS delivered via Laravel Octane and FrankenPHP. This setup assumes a dedicated application VPS (4 vCPU / 4 GB RAM) that runs the compute workloads in Docker, and a separate bare-metal VPS that hosts PostgreSQL and Redis.
@@ -148,7 +140,7 @@ The project ships with a production-ready deployment pattern optimised for a mul
 
 | Component | Purpose | Hosting |
 | --- | --- | --- |
-| **Application VPS** | Runs Octane-powered Laravel app, Horizon dashboard, dedicated queue worker, scheduler, and the Caddy reverse proxy | Docker (single host, 4 vCPU / 4 GB RAM)
+| **Application VPS** | Runs Octane-powered Laravel app, Horizon, queues, scheduler, Caddy reverse proxy, log shipper, and supporting services | Docker (single host)
 | **Database VPS** | Managed PostgreSQL 16 and Redis 7 instances with PITR backups | Bare metal, hardened OS
 | **GitHub Actions** | CI/CD runner for building, testing, and deploying container images | GitHub-hosted runners
 | **GitHub Container Registry (GHCR)** | Stores versioned application images and shared base images | GitHub Packages
@@ -157,21 +149,22 @@ The project ships with a production-ready deployment pattern optimised for a mul
 Key characteristics:
 
 - **Octane + FrankenPHP Runtime**: The Laravel app runs through FrankenPHP workers managed by Octane to maximise concurrency in the limited VPS footprint.
-- **Service Isolation**: Each runtime concern (web, queue worker, scheduler, Horizon) runs in its own container so that workload spikes cannot starve critical paths while still respecting the tight 4 vCPU / 4 GB RAM budget.
-- **Network Hardening**: The Docker host communicates with the database VPS across a private network segment or IP-allowlisted TLS connection; inbound traffic terminates at Caddy with automatic certificate management for every tenant domain.
+- **Service Isolation**: Each runtime concern (web, queue, scheduler, Horizon) is encapsulated in its own container for lifecycle management and horizontal scaling.
+- **Secure Network Segmentation**: Application containers communicate with the database VPS via WireGuard or Tailscale for encrypted east-west traffic, while Caddy terminates TLS for all tenant domains.
 
 ### Deployment Workflow
 
 1. **Build & Test (CI)**
-   - `.github/workflows/ci.yml` runs on pushes to `main`, semantic tags (`v*`), and pull requests.
-   - The **tests** job installs PHP dependencies with Composer, boots a testing `.env`, and executes the full PHPUnit suite (`php artisan test`) that now covers unit, integration, and end-to-end scenarios.
-   - The **docker** job only runs on push events; it builds the production image with `deploy/production/Dockerfile`, embedding the Vite build artefacts, and pushes tags to GHCR (`ghcr.io/hafizhfadh/learningcenter:latest`, `:<git-sha>`, and `:<tag>` when applicable).
-   - The production Dockerfile now uses a dedicated Composer builder, a frontend asset stage, and a slim FrankenPHP runtime layer so tests, docs, and tooling stay out of the final image while keeping build caching efficient.
+   - A GitHub Actions workflow triggers on pushes to `main` or version tags.
+   - Steps include installing PHP dependencies with Composer, running linters and PHPUnit, executing front-end builds, and collecting coverage reports.
+   - If tests pass, the workflow builds a multi-stage Docker image (`docker/octane/Dockerfile`) that bundles the application, Octane, and FrankenPHP.
+   - The resulting image is tagged (`ghcr.io/<org>/<app>:<git-sha>` and `:latest`) and pushed to GHCR.
 
 2. **Deploy (CD)**
-   - After an image is published, log into the VPS and run `make prod-pull prod-up` to pull and rollout the new container set with zero-downtime updates (the compose file uses `start-first` updates for the Octane service).
-   - Secrets live in `deploy/production/secrets/.env.production` and are mounted into each container; rotate values by editing the file and rerunning `make prod-up`.
-   - Post-deploy checks include `docker compose --env-file deploy/production/secrets/.env.production -f deploy/production/docker-compose.yml ps` and hitting the `/health` endpoint to confirm Octane worker readiness.
+   - A separate job uses an OIDC federated credential or deploy key to SSH into the application VPS (through a `deploy` user with limited privileges).
+   - Secrets (WireGuard keys, database credentials, app key) are stored as encrypted GitHub Action secrets and templated into a `.env.production` file rendered on the runner.
+   - The workflow updates the remote host via `docker compose pull` and `docker compose up -d --remove-orphans`, ensuring zero downtime by leveraging Octane's graceful worker reloads and Caddy's request buffering.
+   - After deployment, the workflow runs health checks (`/health`, Horizon queue status) and posts notifications to the team channel.
 
 3. **Rollback**
    - Previous image tags remain in GHCR. Rolling back is as simple as redeploying with the prior tag via the `workflow_dispatch` input `image_tag`.
@@ -207,19 +200,16 @@ The application uses Caddy as the single entry point for all domains:
 
 ### Environment Configuration
 
-- **Secret Management**: Copy `deploy/production/secrets/.env.production.example` to `deploy/production/secrets/.env.production`, populate the required keys (`DB_*`, `REDIS_*`, `APP_KEY`, `CADDY_*`, `APP_IMAGE`), and keep the file only on the VPS with `chmod 600`. Git tracks the template but ignores the real secret file.
-- **Octane Configuration**:
-  - Tune `OCTANE_WORKERS`, `OCTANE_TASK_WORKERS`, `OCTANE_MAX_REQUESTS`, and `OCTANE_MAX_EXECUTION_TIME` to stay within the 4 vCPU / 4 GB VPS budget. The defaults (`4`, `2`, `500`, `60`) map cleanly to the compose resource limits.
-  - `OCTANE_LISTEN` (or the explicit `OCTANE_HOST` / `OCTANE_PORT` overrides) defines where Octane binds. The updated `config/octane.php` helper reads these values so CLI invocations and the container entrypoint stay aligned.
-- **FrankenPHP Runtime**: Configure `OCTANE_FRANKENPHP_CONFIG`, `OCTANE_FRANKENPHP_WORKER`, `OCTANE_FRANKENPHP_CADDYFILE`, `OCTANE_FRANKENPHP_ADMIN_SERVER`/`OCTANE_FRANKENPHP_ADMIN_PORT`, `OCTANE_FRANKENPHP_HTTP_REDIRECT`, and `OCTANE_FRANKENPHP_LOG_LEVEL` to control the worker script, Caddyfile, admin interface, and HTTPS redirect behaviour. These feed the new `config/octane.php` FrankenPHP block and the container entrypoint.
-- **Database Connectivity**: Point `DB_HOST` at the private interface of the database VPS (or a managed PostgreSQL endpoint) and restrict access by IP allow lists + TLS. No WireGuard tunnel is required on the application host, simplifying memory consumption.
+- **Secret Management**: Keep runtime secrets in GitHub Actions encrypted variables. The CI/CD workflow writes them into a `secrets/.env.production` file on the runner, then securely copies it to the VPS using `scp` with `chmod 600` applied server-side. On the server, a `docker secrets`-style pattern is used: the `.env` file lives outside version control and is mounted into containers.
+- **Octane Configuration**: Set `OCTANE_SERVER=frankenphp`, configure worker counts (`OCTANE_WORKERS=4`, `OCTANE_MAX_REQUESTS=500`) to match the VPS CPU cores, and enable task queue integration with Redis.
+- **Database Connectivity**: The `.env.production` file contains the private WireGuard endpoint of the database VPS. Use managed users with least privilege, enforce SSL/TLS connections, and rotate credentials quarterly.
 - **Queue/Horizon**: Dedicated containers run `php artisan horizon` and `php artisan queue:work` with the same code image but different entrypoints. Supervisor is unnecessary because Docker restarts failed containers.
 
 ### Monitoring, Logging & Maintenance
 
-- **Monitoring Stack**: Keep the host lightweight by using `docker stats`, `docker compose ps`, and the built-in Horizon dashboard. When deeper insight is needed, ship container metrics to an external Prometheus/Grafana instance rather than running heavy agents locally.
-- **Application Metrics**: Laravel Horizon and the `/health` endpoint provide the primary SLO signals. Consider enabling Laravel Pulse or a SaaS APM if additional tracing is required.
-- **Logging**: All services emit JSON logs via Docker's `json-file` driver (rotated at 10 MB). Forward them to a remote destination with `docker logs` piping or a lightweight log agent installed on the host if long-term retention is needed.
+- **Monitoring Stack**: Install the Prometheus Node Exporter and cAdvisor on the VPS to gather host/container metrics. Use Grafana (hosted or self-managed) to visualise application, queue, and database health.
+- **Application Metrics**: Laravel Horizon exposes queue stats; schedule a cron container to post metrics to Prometheus via pushgateway or StatsD.
+- **Logging**: Containers emit JSON logs collected by a `vector` or `fluent-bit` sidecar, which forwards to an ELK stack or a managed log service (e.g., Logtail). Caddy access logs are parsed into the same pipeline for tenant-level observability.
 - **Backups**: Database VPS performs nightly logical dumps and continuous WAL archiving. Object storage retains seven daily, four weekly, and six monthly snapshots. Application assets are synced to S3 via `rclone` scheduled tasks.
 - **Security & Patching**: Apply OS security updates weekly via unattended upgrades. Rebuild application images monthly to incorporate upstream patches.
 - **Disaster Recovery**: Document procedures for restoring from GHCR image tags, database backups, and DNS changes to a standby VPS.
@@ -239,7 +229,7 @@ The application uses Caddy as the single entry point for all domains:
 | Queues not processing | Horizon dashboard or `docker compose logs queue` | Verify Redis connectivity and that queue workers have sufficient memory; scale replicas if needed |
 | Domain not resolving | DNS propagation via `dig`, Caddy logs | Confirm DNS record points to VPS IP and Caddy reloaded configuration |
 | Deployment failed | GitHub Actions logs | Re-run workflow with `image_tag` override after fixing underlying issue |
-| Database connectivity issues | `psql` from app container, security group rules | Ensure the database IP/port is allow-listed for the VPS, rotate credentials if auth fails |
+| Database connectivity issues | `psql` from app container, WireGuard status | Restart tunnel (`systemctl restart wg-quick@prod`) or update firewall rules |
 
 ## Application Structure
 
