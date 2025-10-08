@@ -4,10 +4,11 @@
 SHELL = /bin/bash
 # Development Docker Compose Configuration
 DC_RUN_ARGS = -f docker-compose.yml
+PROD_DC_RUN_ARGS = -f deploy/production/docker-compose.yml --env-file deploy/production/secrets/.env.production
 HOST_UID=$(shell id -u)
 HOST_GID=$(shell id -g)
 
-.PHONY : help up down shell\:app stop-all ps update build restart down-up images\:list images\:clean logs\:app logs containers\:health command\:app
+.PHONY : help up down shell\:app stop-all ps update build restart down-up images\:list images\:clean logs\:app logs containers\:health command\:app prod-up prod-pull prod-down prod-logs
 .DEFAULT_GOAL : help
 
 # This will output the help for each task. thanks to https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
@@ -34,7 +35,19 @@ shell\:app: ## Start shell into app container
 	docker compose ${DC_RUN_ARGS} exec app sh
 
 command\:app: ## Run a command in the app container
-	docker compose ${DC_RUN_ARGS} exec app sh -c "$(command)"
+        docker compose ${DC_RUN_ARGS} exec app sh -c "$(command)"
+
+prod-up: ## Launch the production stack defined in deploy/production/docker-compose.yml
+        docker compose ${PROD_DC_RUN_ARGS} up -d --remove-orphans
+
+prod-pull: ## Pull the latest production images from GHCR
+        docker compose ${PROD_DC_RUN_ARGS} pull
+
+prod-down: ## Stop the production stack
+        docker compose ${PROD_DC_RUN_ARGS} down
+
+prod-logs: ## Tail production stack logs
+        docker compose ${PROD_DC_RUN_ARGS} logs -f
 
 stop-all: ## Stop all containers
 	docker stop $(shell docker ps -a -q)

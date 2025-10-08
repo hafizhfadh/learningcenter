@@ -17,6 +17,11 @@ return new class extends Migration
             $table->foreignId('course_id')->constrained()->onDelete('cascade');
             $table->foreignId('lesson_id')->constrained()->onDelete('cascade');
             $table->string('action')->default('viewed'); // 'viewed','completed'
+            $table->string('status')->default('in_progress');
+            $table->unsignedTinyInteger('progress_percentage')->default(0);
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->json('metadata')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
