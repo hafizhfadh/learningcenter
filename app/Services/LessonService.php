@@ -175,6 +175,7 @@ class LessonService
 
             $progress->progress_percentage = 100;
             $progress->status = 'completed';
+            $progress->action = 'completed';
             $progress->completed_at = now();
             
             if (!$progress->started_at) {
@@ -334,6 +335,7 @@ class LessonService
 
         $progress->progress_percentage = 100;
         $progress->status = 'completed';
+        $progress->action = 'completed';
         $progress->completed_at = now();
         
         if (!$progress->started_at) {

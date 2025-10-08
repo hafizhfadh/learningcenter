@@ -23,6 +23,22 @@ class ProgressLog extends Model
         'course_id',
         'lesson_id',
         'action',
+        'status',
+        'progress_percentage',
+        'started_at',
+        'completed_at',
+        'metadata',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'metadata' => 'array',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
     
     /**
