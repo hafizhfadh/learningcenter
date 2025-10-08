@@ -105,7 +105,45 @@ return [
     |
     */
 
-    'https' => env('OCTANE_HTTPS', false),
+    'https' => env('OCTANE_HTTPS', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Worker Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These options configure how many workers Octane should start for handling
+    | requests and background tasks. They are exposed via environment variables
+    | so that containerized deployments (such as the production Docker Compose
+    | stack) and local development can share consistent defaults.
+    |
+    */
+
+    'workers' => env('OCTANE_WORKERS', 'auto'),
+
+    'task_workers' => env('OCTANE_TASK_WORKERS', 'auto'),
+
+    'max_requests' => env('OCTANE_MAX_REQUESTS', 250),
+
+    /*
+    |--------------------------------------------------------------------------
+    | FrankenPHP Defaults
+    |--------------------------------------------------------------------------
+    |
+    | Centralized configuration for FrankenPHP allows both Artisan commands and
+    | container entrypoints to reference a single source of truth for critical
+    | options. Each value can be overridden via environment variables while
+    | retaining sensible defaults for the production Docker deployment.
+    |
+    */
+
+    'frankenphp' => [
+        'workers' => env('OCTANE_FRANKENPHP_WORKERS', env('OCTANE_WORKERS', 'auto')),
+        'admin_port' => env('OCTANE_FRANKENPHP_ADMIN_PORT', 2019),
+        'https' => env('OCTANE_FRANKENPHP_HTTPS', env('OCTANE_HTTPS', true)),
+        'http_redirect' => env('OCTANE_FRANKENPHP_HTTP_REDIRECT', true),
+        'caddyfile' => env('OCTANE_FRANKENPHP_CADDYFILE', env('FRANKENPHP_CONFIG_PATH', '/etc/frankenphp/Caddyfile')),
+    ],
 
     /*
     |--------------------------------------------------------------------------

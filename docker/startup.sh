@@ -71,20 +71,57 @@ setup_health_check
 
 echo -e "${GREEN}🚀 Launching Octane with FrankenPHP...${NC}"
 
+# Normalize FrankenPHP / Octane environment defaults so they stay in sync with
+# config/octane.php and docker-compose based deployments.
+FRANKENPHP_WORKERS=${OCTANE_FRANKENPHP_WORKERS:-${OCTANE_WORKERS:-auto}}
+FRANKENPHP_ADMIN_PORT=${OCTANE_FRANKENPHP_ADMIN_PORT:-2019}
+FRANKENPHP_ENABLE_HTTPS=${OCTANE_FRANKENPHP_HTTPS:-${OCTANE_HTTPS:-true}}
+FRANKENPHP_HTTP_REDIRECT=${OCTANE_FRANKENPHP_HTTP_REDIRECT:-true}
+FRANKENPHP_CADDYFILE=${OCTANE_FRANKENPHP_CADDYFILE:-${FRANKENPHP_CONFIG_PATH:-/etc/frankenphp/Caddyfile}}
+HTTP_PORT=${OCTANE_HTTP_PORT:-80}
+HTTPS_PORT=${OCTANE_PORT:-443}
+
+workers_flag=()
+if [[ -n "${FRANKENPHP_WORKERS}" && "${FRANKENPHP_WORKERS}" != "auto" ]]; then
+  workers_flag+=(--workers="${FRANKENPHP_WORKERS}")
+fi
+
+admin_flag=(--admin-port="${FRANKENPHP_ADMIN_PORT}")
+
+https_enabled=false
+case "${FRANKENPHP_ENABLE_HTTPS,,}" in
+  1|true|yes|on) https_enabled=true ;;
+esac
+
+http_redirect_enabled=false
+case "${FRANKENPHP_HTTP_REDIRECT,,}" in
+  1|true|yes|on) http_redirect_enabled=true ;;
+esac
+
+caddy_flags=()
+if [[ -n "${FRANKENPHP_CADDYFILE}" ]]; then
+  caddy_flags+=(--caddyfile="${FRANKENPHP_CADDYFILE}")
+fi
+
+command=(php artisan octane:frankenphp --host=0.0.0.0)
+if (( ${#workers_flag[@]} )); then
+  command+=("${workers_flag[@]}")
+fi
+command+=("${admin_flag[@]}")
+
 # Check if we're in local development mode (no HTTPS)
-if [[ "${APP_ENV:-production}" == "local" ]] || [[ "${OCTANE_HTTPS:-true}" == "false" ]]; then
+if [[ "${APP_ENV:-production}" == "local" ]] || [[ $https_enabled == false ]]; then
   echo -e "${YELLOW}🔧 Starting in HTTP mode for local development (no Caddyfile)${NC}"
-  exec php artisan octane:frankenphp \
-    --host=0.0.0.0 \
-    --port=80 \
-    --admin-port=2019
+  command+=(--port="${HTTP_PORT}")
+  exec "${command[@]}"
 else
   echo -e "${GREEN}🔒 Starting in HTTPS mode for production${NC}"
-  exec php artisan octane:frankenphp \
-    --host=0.0.0.0 \
-    --port=443 \
-    --admin-port=2019 \
-    --https \
-    --http-redirect \
-    --caddyfile=/etc/frankenphp/Caddyfile
+  command+=(--port="${HTTPS_PORT}" --https)
+  if [[ $http_redirect_enabled == true ]]; then
+    command+=(--http-redirect)
+  fi
+  if (( ${#caddy_flags[@]} )); then
+    command+=("${caddy_flags[@]}")
+  fi
+  exec "${command[@]}"
 fi
