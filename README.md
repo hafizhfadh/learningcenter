@@ -12,7 +12,7 @@ A modern learning management system built with Laravel, featuring course managem
 - **Performance**: Laravel Octane
 - **Database**: PostgreSQL 16 (external servers)
 - **Cache**: Redis (containerized)
-- **Reverse Proxy**: Nginx
+- **Reverse Proxy**: Traefik v3 (DNS-01 via Cloudflare)
 - **Monitoring**: Prometheus + lightweight exporters
 
 ### Core Features
@@ -70,10 +70,10 @@ docker-compose exec app php artisan horizon
 | `OCTANE_HTTP_PORT` | HTTP port used when Octane runs without TLS (defaults to 80 inside the container). | `80` |
 | `OCTANE_MAX_REQUESTS` | Maximum number of requests a worker should process before recycling. | `250` |
 | `OCTANE_FRANKENPHP_WORKERS` | Overrides the FrankenPHP worker flag passed to `octane:frankenphp`. Falls back to `OCTANE_WORKERS` when unset. | `auto` |
-| `OCTANE_FRANKENPHP_ADMIN_PORT` | Admin API port exposed by FrankenPHP (used by Caddy). | `2019` |
+| `OCTANE_FRANKENPHP_ADMIN_PORT` | Admin API port exposed by FrankenPHP (useful for Octane diagnostics). | `2019` |
 | `OCTANE_FRANKENPHP_HTTPS` | Enables HTTPS mode for FrankenPHP in both the Octane command and Docker entrypoint. | `true` |
 | `OCTANE_FRANKENPHP_HTTP_REDIRECT` | Toggles automatic HTTP→HTTPS redirection when HTTPS is enabled. | `true` |
-| `OCTANE_FRANKENPHP_CADDYFILE` | Path to the FrankenPHP / Caddy configuration file mounted in the container. | `/etc/frankenphp/Caddyfile` |
+| `OCTANE_FRANKENPHP_CADDYFILE` | Optional FrankenPHP configuration path for advanced setups (unused by default with Traefik). | `/etc/frankenphp/Caddyfile` |
 
 ## Application Structure
 
@@ -148,7 +148,7 @@ The project ships with a production-ready deployment pattern optimised for a mul
 
 | Component | Purpose | Hosting |
 | --- | --- | --- |
-| **Application VPS** | Runs Octane-powered Laravel app, Horizon dashboard, dedicated queue worker, scheduler, and the Caddy reverse proxy | Docker (single host, 4 vCPU / 4 GB RAM)
+| **Application VPS** | Runs Octane-powered Laravel app, Horizon dashboard, dedicated queue worker, scheduler, and the Traefik reverse proxy | Docker (single host, 4 vCPU / 4 GB RAM)
 | **Database VPS** | Managed PostgreSQL 16 and Redis 7 instances with PITR backups | Bare metal, hardened OS
 | **GitHub Actions** | CI/CD runner for building, testing, and deploying container images | GitHub-hosted runners
 | **GitHub Container Registry (GHCR)** | Stores versioned application images and shared base images | GitHub Packages
@@ -158,7 +158,7 @@ Key characteristics:
 
 - **Octane + FrankenPHP Runtime**: The Laravel app runs through FrankenPHP workers managed by Octane to maximise concurrency in the limited VPS footprint.
 - **Service Isolation**: Each runtime concern (web, queue worker, scheduler, Horizon) runs in its own container so that workload spikes cannot starve critical paths while still respecting the tight 4 vCPU / 4 GB RAM budget.
-- **Network Hardening**: The Docker host communicates with the database VPS across a private network segment or IP-allowlisted TLS connection; inbound traffic terminates at Caddy with automatic certificate management for every tenant domain.
+- **Network Hardening**: The Docker host communicates with the database VPS across a private network segment or IP-allowlisted TLS connection; inbound traffic terminates at Traefik with automatic certificate management for every tenant domain.
 
 ### Deployment Workflow
 
@@ -169,49 +169,72 @@ Key characteristics:
    - The production Dockerfile now uses a dedicated Composer builder, a frontend asset stage, and a slim FrankenPHP runtime layer so tests, docs, and tooling stay out of the final image while keeping build caching efficient.
 
 2. **Deploy (CD)**
-   - After an image is published, log into the VPS and run `make prod-pull prod-up` to pull and rollout the new container set with zero-downtime updates (the compose file uses `start-first` updates for the Octane service).
-   - Secrets live in `deploy/production/secrets/.env.production` and are mounted into each container; rotate values by editing the file and rerunning `make prod-up`.
-   - Post-deploy checks include `docker compose --env-file deploy/production/secrets/.env.production -f deploy/production/docker-compose.yml ps` and hitting the `/health` endpoint to confirm Octane worker readiness.
+   - After an image is published, log into the VPS and execute `./deploy/production/bin/deploy.sh`. The script performs `git pull --rebase`, pulls the latest container images, recreates the stack, waits for health checks, and refreshes Laravel caches with zero-downtime updates.
+   - Secrets live in `deploy/production/secrets/.env.production` and are mounted into each container; rotate values by editing the file and rerunning the deployment script.
+   - Post-deploy checks are handled automatically, but you can still run `docker compose --env-file deploy/production/secrets/.env.production -f deploy/production/docker-compose.yml ps` or hit the `/health` endpoint to confirm Octane worker readiness.
 
 3. **Rollback**
    - Previous image tags remain in GHCR. Rolling back is as simple as redeploying with the prior tag via the `workflow_dispatch` input `image_tag`.
 
+### Hands-on VPS Deployment Procedure
+
+Follow this checklist when shipping a new release to the production VPS:
+
+1. **SSH into the VPS** with a user that can run Docker commands (typically the same user that performed the initial install).
+2. **Install prerequisites** if they are missing: Docker Engine ≥ 24, the Docker Compose plugin, and Git.
+3. **Pull the repository** (first-time clone or update):
+   ```bash
+   cd /opt
+   git clone https://github.com/hafizhfadh/learningcenter.git
+   cd learningcenter
+   git checkout main
+   ```
+   For subsequent deployments simply run `git fetch --tags --prune`.
+4. **Populate secrets** by copying `deploy/production/secrets/.env.production.example` to `deploy/production/secrets/.env.production` and filling in application credentials, the Cloudflare DNS token (`CF_DNS_API_TOKEN`), Traefik metadata such as `TRAEFIK_ACME_EMAIL`, and the target `APP_IMAGE`. Restrict the file with `chmod 600 deploy/production/secrets/.env.production`.
+5. **Prepare Traefik state**: ensure `deploy/production/traefik/acme.json` exists (an empty file is committed) and run `chmod 600 deploy/production/traefik/acme.json` so Traefik can persist certificates.
+6. **Configure DNS** so the `APP_HOST` record resolves to the VPS and the Cloudflare API token has `Zone:DNS:Edit` and `Zone:Read` permissions. Disable the Cloudflare orange cloud so Traefik can solve DNS challenges directly.
+7. **Run the deployment script** from the repository root:
+   ```bash
+   ./deploy/production/bin/deploy.sh
+   ```
+   The script performs a `git pull --rebase`, pulls updated container images, recreates services, waits for health checks, runs database migrations (unless `RUN_MIGRATIONS=0`), and warms Laravel caches.
+8. **Verify the rollout**:
+   ```bash
+   docker compose --env-file deploy/production/secrets/.env.production \
+     -f deploy/production/docker-compose.yml ps
+   docker compose --env-file deploy/production/secrets/.env.production \
+     -f deploy/production/docker-compose.yml logs traefik app
+   curl -I https://learning.csi-academy.id/health
+   ```
+   Replace the host in the final command with your `APP_HOST`. All logs from the deployment script are captured under `deploy/production/logs/` for later auditing.
+9. **Rollback if required** by setting `APP_IMAGE` in `.env.production` to a previous GHCR tag and rerunning the deployment script. Traefik and Octane will recycle gracefully thanks to start-first updates.
+
 ### Domain Management & Multi-Tenant Routing
 
-The application uses Caddy as the single entry point for all domains:
+The application now relies on Traefik as the single entry point for all domains:
 
 1. **DNS Setup**: Point wildcard A/AAAA records (`*.csi-academy.id`, `*.nf-testingcenter.org`) to the application VPS IP. Explicit records (e.g., `admin.csi-academy.id`) can coexist.
-2. **Dynamic Site Configuration**: Caddy runs in Docker with a volume-mounted `/etc/caddy/Caddyfile`. The Caddyfile delegates certificate management to Let's Encrypt and proxies to the Octane service. Example:
+2. **Dynamic Site Configuration**: Traefik consumes Docker labels defined in `deploy/production/docker-compose.yml`. The `app` service registers a router, service, and middlewares via labels while `traefik/dynamic.yml` provides shared security/compression middleware. Example:
 
-   ```caddyfile
-   {
-     email admin@csi-academy.id
-     acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-   }
-
-   *.csi-academy.id {
-     reverse_proxy app:9000
-   }
-
-   *.nf-testingcenter.org {
-     reverse_proxy app:9000
-   }
-
-   admin.csi-academy.id {
-     reverse_proxy admin:9000
-   }
+   ```yaml
+   labels:
+     - traefik.enable=true
+     - traefik.http.routers.app.rule=Host(`${APP_HOST}`)
+     - traefik.http.routers.app.entrypoints=websecure
+     - traefik.http.routers.app.tls.certresolver=cloudflare
+     - traefik.http.services.app.loadbalancer.server.port=9000
    ```
 
 3. **Tenant Discovery**: Middleware within Laravel resolves tenant context based on the requested host, allowing `schoolone.csi-academy.id` or other client subdomains to map to tenant records.
-4. **Certificate Management**: Caddy automatically obtains and renews certificates. Staging/live toggles are handled via environment variables so that new domains are available without redeployment.
+4. **Certificate Management**: Traefik automatically obtains and renews certificates using the Cloudflare DNS challenge. ACME state lives in `deploy/production/traefik/acme.json`, and staging/live toggles are handled via environment variables so that new domains are available without redeployment.
 
 ### Environment Configuration
 
-- **Secret Management**: Copy `deploy/production/secrets/.env.production.example` to `deploy/production/secrets/.env.production`, populate the required keys (`DB_*`, `REDIS_*`, `APP_KEY`, `CADDY_*`, `APP_IMAGE`), and keep the file only on the VPS with `chmod 600`. Git tracks the template but ignores the real secret file.
+- **Secret Management**: Copy `deploy/production/secrets/.env.production.example` to `deploy/production/secrets/.env.production`, populate the required keys (`DB_*`, `REDIS_*`, `APP_KEY`, `CF_DNS_API_TOKEN`, `TRAEFIK_ACME_EMAIL`, `APP_IMAGE`), and keep the file only on the VPS with `chmod 600`. Git tracks the template but ignores the real secret file.
 - **Octane Configuration**:
   - Tune `OCTANE_WORKERS`, `OCTANE_TASK_WORKERS`, `OCTANE_MAX_REQUESTS`, and `OCTANE_MAX_EXECUTION_TIME` to stay within the 4 vCPU / 4 GB VPS budget. The defaults (`4`, `2`, `500`, `60`) map cleanly to the compose resource limits.
   - `OCTANE_LISTEN` (or the explicit `OCTANE_HOST` / `OCTANE_PORT` overrides) defines where Octane binds. The updated `config/octane.php` helper reads these values so CLI invocations and the container entrypoint stay aligned.
-- **FrankenPHP Runtime**: Configure `OCTANE_FRANKENPHP_CONFIG`, `OCTANE_FRANKENPHP_WORKER`, `OCTANE_FRANKENPHP_CADDYFILE`, `OCTANE_FRANKENPHP_ADMIN_SERVER`/`OCTANE_FRANKENPHP_ADMIN_PORT`, `OCTANE_FRANKENPHP_HTTP_REDIRECT`, and `OCTANE_FRANKENPHP_LOG_LEVEL` to control the worker script, Caddyfile, admin interface, and HTTPS redirect behaviour. These feed the new `config/octane.php` FrankenPHP block and the container entrypoint.
+- **FrankenPHP Runtime**: Configure `OCTANE_FRANKENPHP_CONFIG`, `OCTANE_FRANKENPHP_WORKER`, `OCTANE_FRANKENPHP_CADDYFILE`, `OCTANE_FRANKENPHP_ADMIN_SERVER`/`OCTANE_FRANKENPHP_ADMIN_PORT`, `OCTANE_FRANKENPHP_HTTP_REDIRECT`, and `OCTANE_FRANKENPHP_LOG_LEVEL` to control the worker script, optional FrankenPHP configuration file, admin interface, and HTTPS redirect behaviour. These feed the `config/octane.php` FrankenPHP block and the container entrypoint.
 - **Database Connectivity**: Point `DB_HOST` at the private interface of the database VPS (or a managed PostgreSQL endpoint) and restrict access by IP allow lists + TLS. No WireGuard tunnel is required on the application host, simplifying memory consumption.
 - **Queue/Horizon**: Dedicated containers run `php artisan horizon` and `php artisan queue:work` with the same code image but different entrypoints. Supervisor is unnecessary because Docker restarts failed containers.
 
@@ -229,15 +252,15 @@ The application uses Caddy as the single entry point for all domains:
 1. **Scaling Queues**: Adjust the `replicas` count for the queue worker service in `docker-compose.prod.yml` and redeploy. Monitor Horizon for throughput improvements.
 2. **Rotating Secrets**: Update values in GitHub Actions secrets, rerun the deployment workflow, and confirm that the new environment variables propagated by checking `docker compose exec app php artisan env`.
 3. **Database Maintenance**: Run `VACUUM ANALYZE` weekly via cron on the database VPS. Monitor disk usage and WAL retention to avoid storage exhaustion.
-4. **SSL Renewal Verification**: Caddy renews certificates automatically, but a cron job (`caddy reload --config /etc/caddy/Caddyfile`) ensures configuration reload without downtime when domains are added.
+4. **SSL Renewal Verification**: Traefik renews certificates automatically via the DNS challenge. Monitor renewal status with `docker compose logs traefik` and rotate the `traefik/acme.json` file only when troubleshooting failed renewals.
 
 ### Troubleshooting
 
 | Symptom | Check | Resolution |
 | --- | --- | --- |
-| Requests timing out | `docker compose logs caddy`, `docker compose logs app` | Ensure Octane workers are healthy; run `docker compose restart app` for a graceful restart |
+| Requests timing out | `docker compose logs traefik`, `docker compose logs app` | Ensure Octane workers are healthy; run `docker compose restart app` for a graceful restart |
 | Queues not processing | Horizon dashboard or `docker compose logs queue` | Verify Redis connectivity and that queue workers have sufficient memory; scale replicas if needed |
-| Domain not resolving | DNS propagation via `dig`, Caddy logs | Confirm DNS record points to VPS IP and Caddy reloaded configuration |
+| Domain not resolving | DNS propagation via `dig`, Traefik logs | Confirm DNS record points to VPS IP and Traefik obtained a certificate |
 | Deployment failed | GitHub Actions logs | Re-run workflow with `image_tag` override after fixing underlying issue |
 | Database connectivity issues | `psql` from app container, security group rules | Ensure the database IP/port is allow-listed for the VPS, rotate credentials if auth fails |
 

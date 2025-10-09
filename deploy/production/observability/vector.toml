@@ -1,6 +1,6 @@
 [sources.docker]
 type = "docker_logs"
-include_containers = ["app", "horizon", "queue", "scheduler", "caddy"]
+include_containers = ["app", "horizon", "queue", "scheduler", "traefik", "nginx"]
 exclude_containers = ["vector", "cadvisor", "node_exporter", "wireguard"]
 
 [transforms.enrich]
