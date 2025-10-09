@@ -1,14 +1,22 @@
 # syntax=docker/dockerfile:1.6
 
-FROM composer:2 AS php_deps
+FROM php:8.3-cli AS php_deps
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends git unzip libicu-dev libzip-dev; \
+    docker-php-ext-install intl pcntl zip opcache; \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-progress --prefer-dist --optimize-autoloader --no-interaction --no-scripts
 
-FROM composer:2 AS php_builder
+FROM php_deps AS php_builder
 WORKDIR /app
-COPY --from=php_deps /app/vendor ./vendor
-COPY composer.json composer.lock ./
 COPY artisan artisan
 COPY bootstrap ./bootstrap
 COPY config ./config
@@ -46,7 +54,12 @@ ENV APP_ENV=production \
     FRANKENPHP_CONFIG="worker ./public/index.php" \
     COMPOSER_ALLOW_SUPERUSER=1
 
-RUN apk add --no-cache icu-data-full bash curl git wget
+RUN set -eux; \
+    apk add --no-cache bash curl git wget icu-data-full libzip; \
+    apk add --no-cache --virtual .build-deps $PHPIZE_DEPS icu-dev libzip-dev; \
+    docker-php-ext-configure intl; \
+    docker-php-ext-install intl pdo_mysql zip; \
+    apk del .build-deps
 
 COPY --from=php_builder /app/composer.json ./composer.json
 COPY --from=php_builder /app/composer.lock ./composer.lock
