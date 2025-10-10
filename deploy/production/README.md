@@ -20,6 +20,11 @@ container updates, cache optimization, and health verification.
   `.env`, including the variables referenced below.
 - `deploy/production/traefik/acme.json` present with `chmod 600` applied. The repository
   includes an empty placeholder that can be reused.
+- GitHub Container Registry (GHCR) personal access token with `read:packages` scope. Store
+  the token securely and provide it to the deploy script via environment variables (see
+  the table below).
+- Latest application containers pushed to GHCR. The deploy script validates manifests for
+  every image referenced in `docker-compose.yml` and aborts if any are missing.
 
 ## Environment Variables
 
@@ -33,6 +38,9 @@ container updates, cache optimization, and health verification.
 | `TRAEFIK_LOG_LEVEL` | Adjust Traefik log verbosity (`INFO`, `WARN`, `ERROR`, `DEBUG`). |
 | `RUN_MIGRATIONS` | Set to `0` to skip migrations during deployment. |
 | `HEALTH_TIMEOUT_SECONDS` | Maximum wait time for container health checks (default `180`). |
+| `GHCR_USERNAME` | Username used to authenticate against GHCR (usually your GitHub username). |
+| `GHCR_TOKEN` | GHCR personal access token. Mutually exclusive with `GHCR_TOKEN_FILE`. |
+| `GHCR_TOKEN_FILE` | Path to a file that contains the GHCR token. Overrides `GHCR_TOKEN` when set. |
 
 All other Laravel-specific environment keys (database, Redis, mail, Sentry, etc.) must
 also be configured in `.env.production`.
@@ -50,7 +58,10 @@ Point the desired hostnames to the VPS before executing the deployment:
 ## Deployment Steps
 
 1. **Pull the latest code & images** — `bin/deploy.sh` performs `git pull --rebase` and
-   `docker compose pull` automatically.
+   `docker compose pull` automatically. When the target image lives on GHCR (the default
+   configuration), the script logs in using `GHCR_USERNAME` plus either `GHCR_TOKEN` or
+   `GHCR_TOKEN_FILE` before pulling layers. It then inspects each referenced image via
+   `docker manifest inspect` and stops early with guidance if a manifest is missing.
 2. **Traefik bootstrapping** — the script recreates the stack using
    `deploy/production/docker-compose.yml`. Traefik provisions/renews certificates via the
    Cloudflare DNS challenge and exposes the Octane app on ports 80/443.
@@ -67,6 +78,26 @@ Execute the deployment from the repository root:
 ```
 
 Logs are stored under `deploy/production/logs/` with timestamps, enabling historical audits.
+
+## Publishing Application Images
+
+Build and publish the Octane workload image before running the deployment script so the
+manifests exist on GHCR:
+
+```bash
+# Authenticate once per shell
+echo "${GHCR_TOKEN}" | docker login ghcr.io --username "${GHCR_USERNAME}" --password-stdin
+
+# Build and push a multi-architecture image (adjust tag as needed)
+docker buildx build \
+  --platform linux/amd64 \
+  --tag ghcr.io/hafizhfadh/learningcenter:latest \
+  --push \
+  .
+```
+
+If you publish a custom tag, pass it to the deploy script via `APP_IMAGE=ghcr.io/...` so
+the manifest lookup targets the correct version.
 
 ## Troubleshooting & Operations
 
