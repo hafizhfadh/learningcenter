@@ -3,7 +3,30 @@ set -Eeuo pipefail
 
 # === Path Configuration ===
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+
+# Robust PROJECT_ROOT resolution with fallback and validation
+if PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." 2>/dev/null && pwd)"; then
+    # Successful cd - use absolute path
+    :
+else
+    # Fallback: resolve manually using realpath or readlink
+    if command -v realpath >/dev/null 2>&1; then
+        PROJECT_ROOT="$(realpath "${SCRIPT_DIR}/../../..")"
+    elif command -v readlink >/dev/null 2>&1; then
+        PROJECT_ROOT="$(readlink -f "${SCRIPT_DIR}/../../..")"
+    else
+        # Last resort: manual resolution
+        PROJECT_ROOT="$(dirname "$(dirname "$(dirname "${SCRIPT_DIR}")")")"
+    fi
+fi
+
+# Validate PROJECT_ROOT exists and contains expected structure
+if [[ ! -d "${PROJECT_ROOT}" ]] || [[ ! -d "${PROJECT_ROOT}/deploy" ]]; then
+    echo "ERROR: Invalid PROJECT_ROOT: ${PROJECT_ROOT}" >&2
+    echo "Expected structure: PROJECT_ROOT/deploy/production/bin/deploy.sh" >&2
+    exit 1
+fi
+
 DEPLOY_DIR="${PROJECT_ROOT}/deploy/production"
 
 # === File Paths ===
