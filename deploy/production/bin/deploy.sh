@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 # === Path Configuration ===
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+<<<<<<< Updated upstream
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 DEPLOY_DIR="${PROJECT_ROOT}/deploy/production"
 
@@ -12,6 +13,12 @@ ENV_FILE="${DEPLOY_DIR}/secrets/.env.production"
 
 # === Logging Configuration ===
 LOG_DIR="${DEPLOY_DIR}/logs"
+=======
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+COMPOSE_FILE="${PROJECT_ROOT}/deploy/production/docker-compose.yml"
+ENV_FILE="${PROJECT_ROOT}/deploy/production/secrets/.env.production"
+LOG_DIR="${PROJECT_ROOT}/deploy/production/logs"
+>>>>>>> Stashed changes
 mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/deploy-$(date +%Y%m%d-%H%M%S).log"
 
