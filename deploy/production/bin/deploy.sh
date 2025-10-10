@@ -24,6 +24,91 @@ log() {
   printf '[%(%Y-%m-%d %H:%M:%S)T] %s\n' -1 "$*"
 }
 
+has_registry_login() {
+  local registry=$1
+  local docker_config="${DOCKER_CONFIG:-${HOME}/.docker}/config.json"
+
+  if [[ ! -f "${docker_config}" ]]; then
+    return 1
+  fi
+
+  python3 - "$registry" "$docker_config" <<'PYTHON'
+import json
+import sys
+
+registry = sys.argv[1].rstrip('/')
+config_path = sys.argv[2]
+
+with open(config_path, 'r', encoding='utf-8') as handle:
+    data = json.load(handle)
+
+auths = data.get('auths', {})
+canonical_keys = {
+    registry,
+    f"https://{registry}",
+    f"https://{registry}/v1",
+    f"https://{registry}/v1/",
+    f"{registry}/v1",
+    f"{registry}/v1/",
+}
+
+for key in auths:
+    if key.rstrip('/') in canonical_keys:
+        raise SystemExit(0)
+
+raise SystemExit(1)
+PYTHON
+}
+
+ensure_registry_login() {
+  local registry=$1
+
+  if has_registry_login "${registry}"; then
+    log "Credentials for ${registry} already configured"
+    return 0
+  fi
+
+  local sanitized=${registry//[^a-zA-Z0-9]/_}
+  local uppercase=${sanitized^^}
+  local username_var="${uppercase}_USERNAME"
+  local token_var="${uppercase}_TOKEN"
+  local token_file_var="${uppercase}_TOKEN_FILE"
+  local username_hint=${username_var}
+  local token_hint=${token_var}
+  local token_file_hint=${token_file_var}
+
+  if [[ "${registry}" == "ghcr.io" ]]; then
+    username_hint="GHCR_USERNAME"
+    token_hint="GHCR_TOKEN"
+    token_file_hint="GHCR_TOKEN_FILE"
+  fi
+
+  # shellcheck disable=SC2086
+  local username=${!username_var:-${GHCR_USERNAME:-}}
+  # shellcheck disable=SC2086
+  local token=${!token_var:-${GHCR_TOKEN:-}}
+  # shellcheck disable=SC2086
+  local token_file=${!token_file_var:-${GHCR_TOKEN_FILE:-}}
+
+  if [[ -n "${token_file}" && -f "${token_file}" ]]; then
+    token=$(<"${token_file}")
+  fi
+
+  if [[ -z "${username}" || -z "${token}" ]]; then
+    printf '[ERROR] Missing credentials for %s. Set %s/%s or provide %s.\n' \
+      "${registry}" "${username_hint}" "${token_hint}" "${token_file_hint}" >&2
+    exit 1
+  fi
+
+  log "Logging into ${registry} as ${username}"
+  if ! printf '%s' "${token}" | docker login "${registry}" --username "${username}" --password-stdin >/dev/null 2>&1; then
+    printf '[ERROR] Docker login to %s failed.\n' "${registry}" >&2
+    exit 1
+  fi
+
+  log "Successfully authenticated with ${registry}"
+}
+
 require_command() {
   local command_name=$1
   if ! command -v "${command_name}" >/dev/null 2>&1; then
@@ -81,6 +166,7 @@ log "Log file: ${LOG_FILE}"
 
 require_command git
 require_command docker
+require_command python3
 
 if ! docker compose version >/dev/null 2>&1; then
   printf '[ERROR] Docker Compose plugin is not installed.\n' >&2
@@ -93,6 +179,9 @@ git fetch --tags --prune
 GIT_MERGE_AUTOEDIT=no git pull --rebase --autostash
 
 log "Step 2/5: Syncing container images"
+if [[ "${APP_IMAGE:-ghcr.io/hafizhfadh/learningcenter:latest}" == ghcr.io/* ]]; then
+  ensure_registry_login "ghcr.io"
+fi
 compose pull --quiet
 
 log "Step 3/5: Recreating services"
