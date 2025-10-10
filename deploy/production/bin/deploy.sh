@@ -91,13 +91,36 @@ trap 'on_error $LINENO' ERR
 # =============================================================================
 
 COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.yml"
-ENV_FILE="${DEPLOY_DIR}/secrets/.env.production"
+ENV_FILE="deploy/production/secrets/.env.production"
 
 # =============================================================================
 # RUNTIME CONFIGURATION
 # =============================================================================
 
 HEALTH_TIMEOUT_SECONDS=${HEALTH_TIMEOUT_SECONDS:-180}
+
+# =============================================================================
+# ENVIRONMENT VALIDATION
+# =============================================================================
+
+# Validate required environment file exists
+validate_environment() {
+  local env_file_absolute="${PROJECT_ROOT}/${ENV_FILE}"
+  
+  if [ ! -f "${env_file_absolute}" ]; then
+    printf '\n[\033[0;31mERROR\033[0m] Environment file not found: %s\n' "${env_file_absolute}" >&2
+    printf 'Please create it from the example:\n' >&2
+    printf '  cp %s %s\n' "${env_file_absolute}.example" "${env_file_absolute}" >&2
+    printf 'Then edit the file to set your production secrets.\n\n' >&2
+    exit 1
+  fi
+  
+  # Check for placeholder values that need to be replaced
+  if grep -q "change-me" "${env_file_absolute}"; then
+    printf '\n[\033[0;33mWARNING\033[0m] Found "change-me" placeholders in %s\n' "${env_file_absolute}" >&2
+    printf 'Please replace all placeholder values with actual production secrets.\n\n' >&2
+  fi
+}
 
 # =============================================================================
 # UTILITY FUNCTIONS
@@ -175,7 +198,7 @@ require_command() {
 
 # Docker Compose wrapper function
 compose() {
-  docker compose --project-directory "${PROJECT_ROOT}" --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" "$@"
+  docker compose --project-directory "${PROJECT_ROOT}" -f "${COMPOSE_FILE}" "$@"
 }
 
 # Health check function for services
@@ -239,6 +262,9 @@ log() {
 
 log "Starting LearningCenter production deployment"
 log "Log file: ${LOG_FILE}"
+
+# Validate environment configuration
+validate_environment
 
 # Verify required commands are available
 require_command git

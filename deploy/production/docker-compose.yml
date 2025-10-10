@@ -32,6 +32,7 @@ x-app-environment: &app_environment
   DB_PASSWORD: ${DB_PASSWORD:?database password required}
   DB_SSLMODE: require
   DB_OPTIONS: "--client_encoding=UTF8"
+  CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN:?cloudflare dns api token required}
   REDIS_CLIENT: phpredis
   REDIS_HOST: ${REDIS_HOST:?redis host required}
   REDIS_PORT: ${REDIS_PORT:-6379}
