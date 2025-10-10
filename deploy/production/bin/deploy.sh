@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# === Path Configuration ===
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-COMPOSE_FILE="${PROJECT_ROOT}/deploy/production/docker-compose.yml"
-ENV_FILE="${PROJECT_ROOT}/deploy/production/secrets/.env.production"
-LOG_DIR="${PROJECT_ROOT}/deploy/production/logs"
+DEPLOY_DIR="${PROJECT_ROOT}/deploy/production"
+
+# === File Paths ===
+COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.yml"
+ENV_FILE="${DEPLOY_DIR}/secrets/.env.production"
+
+# === Logging Configuration ===
+LOG_DIR="${DEPLOY_DIR}/logs"
 mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/deploy-$(date +%Y%m%d-%H%M%S).log"
+
+# === Runtime Configuration ===
 HEALTH_TIMEOUT_SECONDS=${HEALTH_TIMEOUT_SECONDS:-180}
 
 exec > >(tee -a "${LOG_FILE}")
@@ -21,7 +29,7 @@ on_error() {
 }
 
 log() {
-  printf '[%(%Y-%m-%d %H:%M:%S)T] %s\n' -1 "$*"
+  printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
 }
 
 has_registry_login() {
