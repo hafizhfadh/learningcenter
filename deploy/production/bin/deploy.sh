@@ -71,13 +71,33 @@ fi
 
 # Set deployment directory
 DEPLOY_DIR="${PROJECT_ROOT}/deploy/production"
+SECRETS_DIR="${DEPLOY_DIR}/secrets"
+ENV_FILE_PATH="${SECRETS_DIR}/.env.production"
+ENV_EXAMPLE_PATH="${ENV_FILE_PATH}.example"
+
+# Ensure critical directories exist before proceeding
+ensure_directory() {
+  local dir=$1
+
+  if [ -d "${dir}" ]; then
+    return 0
+  fi
+
+  if ! mkdir -p "${dir}"; then
+    printf '[ERROR] Unable to create directory: %s\n' "${dir}" >&2
+    exit 1
+  fi
+}
+
+ensure_directory "${DEPLOY_DIR}"
+ensure_directory "${SECRETS_DIR}"
+ensure_directory "${DEPLOY_DIR}/logs"
 
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
 
 LOG_DIR="${DEPLOY_DIR}/logs"
-mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/deploy-$(date +%Y%m%d-%H%M%S).log"
 
 # Note: Logging setup will be done in the main deployment section
@@ -91,7 +111,36 @@ trap 'on_error $LINENO' ERR
 # =============================================================================
 
 COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.yml"
-ENV_FILE="deploy/production/secrets/.env.production"
+
+# Ensure key configuration files exist before running docker compose
+ensure_file() {
+  local file=$1
+  local create_mode=${2:-}
+
+  if [ -f "${file}" ]; then
+    return 0
+  fi
+
+  case "${create_mode}" in
+    touch)
+      if ! touch "${file}"; then
+        printf '[ERROR] Unable to create file: %s\n' "${file}" >&2
+        exit 1
+      fi
+      ;;
+    *)
+      printf '[ERROR] Required file not found: %s\n' "${file}" >&2
+      exit 1
+      ;;
+  esac
+}
+
+ensure_file "${COMPOSE_FILE}"
+ensure_file "${DEPLOY_DIR}/traefik/dynamic.yml"
+ensure_directory "${DEPLOY_DIR}/traefik/logs"
+ensure_file "${DEPLOY_DIR}/traefik/acme.json" touch
+ensure_directory "${DEPLOY_DIR}/php/conf.d"
+ensure_file "${DEPLOY_DIR}/php/conf.d/opcache.ini"
 
 # =============================================================================
 # RUNTIME CONFIGURATION
@@ -104,21 +153,89 @@ HEALTH_TIMEOUT_SECONDS=${HEALTH_TIMEOUT_SECONDS:-180}
 # =============================================================================
 
 # Validate required environment file exists
+REQUIRED_ENV_VARS=(
+  APP_KEY
+  DB_HOST
+  DB_DATABASE
+  DB_USERNAME
+  DB_PASSWORD
+  REDIS_HOST
+  REDIS_PASSWORD
+  MAIL_HOST
+  MAIL_USERNAME
+  MAIL_PASSWORD
+  CF_DNS_API_TOKEN
+)
+
 validate_environment() {
-  local env_file_absolute="${PROJECT_ROOT}/${ENV_FILE}"
-  
+  local env_file_absolute="${ENV_FILE_PATH}"
+
   if [ ! -f "${env_file_absolute}" ]; then
     printf '\n[\033[0;31mERROR\033[0m] Environment file not found: %s\n' "${env_file_absolute}" >&2
     printf 'Please create it from the example:\n' >&2
-    printf '  cp %s %s\n' "${env_file_absolute}.example" "${env_file_absolute}" >&2
+    if [ -f "${ENV_EXAMPLE_PATH}" ]; then
+      printf '  cp %s %s\n' "${ENV_EXAMPLE_PATH}" "${env_file_absolute}" >&2
+    else
+      printf '  (missing example file: %s)\n' "${ENV_EXAMPLE_PATH}" >&2
+    fi
     printf 'Then edit the file to set your production secrets.\n\n' >&2
     exit 1
   fi
-  
+
   # Check for placeholder values that need to be replaced
   if grep -q "change-me" "${env_file_absolute}"; then
     printf '\n[\033[0;33mWARNING\033[0m] Found "change-me" placeholders in %s\n' "${env_file_absolute}" >&2
     printf 'Please replace all placeholder values with actual production secrets.\n\n' >&2
+  fi
+
+  # Validate required environment keys are present and non-empty
+  if ! command -v python3 >/dev/null 2>&1; then
+    printf '\n[\033[0;31mERROR\033[0m] python3 is required to validate %s but was not found in PATH.\n' "${env_file_absolute}" >&2
+    exit 1
+  fi
+
+  local missing_vars
+  missing_vars=$(python3 - "$env_file_absolute" "${REQUIRED_ENV_VARS[@]}" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+env_path = Path(sys.argv[1])
+required = sys.argv[2:]
+
+values = {}
+
+for line in env_path.read_text().splitlines():
+    striped = line.strip()
+    if not striped or striped.startswith('#'):
+        continue
+    if '=' not in striped:
+        continue
+    key, value = striped.split('=', 1)
+    key = key.strip()
+    value = value.strip()
+    if value and value[0] in '\"\'' and value[-1] == value[0]:
+        value = value[1:-1]
+    values[key] = value
+
+missing = []
+for key in required:
+    value = values.get(key) or os.environ.get(key)
+    if value is None or value == '':
+        missing.append(key)
+
+print('\n'.join(missing))
+PY
+  )
+
+  if [ -n "${missing_vars}" ]; then
+    printf '\n[\033[0;31mERROR\033[0m] Missing required variables in %s:\n' "${env_file_absolute}" >&2
+    while IFS= read -r var; do
+      [ -z "${var}" ] && continue
+      printf '  - %s\n' "${var}" >&2
+    done <<<"${missing_vars}"
+    printf '\nPlease populate the variables above before running the deployment script.\n' >&2
+    exit 1
   fi
 }
 
