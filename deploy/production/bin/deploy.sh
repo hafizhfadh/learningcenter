@@ -190,11 +190,17 @@ compose up -d --remove-orphans
 wait_for_health app "${HEALTH_TIMEOUT_SECONDS}"
 wait_for_health traefik "${HEALTH_TIMEOUT_SECONDS}"
 
-log "Verifying deployed image configuration"
-if ! compose exec -T app php -m | grep -E "(intl|pcntl|pdo_pgsql|opcache)" >/dev/null; then
-  log "WARNING: Some required PHP extensions may be missing from the deployed image"
+log "🔍 Verifying PHP extensions in deployed image..."
+
+# Test with opcache.preload disabled to avoid preload file issues during testing
+local extensions_count=$(compose exec -T app php -d opcache.preload= -m | grep -E "(intl|pcntl|pdo_pgsql)" | wc -l)
+local opcache_count=$(compose exec -T app php -d opcache.preload= -m | grep -i "zend opcache" | wc -l)
+
+if [ "$extensions_count" -eq "3" ] && [ "$opcache_count" -ge "1" ]; then
+  log "✅ All required PHP extensions found (intl, pcntl, pdo_pgsql, opcache)"
 else
-  log "✅ Required PHP extensions verified in deployed image"
+  log "⚠️  Warning: Missing required PHP extensions"
+  log "   Found $extensions_count/3 basic extensions and $opcache_count opcache extensions"
 fi
 
 if [[ "${RUN_MIGRATIONS:-1}" == "1" ]]; then

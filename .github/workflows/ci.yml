@@ -119,23 +119,24 @@ jobs:
 
       - name: Verify image and PHP extensions
         run: |
-          echo "🔍 Verifying built image and PHP extensions..."
-          
+          echo "Testing PHP extensions in built image..."
           # Get the first tag (usually the SHA-based one)
           IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
           echo "Testing image: $IMAGE_TAG"
           
-          # Test that the image runs
-          docker run --rm --entrypoint="" "$IMAGE_TAG" php --version
+          # Test with opcache.preload disabled to avoid preload file issues during testing
+          EXTENSIONS=$(docker run --rm --entrypoint="" --workdir=/tmp "$IMAGE_TAG" \
+            php -d opcache.preload= -m | grep -E "(intl|pcntl|pdo_pgsql)" | wc -l)
+          OPCACHE=$(docker run --rm --entrypoint="" --workdir=/tmp "$IMAGE_TAG" \
+            php -d opcache.preload= -m | grep -i "zend opcache" | wc -l)
           
-          # Verify critical PHP extensions are installed
-          echo "Checking PHP extensions..."
-          docker run --rm --entrypoint="" "$IMAGE_TAG" php -m | grep -E "(intl|pcntl|pdo_pgsql|opcache)" || {
-            echo "❌ Required PHP extensions missing"
+          if [ "$EXTENSIONS" -eq "3" ] && [ "$OPCACHE" -ge "1" ]; then
+            echo "✅ All required PHP extensions found (intl, pcntl, pdo_pgsql, opcache)"
+          else
+            echo "❌ Missing required PHP extensions"
+            echo "Found $EXTENSIONS/3 basic extensions and $OPCACHE opcache extensions"
             exit 1
-          }
-          
-          echo "✅ Image verification completed successfully"
+          fi
 
       - name: Record deployment information
         run: |

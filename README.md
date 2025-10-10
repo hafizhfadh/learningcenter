@@ -290,10 +290,23 @@ The application uses Laravel Sail for local development:
 
 ## Documentation
 
-For detailed development guidance, see:
+For detailed guidance on various aspects of the project:
+
+### Development & Testing
 - [Development Setup](docs/DEVELOPMENT.md)
 - [API Documentation](docs/API.md)
 - [Testing Guide](docs/TESTING.md)
+
+### Deployment & Operations
+- **[CI/CD Pipeline](docs/CICD.md)** - Comprehensive guide to GitHub Actions workflows, Docker builds, and GHCR integration
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Step-by-step deployment procedures, environment setup, and troubleshooting
+- **[Agent Guidelines](AGENTS.md)** - Development standards, architecture decisions, and team collaboration guidelines
+
+### Quick References
+- **CI/CD**: Automated testing, Docker builds, and GHCR publishing via GitHub Actions
+- **Deployment**: One-command production deployment with `./deploy/production/bin/deploy.sh`
+- **Monitoring**: Health checks, container verification, and performance monitoring
+- **Security**: GHCR authentication, container security, and environment management
 
 ## License
 
