@@ -25,7 +25,7 @@ COPY app ./app
 COPY resources ./resources
 COPY routes ./routes
 COPY public ./public
-RUN composer dump-autoload --classmap-authoritative --no-dev
+RUN composer dump-autoload --classmap-authoritative --no-dev --no-scripts
 
 FROM node:20-alpine AS frontend
 WORKDIR /app
@@ -55,10 +55,10 @@ ENV APP_ENV=production \
     COMPOSER_ALLOW_SUPERUSER=1
 
 RUN set -eux; \
-    apk add --no-cache bash curl git wget icu-data-full libzip; \
-    apk add --no-cache --virtual .build-deps $PHPIZE_DEPS icu-dev libzip-dev; \
+    apk add --no-cache bash curl git wget icu-data-full libzip postgresql-dev; \
+    apk add --no-cache --virtual .build-deps $PHPIZE_DEPS icu-dev libzip-dev postgresql-dev; \
     docker-php-ext-configure intl; \
-    docker-php-ext-install intl pdo_mysql zip; \
+    docker-php-ext-install intl pcntl pdo_pgsql zip opcache; \
     apk del .build-deps
 
 COPY --from=php_builder /app/composer.json ./composer.json

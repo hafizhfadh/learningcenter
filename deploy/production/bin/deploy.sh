@@ -190,6 +190,13 @@ compose up -d --remove-orphans
 wait_for_health app "${HEALTH_TIMEOUT_SECONDS}"
 wait_for_health traefik "${HEALTH_TIMEOUT_SECONDS}"
 
+log "Verifying deployed image configuration"
+if ! compose exec -T app php -m | grep -E "(intl|pcntl|pdo_pgsql|opcache)" >/dev/null; then
+  log "WARNING: Some required PHP extensions may be missing from the deployed image"
+else
+  log "✅ Required PHP extensions verified in deployed image"
+fi
+
 if [[ "${RUN_MIGRATIONS:-1}" == "1" ]]; then
   log "Step 4/5: Running database migrations"
   compose exec -T app php artisan migrate --force

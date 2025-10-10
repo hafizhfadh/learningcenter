@@ -130,13 +130,115 @@ php artisan test --coverage # Generate coverage reports
 - **Reverse Proxy**: Traefik v3 with automatic SSL (Cloudflare DNS-01)
 - **Monitoring**: Prometheus with lightweight exporters
 
+### CI/CD Pipeline
+The project uses GitHub Actions for automated testing, building, and deployment:
+
+#### Workflow Structure
+```yaml
+# .github/workflows/ci.yml
+jobs:
+  tests:     # PHP/Laravel tests with Node.js asset building
+  docker:    # Docker image build, validation, and GHCR push
+```
+
+#### Docker Build Process
+- **Enhanced Dockerfile**: Includes all required PHP extensions (`intl`, `pcntl`, `pdo_pgsql`, `opcache`)
+- **Multi-stage build**: Optimized for production with proper layer caching
+- **Validation**: Automated PHP extension verification in CI/CD
+- **Registry**: Images pushed to GitHub Container Registry (GHCR)
+- **Caching**: GitHub Actions cache for faster builds
+
+#### Image Verification
+```bash
+# Automated checks in CI/CD pipeline
+docker run --rm --entrypoint="" $IMAGE_TAG php --version
+docker run --rm --entrypoint="" $IMAGE_TAG php -m | grep -E "(intl|pcntl|pdo_pgsql|opcache)"
+```
+
 ### Deployment Process
-- **Images**: Built and stored in GitHub Container Registry (GHCR)
-- **Secrets**: Managed in `deploy/production/secrets/.env.production`
-- **Updates**: `make prod-pull prod-up` for rolling updates
-- **Multi-tenant**: Domain-based routing through Traefik labels
+
+#### Automated Deployment (CI/CD)
+1. **Push to main**: Triggers automated build and test
+2. **Docker build**: Creates production image with all dependencies
+3. **Image push**: Uploads to GHCR with multiple tags (`latest`, `sha`, `tag`)
+4. **Verification**: Validates image integrity and PHP extensions
+
+#### Manual Deployment (Production Server)
+```bash
+# Update and deploy latest image
+./deploy/production/bin/deploy.sh
+
+# Deploy specific image tag
+APP_IMAGE=ghcr.io/hafizhfadh/learningcenter:v1.2.3 ./deploy/production/bin/deploy.sh
+```
+
+#### Deployment Script Features
+- **Automated image pulling**: Fetches latest images from GHCR
+- **Health checks**: Waits for container readiness before proceeding
+- **PHP extension validation**: Verifies deployed image has required extensions
+- **Zero-downtime updates**: Rolling deployment with health monitoring
+- **Comprehensive logging**: All deployment activities logged with timestamps
+
+### Testing & Validation Tools
+
+#### GHCR Upload Testing
+```bash
+# Test GHCR upload process locally
+./test-ghcr-upload.sh
+
+# Features:
+# - Docker build validation
+# - GHCR authentication check
+# - Image push simulation
+# - Cleanup and reporting
+```
+
+#### Local Development Testing
+```bash
+# Test production Docker build locally
+docker build -f deploy/production/Dockerfile -t learningcenter:test .
+
+# Verify PHP extensions
+docker run --rm --entrypoint="" learningcenter:test php -m | grep -E "(intl|pcntl|pdo_pgsql|opcache)"
+```
 
 ### Configuration Management
-- **Environment consistency**: Ensure queue, Horizon, and Octane settings align across environments
-- **Security**: Rotate secrets with releases, use TLS for all external connections
-- **Performance**: Leverage Redis caching, database connection pooling, and CDN for assets
+
+#### Image Configuration
+- **Base image**: FrankenPHP with PHP 8.3
+- **PHP extensions**: All Laravel requirements plus performance optimizations
+- **Security**: Non-root user, minimal attack surface
+- **Performance**: OPcache enabled, optimized for production
+
+#### Environment Management
+- **Secrets**: Managed in `deploy/production/secrets/.env.production`
+- **Image tags**: Configurable via `APP_IMAGE` environment variable
+- **Registry authentication**: Automated GHCR login in CI/CD
+- **Multi-environment**: Support for staging and production configurations
+
+#### Security & Performance
+- **Container security**: Non-privileged containers, read-only filesystems where possible
+- **Image scanning**: Automated vulnerability scanning in CI/CD
+- **Performance optimization**: Layer caching, multi-stage builds
+- **Monitoring**: Health checks, resource limits, and observability
+
+### Troubleshooting
+
+#### Common Issues
+- **PHP extension missing**: Check Dockerfile and rebuild image
+- **GHCR authentication**: Verify GitHub token permissions
+- **Deployment failures**: Check logs in `deploy/production/logs/`
+- **Health check timeouts**: Increase `HEALTH_TIMEOUT_SECONDS`
+
+#### Debugging Commands
+```bash
+# Check deployed image
+docker compose --env-file deploy/production/secrets/.env.production \
+  -f deploy/production/docker-compose.yml exec app php -m
+
+# View deployment logs
+tail -f deploy/production/logs/deploy-*.log
+
+# Test GHCR connectivity
+docker pull ghcr.io/hafizhfadh/learningcenter:latest
+```

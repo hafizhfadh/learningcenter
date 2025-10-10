@@ -95,6 +95,15 @@ jobs:
             type=sha
             type=ref,event=tag
 
+      - name: Validate Dockerfile
+        run: |
+          echo "🔍 Validating Dockerfile configuration..."
+          if [ ! -f "deploy/production/Dockerfile" ]; then
+            echo "❌ Production Dockerfile not found"
+            exit 1
+          fi
+          echo "✅ Dockerfile validation passed"
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -105,6 +114,34 @@ jobs:
           file: deploy/production/Dockerfile
           build-args: |
             APP_ENV=production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Record built image digest
-        run: echo "Built ${{ env.IMAGE_NAME }} with tags ${{ steps.meta.outputs.tags }}"
+      - name: Verify image and PHP extensions
+        run: |
+          echo "🔍 Verifying built image and PHP extensions..."
+          
+          # Get the first tag (usually the SHA-based one)
+          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          echo "Testing image: $IMAGE_TAG"
+          
+          # Test that the image runs
+          docker run --rm --entrypoint="" "$IMAGE_TAG" php --version
+          
+          # Verify critical PHP extensions are installed
+          echo "Checking PHP extensions..."
+          docker run --rm --entrypoint="" "$IMAGE_TAG" php -m | grep -E "(intl|pcntl|pdo_pgsql|opcache)" || {
+            echo "❌ Required PHP extensions missing"
+            exit 1
+          }
+          
+          echo "✅ Image verification completed successfully"
+
+      - name: Record deployment information
+        run: |
+          echo "🎉 Docker build and push completed successfully!"
+          echo "📦 Built image: ${{ env.IMAGE_NAME }}"
+          echo "🏷️  Tags: ${{ steps.meta.outputs.tags }}"
+          echo "📋 Labels: ${{ steps.meta.outputs.labels }}"
+          echo ""
+          echo "🚀 Image is ready for production deployment!"
