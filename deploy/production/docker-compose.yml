@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-env-file: &app_env_file ./secrets/.env.production
 
 x-app-environment: &app_environment
