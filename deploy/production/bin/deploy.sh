@@ -1,10 +1,60 @@
-#!/usr/bin/env bash
+#!/bin/sh
+# === Shell Compatibility Wrapper ===
+# This script requires bash but may be executed with sh
+# Re-execute with bash if not already running in bash
+if [ -z "${BASH_VERSION:-}" ]; then
+    if command -v bash >/dev/null 2>&1; then
+        printf "Re-executing with bash...\n" >&2
+        exec bash "$0" "$@"
+    else
+        printf "ERROR: bash is required but not found in PATH.\n" >&2
+        printf "Please install bash or run with: bash %s\n" "$0" >&2
+        exit 1
+    fi
+fi
+
+# === Bash Script Starts Here ===
+# From this point on, we're guaranteed to be running in bash
+
+# Ensure we're running bash 4.0 or later for full feature support
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+    printf "WARNING: This script is designed for bash 4.0+. Current version: %s\n" "${BASH_VERSION}" >&2
+    printf "Some features may not work correctly.\n" >&2
+fi
+
 set -Eeuo pipefail
 
 # === Path Configuration ===
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+=======
+
+# Robust PROJECT_ROOT resolution with fallback and validation
+if PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." 2>/dev/null && pwd)"; then
+    # Successful cd - use absolute path
+    :
+else
+    # Fallback: resolve manually using realpath or readlink
+    if command -v realpath >/dev/null 2>&1; then
+        PROJECT_ROOT="$(realpath "${SCRIPT_DIR}/../../..")"
+    elif command -v readlink >/dev/null 2>&1; then
+        PROJECT_ROOT="$(readlink -f "${SCRIPT_DIR}/../../..")"
+    else
+        # Last resort: manual resolution
+        PROJECT_ROOT="$(dirname "$(dirname "$(dirname "${SCRIPT_DIR}")")")"
+    fi
+fi
+
+# Validate PROJECT_ROOT exists and contains expected structure
+if [[ ! -d "${PROJECT_ROOT}" ]] || [[ ! -d "${PROJECT_ROOT}/deploy" ]]; then
+    echo "ERROR: Invalid PROJECT_ROOT: ${PROJECT_ROOT}" >&2
+    echo "Expected structure: PROJECT_ROOT/deploy/production/bin/deploy.sh" >&2
+    exit 1
+fi
+
+>>>>>>> refs/remotes/origin/main
 DEPLOY_DIR="${PROJECT_ROOT}/deploy/production"
 
 # === File Paths ===
@@ -39,49 +89,8 @@ log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
 }
 
-has_registry_login() {
-  local registry=$1
-  local docker_config="${DOCKER_CONFIG:-${HOME}/.docker}/config.json"
-
-  if [[ ! -f "${docker_config}" ]]; then
-    return 1
-  fi
-
-  python3 - "$registry" "$docker_config" <<'PYTHON'
-import json
-import sys
-
-registry = sys.argv[1].rstrip('/')
-config_path = sys.argv[2]
-
-with open(config_path, 'r', encoding='utf-8') as handle:
-    data = json.load(handle)
-
-auths = data.get('auths', {})
-canonical_keys = {
-    registry,
-    f"https://{registry}",
-    f"https://{registry}/v1",
-    f"https://{registry}/v1/",
-    f"{registry}/v1",
-    f"{registry}/v1/",
-}
-
-for key in auths:
-    if key.rstrip('/') in canonical_keys:
-        raise SystemExit(0)
-
-raise SystemExit(1)
-PYTHON
-}
-
 ensure_registry_login() {
   local registry=$1
-
-  if has_registry_login "${registry}"; then
-    log "Credentials for ${registry} already configured"
-    return 0
-  fi
 
   local sanitized=${registry//[^a-zA-Z0-9]/_}
   local uppercase=${sanitized^^}
