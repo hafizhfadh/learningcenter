@@ -71,6 +71,8 @@ COPY --from=php_builder /app/resources ./resources
 COPY --from=php_builder /app/routes ./routes
 COPY --from=php_builder /app/artisan ./artisan
 COPY --from=php_builder /app/public ./public
+# Ensure FrankenPHP worker script exists in read-only public dir to satisfy Octane install step
+COPY --from=php_builder /app/vendor/laravel/octane/src/Commands/stubs/frankenphp-worker.php ./public/frankenphp-worker.php
 COPY --from=frontend /app/public/build ./public/build
 COPY deploy/production/php/conf.d/opcache.ini /usr/local/etc/php/conf.d/99-opcache.ini
 
