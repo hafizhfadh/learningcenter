@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6
 
-FROM php:8.3-cli AS php_deps
+FROM serversideup/php:8.4-cli-alpine AS php_deps
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 RUN set -eux; \
