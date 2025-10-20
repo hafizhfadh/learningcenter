@@ -2,13 +2,10 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+    branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -76,16 +73,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Normalize image names to lowercase (GHCR & Docker Hub)
+      - name: Normalize image names to lowercase
         id: names
         shell: bash
         run: |
           echo "IMAGE_NAME_LC=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
           echo "DOCKERHUB_IMAGE_LC=$(echo "${DOCKERHUB_IMAGE}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
 
-      # Prefer PAT if provided (orgs with SAML SSO, cross-org pushes, etc.)
+      - name: Detect optional credentials
+        id: detect
+        shell: bash
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          has_pat=false
+          if [ -n "${GHCR_PAT}" ]; then has_pat=true; fi
+          has_dh=false
+          if [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then has_dh=true; fi
+          echo "has_pat=$has_pat" >> "$GITHUB_OUTPUT"
+          echo "has_dh=$has_dh" >> "$GITHUB_OUTPUT"
+
+      # GHCR login with PAT if provided (helps with orgs requiring SAML/SSO or cross-org pushes)
       - name: Log in to GHCR (PAT)
-        if: ${{ secrets.GHCR_PAT != '' }}
+        if: steps.detect.outputs.has_pat == 'true'
         uses: docker/login-action@v3
         with:
           logout: false
@@ -93,8 +105,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Log in to GHCR (GITHUB_TOKEN fallback)
-        if: ${{ secrets.GHCR_PAT == '' }}
+      # Fallback: GITHUB_TOKEN (works when pushing to same owner/org as repo)
+      - name: Log in to GHCR (GITHUB_TOKEN)
+        if: steps.detect.outputs.has_pat != 'true'
         uses: docker/login-action@v3
         with:
           logout: false
@@ -103,7 +116,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        if: steps.detect.outputs.has_dh == 'true'
         uses: docker/login-action@v3
         with:
           registry: docker.io
@@ -157,7 +170,7 @@ jobs:
 
       - name: Build and push image (Docker Hub)
         id: build_push_dh
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        if: steps.detect.outputs.has_dh == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -188,20 +201,20 @@ jobs:
           fi
 
       - name: Docker Hub push skipped (no credentials)
-        if: ${{ !(secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '') }}
+        if: steps.detect.outputs.has_dh != 'true'
         run: |
           echo "⚠️ Docker Hub credentials not provided. Skipping Docker Hub push."
           echo "To enable Docker Hub publishing, add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets."
 
       - name: Docker Hub push summary (success)
-        if: ${{ steps.build_push_dh.conclusion == 'success' }}
+        if: steps.detect.outputs.has_dh == 'true' && steps.build_push_dh.conclusion == 'success'
         run: |
           echo "✅ Docker Hub push completed successfully."
           echo "📦 Published image: ${{ env.DOCKERHUB_IMAGE_LC }}"
           echo "🏷️  Tags: ${{ steps.meta_dh.outputs.tags }}"
 
       - name: Docker Hub push summary (failure)
-        if: ${{ steps.build_push_dh.conclusion == 'failure' }}
+        if: steps.detect.outputs.has_dh == 'true' && steps.build_push_dh.conclusion == 'failure'
         run: |
           echo "❌ Docker Hub push failed for ${{ env.DOCKERHUB_IMAGE_LC }}"
           echo "Troubleshooting tips:"
