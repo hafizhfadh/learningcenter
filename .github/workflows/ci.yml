@@ -105,7 +105,6 @@ jobs:
 
       - name: Extract Docker metadata (Docker Hub)
         id: meta_dh
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.DOCKERHUB_IMAGE }}
@@ -138,7 +137,6 @@ jobs:
 
       - name: Build and push image (Docker Hub)
         id: build_push_dh
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
         continue-on-error: true
         uses: docker/build-push-action@v6
         with:
@@ -174,7 +172,6 @@ jobs:
           fi
 
       - name: Docker Hub push skipped (no credentials)
-        if: ${{ secrets.DOCKERHUB_USERNAME == '' || secrets.DOCKERHUB_TOKEN == '' }}
         run: |
           echo "⚠️ Docker Hub credentials not provided. Skipping Docker Hub push."
           echo "To enable Docker Hub publishing, add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets."
