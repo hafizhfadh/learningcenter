@@ -77,6 +77,7 @@ COPY deploy/production/php/conf.d/opcache.ini /usr/local/etc/php/conf.d/99-opcac
 RUN rm -rf public/storage \
     && mkdir -p storage/framework/{cache,data,sessions,testing,views} \
     && mkdir -p bootstrap/cache \
+    && [ -f bootstrap/cache/preload.php ] || printf "<?php\n// OPcache preload stub - generated at build time\n// See config/opcache.php if you want to generate a real preload list.\n" > bootstrap/cache/preload.php \
     && chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 9000

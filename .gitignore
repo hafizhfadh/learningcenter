@@ -18,7 +18,6 @@
 /storage/*.key
 /storage/pail
 /storage/phpstan
-/bootstrap/cache/*.php
 /vendor
 Homestead.json
 Homestead.yaml
