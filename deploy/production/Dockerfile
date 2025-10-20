@@ -3,6 +3,12 @@
 FROM serversideup/php:8.4-cli-alpine AS php_deps
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
+USER root
+RUN install-php-extensions intl pcntl zip opcache
+
+USER www-data
+RUN apk add --no-cache git unzip libicu-dev libzip-dev
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
