@@ -4,10 +4,9 @@ FROM serversideup/php:8.4-cli-alpine AS php_deps
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 USER root
-RUN install-php-extensions intl pcntl zip opcache
+RUN install-php-extensions intl pcntl zip opcache && apk add --no-cache git unzip
 
 USER www-data
-RUN apk add --no-cache git unzip libicu-dev libzip-dev
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -27,7 +26,7 @@ COPY routes ./routes
 COPY public ./public
 RUN composer dump-autoload --classmap-authoritative --no-dev --no-scripts
 
-FROM node:20-alpine AS frontend
+FROM node:25-alpine AS frontend
 WORKDIR /app
 COPY package.json package-lock.json* pnpm-lock.yaml* bun.lockb* ./
 RUN if [ -f package-lock.json ]; then npm ci; \
@@ -45,7 +44,7 @@ RUN --mount=type=bind,source=.,target=/context,ro \
     done
 RUN npm run build
 
-FROM dunglas/frankenphp:1.1.3-php8.3-alpine AS runtime
+FROM dunglas/frankenphp:1.9.1-php8.4-alpine AS runtime
 WORKDIR /var/www/html
 
 ENV APP_ENV=production \
