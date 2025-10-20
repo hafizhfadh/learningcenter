@@ -114,13 +114,10 @@ services:
   app:
     <<: *app_base
     command: >-
-      php artisan octane:start
-        --server=frankenphp
-        --host=0.0.0.0
-        --port=9000
-        --workers=${OCTANE_WORKERS:-4}
-        --max-requests=${OCTANE_MAX_REQUESTS:-500}
-        --task-workers=${OCTANE_TASK_WORKERS:-2}
+      sh -lc '
+      test -f /var/www/html/bootstrap/cache/preload.php || printf "<?php\n// OPcache preload stub - created at container start\n" > /var/www/html/bootstrap/cache/preload.php;
+      php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=9000 --workers=${OCTANE_WORKERS:-4} --max-requests=${OCTANE_MAX_REQUESTS:-500} --task-workers=${OCTANE_TASK_WORKERS:-2}
+      '
     expose:
       - "9000"
     volumes:
@@ -141,7 +138,11 @@ services:
 
   horizon:
     <<: *app_base
-    command: php artisan horizon
+    command: >-
+      sh -lc '
+      test -f /var/www/html/bootstrap/cache/preload.php || printf "<?php\n// OPcache preload stub - created at container start\n" > /var/www/html/bootstrap/cache/preload.php;
+      php artisan horizon
+      '
     volumes:
       - app_storage:/var/www/html/storage:rw
       - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
@@ -171,11 +172,10 @@ services:
   queue:
     <<: *app_base
     command: >-
-      php artisan queue:work redis
-        --sleep=3
-        --tries=${HORIZON_TRIES:-3}
-        --max-time=3600
-        --max-jobs=500
+      sh -lc '
+      test -f /var/www/html/bootstrap/cache/preload.php || printf "<?php\n// OPcache preload stub - created at container start\n" > /var/www/html/bootstrap/cache/preload.php;
+      php artisan queue:work redis --sleep=3 --tries=${HORIZON_TRIES:-3} --max-time=3600 --max-jobs=500
+      '
     volumes:
       - app_storage:/var/www/html/storage:rw
       - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
@@ -196,7 +196,11 @@ services:
 
   scheduler:
     <<: *app_base
-    command: php artisan schedule:work
+    command: >-
+      sh -lc '
+      test -f /var/www/html/bootstrap/cache/preload.php || printf "<?php\n// OPcache preload stub - created at container start\n" > /var/www/html/bootstrap/cache/preload.php;
+      php artisan schedule:work
+      '
     volumes:
       - app_storage:/var/www/html/storage:rw
       - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
