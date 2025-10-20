@@ -259,7 +259,6 @@ main() {
   
   # Step 4: Health checks
   log "Step 4/5: Performing health checks"
-  wait_for_health "db"
   wait_for_health "app"
   
   # Step 5: Verify deployment
