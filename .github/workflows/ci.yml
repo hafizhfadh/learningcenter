@@ -76,7 +76,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Log in to GHCR
+      - name: Normalize image names to lowercase (GHCR & Docker Hub)
+        id: names
+        shell: bash
+        run: |
+          echo "IMAGE_NAME_LC=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+          echo "DOCKERHUB_IMAGE_LC=$(echo "${DOCKERHUB_IMAGE}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      # Prefer PAT if provided (orgs with SAML SSO, cross-org pushes, etc.)
+      - name: Log in to GHCR (PAT)
+        if: ${{ secrets.GHCR_PAT != '' }}
+        uses: docker/login-action@v3
+        with:
+          logout: false
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Log in to GHCR (GITHUB_TOKEN fallback)
+        if: ${{ secrets.GHCR_PAT == '' }}
         uses: docker/login-action@v3
         with:
           logout: false
@@ -85,6 +103,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
         uses: docker/login-action@v3
         with:
           registry: docker.io
@@ -94,11 +113,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract Docker metadata
+      - name: Extract Docker metadata (GHCR)
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE_NAME_LC }}
           tags: |
             type=raw,value=latest
             type=sha
@@ -108,7 +127,7 @@ jobs:
         id: meta_dh
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.DOCKERHUB_IMAGE }}
+          images: ${{ env.DOCKERHUB_IMAGE_LC }}
           tags: |
             type=raw,value=latest
             type=sha
@@ -123,7 +142,7 @@ jobs:
           fi
           echo "✅ Dockerfile validation passed"
 
-      - name: Build and push image
+      - name: Build and push image (GHCR)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -138,7 +157,7 @@ jobs:
 
       - name: Build and push image (Docker Hub)
         id: build_push_dh
-        continue-on-error: true
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -154,16 +173,12 @@ jobs:
       - name: Verify image and PHP extensions
         run: |
           echo "Testing PHP extensions in built image..."
-          # Get the first tag (usually the SHA-based one)
           IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
           echo "Testing image: $IMAGE_TAG"
-          
-          # Test with opcache.preload disabled to avoid preload file issues during testing
           EXTENSIONS=$(docker run --rm --entrypoint="" --workdir=/tmp "$IMAGE_TAG" \
             php -d opcache.preload= -m | grep -E "(intl|pcntl|pdo_pgsql)" | wc -l)
           OPCACHE=$(docker run --rm --entrypoint="" --workdir=/tmp "$IMAGE_TAG" \
             php -d opcache.preload= -m | grep -i "zend opcache" | wc -l)
-          
           if [ "$EXTENSIONS" -eq "3" ] && [ "$OPCACHE" -ge "1" ]; then
             echo "✅ All required PHP extensions found (intl, pcntl, pdo_pgsql, opcache)"
           else
@@ -173,6 +188,7 @@ jobs:
           fi
 
       - name: Docker Hub push skipped (no credentials)
+        if: ${{ !(secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '') }}
         run: |
           echo "⚠️ Docker Hub credentials not provided. Skipping Docker Hub push."
           echo "To enable Docker Hub publishing, add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets."
@@ -181,13 +197,13 @@ jobs:
         if: ${{ steps.build_push_dh.conclusion == 'success' }}
         run: |
           echo "✅ Docker Hub push completed successfully."
-          echo "📦 Published image: ${{ env.DOCKERHUB_IMAGE }}"
+          echo "📦 Published image: ${{ env.DOCKERHUB_IMAGE_LC }}"
           echo "🏷️  Tags: ${{ steps.meta_dh.outputs.tags }}"
 
       - name: Docker Hub push summary (failure)
         if: ${{ steps.build_push_dh.conclusion == 'failure' }}
         run: |
-          echo "❌ Docker Hub push failed for ${{ env.DOCKERHUB_IMAGE }}"
+          echo "❌ Docker Hub push failed for ${{ env.DOCKERHUB_IMAGE_LC }}"
           echo "Troubleshooting tips:"
           echo "- Verify DOCKERHUB_TOKEN has write access (use a Docker Hub Access Token or PAT)."
           echo "- Ensure the repository exists or will be created on first push."
@@ -198,7 +214,7 @@ jobs:
       - name: Record deployment information
         run: |
           echo "🎉 Docker build and push to GHCR completed successfully!"
-          echo "📦 Built image: ${{ env.IMAGE_NAME }}"
+          echo "📦 Built image: ${{ env.IMAGE_NAME_LC }}"
           echo "🏷️  Tags: ${{ steps.meta.outputs.tags }}"
           echo "📋 Labels: ${{ steps.meta.outputs.labels }}"
           echo ""
