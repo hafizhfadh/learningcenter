@@ -34,10 +34,10 @@ x-app-environment: &app_environment
   DB_OPTIONS: "--client_encoding=UTF8"
   CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN:?cloudflare dns api token required}
   REDIS_CLIENT: phpredis
-  REDIS_HOST: ${REDIS_HOST:?redis host required}
+  REDIS_HOST: ${REDIS_HOST:-redis}
   REDIS_PORT: ${REDIS_PORT:-6379}
   REDIS_PASSWORD: ${REDIS_PASSWORD:?redis password required}
-  REDIS_SCHEME: tls
+  REDIS_SCHEME: ${REDIS_SCHEME:-tcp}
   OCTANE_SERVER: frankenphp
   OCTANE_HTTPS: 'true'
   OCTANE_LISTEN: tcp://0.0.0.0:9000
@@ -295,6 +295,99 @@ services:
           cpus: '0.2'
           memory: 256M
 
+  redis:
+    image: redis:alpine
+    restart: always
+    command: >-
+      sh -c '
+      exec redis-server /usr/local/etc/redis/redis.conf
+        --requirepass "$$\(cat /run/secrets/redis_password)"
+      '
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    networks:
+      - services
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - redis-cli -a "$$\(cat /run/secrets/redis_password)" -h 127.0.0.1 -p 6379 ping | grep -q PONG
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    secrets:
+      - source: redis_password
+        target: redis_password
+        uid: "999"
+        gid: "999"
+        mode: 0400
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.64.0
+    restart: always
+    command: >-
+      --web.listen-address=:9121
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+    networks:
+      - services
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1:9121/metrics | head -n 1 >/dev/null 2>&1 || exit 1
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    secrets:
+      - source: redis_password
+        target: redis_password
+        uid: "999"
+        gid: "999"
+        mode: 0400
+
 networks:
   edge:
     driver: bridge
@@ -306,7 +399,11 @@ volumes:
     driver: local
   app_bootstrap_cache:
     driver: local
+  redis_data:
+    driver: local
 
 secrets:
   app_env:
     file: ./secrets/.env.production
+  redis_password:
+    file: ./secrets/redis_password

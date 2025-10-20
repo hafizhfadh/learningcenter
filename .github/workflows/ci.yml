@@ -156,6 +156,7 @@ jobs:
           echo "✅ Dockerfile validation passed"
 
       - name: Build and push image (GHCR)
+        id: build_push
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -232,3 +233,80 @@ jobs:
           echo "📋 Labels: ${{ steps.meta.outputs.labels }}"
           echo ""
           echo "🚀 Image is ready for production deployment!"
+
+      - name: Persist build artifact metadata
+        id: save_artifacts
+        shell: bash
+        run: |
+          echo "${{ steps.meta.outputs.tags }}" > ghcr_tags.txt
+          echo "${{ steps.meta.outputs.labels }}" > ghcr_labels.txt
+          if [ -n "${{ steps.build_push.outputs.digest }}" ]; then
+            echo "${{ steps.build_push.outputs.digest }}" > ghcr_digest.txt
+          fi
+          if [ "${{ steps.detect.outputs.has_dh }}" = "true" ]; then
+            echo "${{ steps.meta_dh.outputs.tags }}" > dockerhub_tags.txt
+            echo "${{ steps.meta_dh.outputs.labels }}" > dockerhub_labels.txt
+            if [ -n "${{ steps.build_push_dh.outputs.digest }}" ]; then
+              echo "${{ steps.build_push_dh.outputs.digest }}" > dockerhub_digest.txt
+            fi
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            ghcr_tags.txt
+            ghcr_labels.txt
+            ghcr_digest.txt
+            dockerhub_tags.txt
+            dockerhub_labels.txt
+            dockerhub_digest.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.event_name == 'push' && needs.docker.result == 'success' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: ./release-assets
+
+      - name: Determine next semantic version
+        id: semver
+        uses: PaulHatch/semantic-version@v5
+        with:
+          tag_prefix: "v"
+          major_pattern: "BREAKING CHANGE|!"
+          minor_pattern: "feat"
+          patch_pattern: "fix|chore|refactor|docs|perf|style|test|ci"
+          update_major_with_breaking_change: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.semver.outputs.version_tag }}
+          name: ${{ steps.semver.outputs.version_tag }}
+          generate_release_notes: true
+          target_commitish: ${{ github.sha }}
+          files: |
+            release-assets/ghcr_tags.txt
+            release-assets/ghcr_labels.txt
+            release-assets/ghcr_digest.txt
+            release-assets/dockerhub_tags.txt
+            release-assets/dockerhub_labels.txt
+            release-assets/dockerhub_digest.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
