@@ -115,6 +115,7 @@ services:
     <<: *app_base
     command: >-
       sh -lc '
+      mkdir -p /var/www/html/storage/framework/cache /var/www/html/storage/framework/data /var/www/html/storage/framework/sessions /var/www/html/storage/framework/testing /var/www/html/storage/framework/views /var/www/html/bootstrap/cache;
       test -f /var/www/html/bootstrap/cache/preload.php || printf "<?php\n// OPcache preload stub - created at container start\n" > /var/www/html/bootstrap/cache/preload.php;
       php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=9000 --workers=${OCTANE_WORKERS:-4} --max-requests=${OCTANE_MAX_REQUESTS:-500} --task-workers=${OCTANE_TASK_WORKERS:-2}
       '
@@ -140,6 +141,7 @@ services:
     <<: *app_base
     command: >-
       sh -lc '
+      mkdir -p /var/www/html/storage/framework/cache /var/www/html/storage/framework/data /var/www/html/storage/framework/sessions /var/www/html/storage/framework/testing /var/www/html/storage/framework/views /var/www/html/bootstrap/cache;
       test -f /var/www/html/bootstrap/cache/preload.php || printf "<?php\n// OPcache preload stub - created at container start\n" > /var/www/html/bootstrap/cache/preload.php;
       php artisan horizon
       '
@@ -173,6 +175,7 @@ services:
     <<: *app_base
     command: >-
       sh -lc '
+      mkdir -p /var/www/html/storage/framework/cache /var/www/html/storage/framework/data /var/www/html/storage/framework/sessions /var/www/html/storage/framework/testing /var/www/html/storage/framework/views /var/www/html/bootstrap/cache;
       test -f /var/www/html/bootstrap/cache/preload.php || printf "<?php\n// OPcache preload stub - created at container start\n" > /var/www/html/bootstrap/cache/preload.php;
       php artisan queue:work redis --sleep=3 --tries=${HORIZON_TRIES:-3} --max-time=3600 --max-jobs=500
       '
@@ -198,6 +201,7 @@ services:
     <<: *app_base
     command: >-
       sh -lc '
+      mkdir -p /var/www/html/storage/framework/cache /var/www/html/storage/framework/data /var/www/html/storage/framework/sessions /var/www/html/storage/framework/testing /var/www/html/storage/framework/views /var/www/html/bootstrap/cache;
       test -f /var/www/html/bootstrap/cache/preload.php || printf "<?php\n// OPcache preload stub - created at container start\n" > /var/www/html/bootstrap/cache/preload.php;
       php artisan schedule:work
       '
