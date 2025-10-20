@@ -3,12 +3,6 @@
 FROM serversideup/php:8.4-cli-alpine AS php_deps
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends git unzip libicu-dev libzip-dev; \
-    docker-php-ext-install intl pcntl zip opcache; \
-    rm -rf /var/lib/apt/lists/*
-
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
