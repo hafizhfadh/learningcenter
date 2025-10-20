@@ -61,6 +61,7 @@ fi
 
 DEPLOY_DIR="${PROJECT_ROOT}/deploy/production"
 COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.yml"
+ENV_FILE_ABSOLUTE="${DEPLOY_DIR}/secrets/.env.production"
 
 # === Logging Configuration ===
 LOG_DIR="${DEPLOY_DIR}/logs"
@@ -178,7 +179,7 @@ require_command() {
 }
 
 compose() {
-  docker compose -f "${COMPOSE_FILE}" "$@"
+  docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE_ABSOLUTE}" "$@"
 }
 
 wait_for_health() {
