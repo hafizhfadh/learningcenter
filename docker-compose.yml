@@ -28,7 +28,7 @@ services:
             - redis
             - mailpit
     pgsql:
-        image: 'postgres:17'
+        image: 'postgres:17-alpine'
         ports:
             - '${FORWARD_DB_PORT:-5432}:5432'
         environment:

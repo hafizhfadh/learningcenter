@@ -241,7 +241,7 @@ main() {
   log "Step 1/5: Fetching the latest code"
   cd "${PROJECT_ROOT}"
   git fetch origin
-  git reset --hard origin/main
+  # git reset --hard origin/main
   
   # Step 2: Registry authentication
   log "Step 2/5: Authenticating with container registry"
