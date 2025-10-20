@@ -71,6 +71,7 @@ jobs:
     env:
       IMAGE_REGISTRY: ghcr.io
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/learningcenter
+      DOCKERHUB_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/learningcenter
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -82,6 +83,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hub
+        if: ${{ github.event_name == 'push' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -90,6 +99,17 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+            type=ref,event=tag
+
+      - name: Extract Docker metadata (Docker Hub)
+        id: meta_dh
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_IMAGE }}
           tags: |
             type=raw,value=latest
             type=sha
@@ -117,6 +137,22 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push image (Docker Hub)
+        id: build_push_dh
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        continue-on-error: true
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta_dh.outputs.tags }}
+          labels: ${{ steps.meta_dh.outputs.labels }}
+          file: deploy/production/Dockerfile
+          build-args: |
+            APP_ENV=production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Verify image and PHP extensions
         run: |
           echo "Testing PHP extensions in built image..."
@@ -138,9 +174,33 @@ jobs:
             exit 1
           fi
 
+      - name: Docker Hub push skipped (no credentials)
+        if: ${{ secrets.DOCKERHUB_USERNAME == '' || secrets.DOCKERHUB_TOKEN == '' }}
+        run: |
+          echo "⚠️ Docker Hub credentials not provided. Skipping Docker Hub push."
+          echo "To enable Docker Hub publishing, add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets."
+
+      - name: Docker Hub push summary (success)
+        if: ${{ steps.build_push_dh.conclusion == 'success' }}
+        run: |
+          echo "✅ Docker Hub push completed successfully."
+          echo "📦 Published image: ${{ env.DOCKERHUB_IMAGE }}"
+          echo "🏷️  Tags: ${{ steps.meta_dh.outputs.tags }}"
+
+      - name: Docker Hub push summary (failure)
+        if: ${{ steps.build_push_dh.conclusion == 'failure' }}
+        run: |
+          echo "❌ Docker Hub push failed for ${{ env.DOCKERHUB_IMAGE }}"
+          echo "Troubleshooting tips:"
+          echo "- Verify DOCKERHUB_TOKEN has write access (use a Docker Hub Access Token or PAT)."
+          echo "- Ensure the repository exists or will be created on first push."
+          echo "- Confirm the image name is lowercase."
+          echo "- Check for rate limiting or network issues."
+          exit 1
+
       - name: Record deployment information
         run: |
-          echo "🎉 Docker build and push completed successfully!"
+          echo "🎉 Docker build and push to GHCR completed successfully!"
           echo "📦 Built image: ${{ env.IMAGE_NAME }}"
           echo "🏷️  Tags: ${{ steps.meta.outputs.tags }}"
           echo "📋 Labels: ${{ steps.meta.outputs.labels }}"
