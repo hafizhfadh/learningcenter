@@ -106,9 +106,15 @@ services:
       - redis_data:/data
     networks:
       - services
+    # override and remove production secrets for local use
+    secrets: []
 
   # disable traefik completely for local
   traefik:
+    profiles: ["disabled"]
+
+  # disable redis-exporter completely for local
+  redis-exporter:
     profiles: ["disabled"]
 
 secrets:
