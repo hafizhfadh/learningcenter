@@ -271,14 +271,16 @@ services:
       - --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=0
       - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
       - --ping=true
-      - --api.dashboard=false
-      - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --log.level=DEBUG
       - --accesslog=true
       - --accesslog.bufferingsize=100
       - --accesslog.format=json
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
