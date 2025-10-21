@@ -85,14 +85,8 @@ x-app-base: &app_base
     options:
       max-size: "10m"
       max-file: "5"
-  healthcheck:
-    test:
-      - CMD-SHELL
-      - curl -fsS http://127.0.0.1:9000/health || exit 1
-    interval: 30s
-    timeout: 5s
-    retries: 5
-    start_period: 40s
+  # Healthcheck moved to per-service definitions (app, horizon, scheduler)
+  # to avoid applying HTTP checks to non-HTTP workers like the queue service.
   deploy:
     update_config:
       order: start-first
@@ -125,8 +119,17 @@ services:
       - app_storage:/var/www/html/storage
       - app_bootstrap_cache:/var/www/html/bootstrap/cache
       - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
+      - frankenphp_data:/data
     read_only: true
     stop_grace_period: 60s
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:9000/health) && [ "$code" -eq 200 ] && curl -s --max-time 3 http://127.0.0.1:9000/health | grep -q "\"status\":\"ok\"" || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     labels:
       - traefik.enable=true
       - traefik.docker.network=learningcenter_services
@@ -149,6 +152,7 @@ services:
       - app_storage:/var/www/html/storage:rw
       - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
       - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
+      - frankenphp_data:/data
     read_only: true
     healthcheck:
       test:
@@ -183,6 +187,7 @@ services:
       - app_storage:/var/www/html/storage:rw
       - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
       - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
+      - frankenphp_data:/data
     read_only: true
     deploy:
       restart_policy:
@@ -209,6 +214,7 @@ services:
       - app_storage:/var/www/html/storage:rw
       - app_bootstrap_cache:/var/www/html/bootstrap/cache:rw
       - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
+      - frankenphp_data:/data
     read_only: true
     healthcheck:
       test:
@@ -408,6 +414,8 @@ volumes:
   app_bootstrap_cache:
     driver: local
   redis_data:
+    driver: local
+  frankenphp_data:
     driver: local
 
 secrets:

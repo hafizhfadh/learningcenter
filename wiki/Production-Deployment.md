@@ -82,6 +82,66 @@ GHCR authentication:
 - Docker `json-file` logs with rotation (10 MB, 5 files)
 - Redis Exporter emits metrics on port 9121 (internal network)
 
+## FrankenPHP/Caddy writable data directory (Option A)
+To resolve Caddy/FrankenPHP warnings like:
+- `skipping storage clean: open /data/caddy: permission denied`
+- `config autosave failed: rename /config/autosave.json: permission denied`
+
+we mount a named Docker volume at `/data` for all app-derived services. This provides a writable home for Caddy/FrankenPHP runtime state while keeping the root filesystem read-only.
+
+Compose changes applied:
+
+```yaml
+services:
+  app:
+    volumes:
+      - frankenphp_data:/data
+  horizon:
+    volumes:
+      - frankenphp_data:/data
+  queue:
+    volumes:
+      - frankenphp_data:/data
+  scheduler:
+    volumes:
+      - frankenphp_data:/data
+
+volumes:
+  frankenphp_data:
+    driver: local
+```
+
+Notes:
+- The `frankenphp_data` volume stores runtime metadata (no secrets). Backups are optional.
+- Containers remain `read_only: true`; only volumes are writable.
+
+## Hardened container health checks
+The app health check is hardened to verify both HTTP status and JSON content with short timeouts and an extended start period to allow Octane warm-up.
+
+```yaml
+services:
+  app:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:9000/health) && [ "$code" -eq 200 ] && curl -s --max-time 3 http://127.0.0.1:9000/health | grep -q "\"status\":\"ok\"" || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+```
+
+Non-HTTP services:
+- Horizon: `php artisan horizon:status | grep -q running`
+- Scheduler: `php artisan schedule:list` returns successfully
+
+Troubleshooting:
+```bash
+# From inside the container
+curl -i http://127.0.0.1:9000/health
+wget -qO- http://127.0.0.1:9000/health
+```
+
 ### See also
 - Deployment Guide: [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md) • GitHub view: https://github.com/hafizhfadh/learningcenter/blob/main/docs/DEPLOYMENT.md
 - CI/CD Pipeline: [docs/CICD.md](../docs/CICD.md) • GitHub view: https://github.com/hafizhfadh/learningcenter/blob/main/docs/CICD.md

@@ -300,6 +300,61 @@ docker compose exec app php artisan horizon:status  # If using Horizon
 docker compose exec postgres psql -U learningcenter -c "SELECT count(*) FROM pg_stat_activity;"
 ```
 
+## Advanced: FrankenPHP/Caddy writable data and hardened health checks
+
+### Writable `/data` volume (Option A)
+Mount a named volume at `/data` for all app-derived services to resolve Caddy/FrankenPHP write warnings under a read-only root filesystem.
+
+```yaml
+services:
+  app:
+    volumes:
+      - frankenphp_data:/data
+  horizon:
+    volumes:
+      - frankenphp_data:/data
+  queue:
+    volumes:
+      - frankenphp_data:/data
+  scheduler:
+    volumes:
+      - frankenphp_data:/data
+
+volumes:
+  frankenphp_data:
+    driver: local
+```
+
+Notes:
+- Stores runtime metadata only (no secrets). Optional to back up.
+- Root filesystem remains read-only; only volumes are writable.
+
+### Hardened app health check
+Validate both HTTP 200 and JSON content with short timeouts and an extended start period:
+
+```yaml
+services:
+  app:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:9000/health) && [ "$code" -eq 200 ] && curl -s --max-time 3 http://127.0.0.1:9000/health | grep -q "\"status\":\"ok\"" || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+```
+
+Non-HTTP checks:
+- Horizon: `php artisan horizon:status | grep -q running`
+- Scheduler: `php artisan schedule:list`
+
+Troubleshooting commands:
+```bash
+docker compose exec app sh -lc 'curl -i http://127.0.0.1:9000/health'
+docker compose exec app sh -lc 'wget -qO- http://127.0.0.1:9000/health'
+```
+
 ## Troubleshooting
 
 ### Common Issues
