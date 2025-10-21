@@ -70,7 +70,7 @@ jobs:
     env:
       IMAGE_REGISTRY: ghcr.io
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/learningcenter
-      DOCKERHUB_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/learningcenter
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -80,22 +80,16 @@ jobs:
         shell: bash
         run: |
           echo "IMAGE_NAME_LC=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
-          echo "DOCKERHUB_IMAGE_LC=$(echo "${DOCKERHUB_IMAGE}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
 
       - name: Detect optional credentials
         id: detect
         shell: bash
         env:
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           has_pat=false
           if [ -n "${GHCR_PAT}" ]; then has_pat=true; fi
-          has_dh=false
-          if [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then has_dh=true; fi
           echo "has_pat=$has_pat" >> "$GITHUB_OUTPUT"
-          echo "has_dh=$has_dh" >> "$GITHUB_OUTPUT"
 
       # GHCR login with PAT if provided (helps with orgs requiring SAML/SSO or cross-org pushes)
       - name: Log in to GHCR (PAT)
@@ -117,13 +111,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Docker Hub
-        if: steps.detect.outputs.has_dh == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -141,15 +128,6 @@ jobs:
             type=sha
             type=ref,event=tag
 
-      - name: Extract Docker metadata (Docker Hub)
-        id: meta_dh
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKERHUB_IMAGE_LC }}
-          tags: |
-            type=raw,value=latest
-            type=sha
-            type=ref,event=tag
 
       - name: Validate Dockerfile
         run: |
@@ -175,21 +153,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push image (Docker Hub)
-        id: build_push_dh
-        if: steps.detect.outputs.has_dh == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta_dh.outputs.tags }}
-          labels: ${{ steps.meta_dh.outputs.labels }}
-          file: deploy/production/Dockerfile
-          build-args: |
-            APP_ENV=production
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Verify image and PHP extensions
         run: |
@@ -208,29 +171,8 @@ jobs:
             exit 1
           fi
 
-      - name: Docker Hub push skipped (no credentials)
-        if: steps.detect.outputs.has_dh != 'true'
-        run: |
-          echo "⚠️ Docker Hub credentials not provided. Skipping Docker Hub push."
-          echo "To enable Docker Hub publishing, add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets."
 
-      - name: Docker Hub push summary (success)
-        if: steps.detect.outputs.has_dh == 'true' && steps.build_push_dh.conclusion == 'success'
-        run: |
-          echo "✅ Docker Hub push completed successfully."
-          echo "📦 Published image: ${{ env.DOCKERHUB_IMAGE_LC }}"
-          echo "🏷️  Tags: ${{ steps.meta_dh.outputs.tags }}"
 
-      - name: Docker Hub push summary (failure)
-        if: steps.detect.outputs.has_dh == 'true' && steps.build_push_dh.conclusion == 'failure'
-        run: |
-          echo "❌ Docker Hub push failed for ${{ env.DOCKERHUB_IMAGE_LC }}"
-          echo "Troubleshooting tips:"
-          echo "- Verify DOCKERHUB_TOKEN has write access (use a Docker Hub Access Token or PAT)."
-          echo "- Ensure the repository exists or will be created on first push."
-          echo "- Confirm the image name is lowercase."
-          echo "- Check for rate limiting or network issues."
-          exit 1
 
       - name: Record deployment information
         run: |
@@ -250,13 +192,6 @@ jobs:
           if [ -n "${{ steps.build_push.outputs.digest }}" ]; then
             echo "${{ steps.build_push.outputs.digest }}" > ghcr_digest.txt
           fi
-          if [ "${{ steps.detect.outputs.has_dh }}" = "true" ]; then
-            echo "${{ steps.meta_dh.outputs.tags }}" > dockerhub_tags.txt
-            echo "${{ steps.meta_dh.outputs.labels }}" > dockerhub_labels.txt
-            if [ -n "${{ steps.build_push_dh.outputs.digest }}" ]; then
-              echo "${{ steps.build_push_dh.outputs.digest }}" > dockerhub_digest.txt
-            fi
-          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -266,9 +201,6 @@ jobs:
             ghcr_tags.txt
             ghcr_labels.txt
             ghcr_digest.txt
-            dockerhub_tags.txt
-            dockerhub_labels.txt
-            dockerhub_digest.txt
           if-no-files-found: ignore
           retention-days: 7
 
@@ -312,8 +244,5 @@ jobs:
             release-assets/ghcr_tags.txt
             release-assets/ghcr_labels.txt
             release-assets/ghcr_digest.txt
-            release-assets/dockerhub_tags.txt
-            release-assets/dockerhub_labels.txt
-            release-assets/dockerhub_digest.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
