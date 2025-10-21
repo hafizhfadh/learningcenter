@@ -39,7 +39,8 @@ x-app-environment: &app_environment
   REDIS_PASSWORD: ${REDIS_PASSWORD:?redis password required}
   REDIS_SCHEME: ${REDIS_SCHEME:-tcp}
   OCTANE_SERVER: frankenphp
-  OCTANE_HTTPS: 'true'
+  OCTANE_HTTPS: 'false'
+  OCTANE_FRANKENPHP_HTTP_REDIRECT: 'false'
   OCTANE_LISTEN: tcp://0.0.0.0:9000
   OCTANE_WORKERS: ${OCTANE_WORKERS:-4}
   OCTANE_TASK_WORKERS: ${OCTANE_TASK_WORKERS:-2}
@@ -57,6 +58,7 @@ x-app-environment: &app_environment
   XDG_DATA_HOME: /var/www/html/storage/caddy
   XDG_CONFIG_HOME: /var/www/html/storage/caddy
   OCTANE_FRANKENPHP_CADDYFILE: /etc/frankenphp/Caddyfile
+  FRANKENPHP_CONFIG_PATH: /etc/frankenphp/Caddyfile
 
 x-app-base: &app_base
   image: ${APP_IMAGE:-ghcr.io/hafizhfadh/learningcenter:latest}
@@ -89,7 +91,6 @@ x-app-base: &app_base
       max-size: "10m"
       max-file: "5"
   # Healthcheck moved to per-service definitions (app, horizon, scheduler)
-  # to avoid applying HTTP checks to non-HTTP workers like the queue service.
   deploy:
     update_config:
       order: start-first
@@ -115,7 +116,7 @@ services:
       mkdir -p /var/www/html/storage/framework/cache /var/www/html/storage/framework/data /var/www/html/storage/framework/sessions /var/www/html/storage/framework/testing /var/www/html/storage/framework/views /var/www/html/bootstrap/cache /var/www/html/storage/caddy;
       test -f /var/www/html/bootstrap/cache/preload.php || printf "<?php\n// OPcache preload stub - created at container start\n" > /var/www/html/bootstrap/cache/preload.php;
       find /var/www/html/bootstrap/cache -maxdepth 1 -type f -not -name preload.php -delete;
-      php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=9000 --workers=${OCTANE_WORKERS:-4} --max-requests=${OCTANE_MAX_REQUESTS:-500} --task-workers=${OCTANE_TASK_WORKERS:-2}
+      /usr/local/bin/frankenphp run -c ${OCTANE_FRANKENPHP_CADDYFILE:-/etc/frankenphp/Caddyfile}
       '
     expose:
       - "9000"

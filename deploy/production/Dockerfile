@@ -52,7 +52,6 @@ WORKDIR /var/www/html
 ENV APP_ENV=production \
     APP_DEBUG=0 \
     OCTANE_SERVER=frankenphp \
-    FRANKENPHP_CONFIG="worker ./public/index.php" \
     COMPOSER_ALLOW_SUPERUSER=1
 
 RUN set -eux; \
