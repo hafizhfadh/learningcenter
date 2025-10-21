@@ -54,6 +54,8 @@ x-app-environment: &app_environment
   MAIL_PASSWORD: ${MAIL_PASSWORD:?mail password required}
   SENTRY_LARAVEL_DSN: ${SENTRY_LARAVEL_DSN:-}
   APP_KEY: ${APP_KEY:?application key required}
+  XDG_DATA_HOME: /var/www/html/storage/caddy
+  XDG_CONFIG_HOME: /var/www/html/storage/caddy
 
 x-app-base: &app_base
   image: ${APP_IMAGE:-ghcr.io/hafizhfadh/learningcenter:latest}
