@@ -59,6 +59,8 @@ RUN set -eux; \
     apk add --no-cache --virtual .build-deps $PHPIZE_DEPS icu-dev libzip-dev postgresql-dev; \
     docker-php-ext-configure intl; \
     docker-php-ext-install intl pcntl pdo_pgsql zip opcache; \
+    pecl install redis; \
+    docker-php-ext-enable redis; \
     apk del .build-deps
 
 COPY --from=php_builder /app/composer.json ./composer.json
