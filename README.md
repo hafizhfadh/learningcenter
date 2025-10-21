@@ -1,5 +1,9 @@
 # Learning Center — Laravel Learning Management System
 
+Important: Comprehensive documentation is organized in the GitHub Wiki.
+- Start here: https://github.com/hafizhfadh/learningcenter/wiki
+- In-repo browsing: wiki/Home.md
+
 A modern Learning Management System (LMS) built with Laravel. It features course management, learning paths, progress tracking, and an administrative panel powered by Filament. The application is optimized for high concurrency using Laravel Octane atop FrankenPHP.
 
 ## Table of Contents
