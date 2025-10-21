@@ -138,7 +138,8 @@ services:
       start_period: 60s
     labels:
       - traefik.enable=true
-      - traefik.docker.network=learningcenter_services
+      # Removed explicit network label to let Traefik auto-select the shared network (production_services)
+      # - traefik.docker.network=learningcenter_services
       - traefik.http.routers.app.rule=Host(`${APP_HOST:-learning.csi-academy.id}`)
       - traefik.http.routers.app.entrypoints=websecure
       - traefik.http.routers.app.tls.certresolver=cloudflare
@@ -254,7 +255,8 @@ services:
     command:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=${TRAEFIK_DOCKER_NETWORK:-learningcenter_services}
+      # Removed providers.docker.network to avoid mismatched network name; Traefik will use the shared network automatically
+      # - --providers.docker.network=${TRAEFIK_DOCKER_NETWORK:-learningcenter_services}
       - --providers.file.filename=/etc/traefik/dynamic.yml
       - --providers.file.watch=true
       - --entrypoints.web.address=:80

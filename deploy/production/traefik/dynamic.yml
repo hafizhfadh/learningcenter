@@ -23,8 +23,9 @@ http:
         maxRequestBodyBytes: 10485760
         maxResponseBodyBytes: 10485760
         retryExpression: IsNetworkError() && Attempts() <= 3
-  routers: {}
-  services: {}
+  # Removed empty routers/services to avoid file provider parsing errors
+  # routers: {}
+  # services: {}
 
 tls:
   options:
