@@ -3,6 +3,8 @@
 FROM serversideup/php:8.4-cli-alpine AS php_deps
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
+LABEL org.opencontainers.image.source https://github.com/${{ github.repository_owner }}/${{ github.repository_name }}
+
 USER root
 RUN install-php-extensions intl pcntl zip opcache && apk add --no-cache git unzip
 
