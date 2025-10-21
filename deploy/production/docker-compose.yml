@@ -56,6 +56,7 @@ x-app-environment: &app_environment
   APP_KEY: ${APP_KEY:?application key required}
   XDG_DATA_HOME: /var/www/html/storage/caddy
   XDG_CONFIG_HOME: /var/www/html/storage/caddy
+  OCTANE_FRANKENPHP_CADDYFILE: /etc/frankenphp/Caddyfile
 
 x-app-base: &app_base
   image: ${APP_IMAGE:-ghcr.io/hafizhfadh/learningcenter:latest}
@@ -122,6 +123,7 @@ services:
       - app_storage:/var/www/html/storage
       - app_bootstrap_cache:/var/www/html/bootstrap/cache
       - ./php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/99-opcache.ini:ro
+      - ./php/Caddyfile:/etc/frankenphp/Caddyfile:ro
       - frankenphp_data:/data
     read_only: true
     stop_grace_period: 60s
