@@ -1,16 +1,51 @@
 FROM dunglas/frankenphp:1.9.1-alpine AS base
 
+# Set Caddy server name to "http://" to serve on 80 and not 443
+# Read more: https://frankenphp.dev/docs/config/#environment-variables
+ENV SERVER_NAME="http://"
+
+RUN apk update \
+    && apk add --no-cache \
+    git \
+    unzip \
+    supervisor
+
 RUN install-php-extensions \
-	pdo_psql \
+    gd \
+    pdo \
+    pdo_pgsql \
 	redis \
 	zip \
 	opcache \
 	intl \
 	pcntl
 
-ENV SERVER_NAME=:80
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 FROM base AS production
 
-RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
-COPY . /app
+WORKDIR /var/www/html
+
+# Copy the Laravel application files into the container.
+COPY . .
+
+# Start with base PHP config, then add extensions.
+COPY ./docker/production/php/php.ini /usr/local/etc/php/
+COPY ./docker/production/etc/supervisor.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Install PHP extensions
+RUN pecl install xdebug
+
+# Install Laravel dependencies using Composer.
+RUN composer install
+
+# Enable PHP extensions
+RUN docker-php-ext-enable xdebug
+
+# Set permissions for Laravel.
+RUN chown -R www-data:www-data storage bootstrap/cache
+
+EXPOSE 80 443
+
+# Start Supervisor.
+CMD ["/usr/bin/supervisord", "-n", "-c",  "/etc/supervisor/conf.d/supervisord.conf"]

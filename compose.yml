@@ -1,0 +1,42 @@
+services:
+    app:
+        image: learningcenter
+        build:
+            context: .
+            dockerfile: docker/production/Dockerfile
+            target: base
+        ports:
+            - ${APP_PORT:-8000}:8000
+            - ${VITE_PORT:-5173}:${VITE_PORT:-5173}
+        volumes:
+            - ./:${WORKDIR}
+            - ./vendor/:${WORKDIR}/vendor
+        networks:
+            - learningcenter_network
+        depends_on:
+            - redis
+
+    redis:
+        image: 'redis:alpine'
+        ports:
+            - '6379:6379'
+        volumes:
+            - 'redis:/data'
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            retries: 3
+            timeout: 5s
+        networks:
+            - learningcenter_network
+
+volumes:
+    redis: 
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: '${REDIS_VOLUME_LOCAL:-./database/redis-database/}'
+
+networks:
+    learningcenter_network:
+        driver: bridge
