@@ -132,7 +132,7 @@ jobs:
       - name: Validate Dockerfile
         run: |
           echo "🔍 Validating Dockerfile configuration..."
-          if [ ! -f "deploy/production/Dockerfile" ]; then
+          if [ ! -f "docker/production/Dockerfile" ]; then
             echo "❌ Production Dockerfile not found"
             exit 1
           fi
@@ -147,7 +147,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: deploy/production/Dockerfile
+          file: docker/production/Dockerfile
           build-args: |
             APP_ENV=production
           cache-from: type=gha

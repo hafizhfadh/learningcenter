@@ -10,8 +10,6 @@ services:
         environment:
         # Ensure FrankenPHP binds to :80 inside container
             SERVER_NAME: "learning.csi-academy.id"
-        labels:
-            - dev.orbstack.domains=app.learningcenter.orb.local
         ports:
             - "80:80"
             - "443:443"
