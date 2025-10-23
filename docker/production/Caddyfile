@@ -1,0 +1,22 @@
+:80 {
+	root * /var/www/html/public
+	file_server
+
+	# Handle PHP via FrankenPHP's php_server directive
+	php_server
+
+	# Compression
+	encode gzip zstd
+
+	# Basic security headers
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+	}
+
+	# Access logs (site-scoped)
+	log {
+		output stdout
+		level INFO
+	}
+}

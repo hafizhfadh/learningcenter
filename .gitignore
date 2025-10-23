@@ -26,3 +26,6 @@ Thumbs.db
 **/caddy
 
 frankenphp
+*.env.*
+
+/database/redis/*.rdb

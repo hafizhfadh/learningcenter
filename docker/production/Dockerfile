@@ -30,17 +30,12 @@ WORKDIR /var/www/html
 COPY . .
 
 # Start with base PHP config, then add extensions.
-COPY ./docker/production/php/php.ini /usr/local/etc/php/
-COPY ./docker/production/etc/supervisor.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Install PHP extensions
-RUN pecl install xdebug
+COPY ./docker/production/Caddyfile /etc/frankenphp/Caddyfile
+COPY ./docker/production/php.ini /usr/local/etc/php/php.ini
+COPY ./docker/production/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Install Laravel dependencies using Composer.
-RUN composer install
-
-# Enable PHP extensions
-RUN docker-php-ext-enable xdebug
+RUN composer install --no-interaction --no-progress
 
 # Set permissions for Laravel.
 RUN chown -R www-data:www-data storage bootstrap/cache
