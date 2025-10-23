@@ -1,4 +1,10 @@
-:80 {
+{
+	admin localhost:2019
+	frankenphp
+	order php_server before file_server
+}
+
+learning.csi-academy.id {
 	root * /var/www/html/public
 	file_server
 
