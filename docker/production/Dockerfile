@@ -22,8 +22,7 @@ COPY docker/production/php.ini /usr/local/etc/php/php.ini
 RUN mkdir -p /var/log/php && chown -R www-data:www-data /var/log/php
 
 # Production deps; do NOT cache config at build time to allow runtime env to take effect
-RUN composer install --no-interaction --prefer-dist --no-dev \
- && php artisan optimize:clear
+RUN composer install --no-interaction --prefer-dist --no-dev
 
 # Permissions
 RUN chown -R www-data:www-data storage bootstrap/cache

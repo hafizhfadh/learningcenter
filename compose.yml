@@ -37,6 +37,7 @@ services:
             - caddy_data:/data
             - caddy_config:/config
             - ./certs:/etc/certs:ro
+            - ./.env.production:/app/.env:ro
         logging:
             driver: json-file
             options: { max-size: "10m", max-file: "3" }
@@ -52,6 +53,8 @@ services:
         restart: unless-stopped
         networks: 
             - app_net
+        volumes:
+            - ./.env.production:/app/.env:ro
         logging:
             driver: json-file
             options: { max-size: "10m", max-file: "3" }
@@ -67,6 +70,8 @@ services:
         restart: unless-stopped
         networks: 
             - app_net
+        volumes:
+            - ./.env.production:/app/.env:ro
         logging:
             driver: json-file
             options: { max-size: "10m", max-file: "3" }
@@ -83,6 +88,8 @@ services:
         restart: unless-stopped
         networks: 
             - app_net
+        volumes:
+            - ./.env.production:/app/.env:ro
         logging:
             driver: json-file
             options: { max-size: "10m", max-file: "3" }
