@@ -27,6 +27,6 @@ Thumbs.db
 
 frankenphp
 *.env.*
+/database/redis*/*.rdb
 
-/database/redis/*.rdb
 .env.production
