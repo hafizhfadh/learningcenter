@@ -31,7 +31,8 @@ services:
             retries: 5
             start_period: 20s
         restart: unless-stopped
-        networks: [app_net]
+        networks: 
+            - app_net
         volumes:
             - caddy_data:/data
             - caddy_config:/config
@@ -42,26 +43,30 @@ services:
 
     queue:
         image: learningcenter
-        env_file: [.env.production]
+        env_file: 
+            - .env.production
         command: php artisan queue:work --tries=3 --timeout=90 --sleep=3
         depends_on:
             redis:
                 condition: service_healthy
         restart: unless-stopped
-        networks: [app_net]
+        networks: 
+            - app_net
         logging:
             driver: json-file
             options: { max-size: "10m", max-file: "3" }
 
     schedule:
         image: learningcenter
-        env_file: [.env.production]
+        env_file: 
+            - .env.production
         command: php artisan schedule:work
         depends_on:
             redis:
                 condition: service_healthy
         restart: unless-stopped
-        networks: [app_net]
+        networks: 
+            - app_net
         logging:
             driver: json-file
             options: { max-size: "10m", max-file: "3" }
@@ -69,13 +74,15 @@ services:
     # Optional: nicer queue dashboard (if your app includes Horizon)
     horizon:
         image: learningcenter
-        env_file: [.env.production]
+        env_file: 
+            - .env.production
         command: php artisan horizon
         depends_on:
             redis:
                 condition: service_healthy
         restart: unless-stopped
-        networks: [app_net]
+        networks: 
+            - app_net
         logging:
             driver: json-file
             options: { max-size: "10m", max-file: "3" }
