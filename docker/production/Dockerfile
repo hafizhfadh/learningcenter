@@ -21,12 +21,9 @@ COPY docker/production/php.ini /usr/local/etc/php/php.ini
 # Ensure PHP log dir exists (your php.ini points here)
 RUN mkdir -p /var/log/php && chown -R www-data:www-data /var/log/php
 
-# Production deps & caches
+# Production deps; do NOT cache config at build time to allow runtime env to take effect
 RUN composer install --no-interaction --prefer-dist --no-dev \
- && php artisan config:cache \
- && php artisan route:cache \
- && php artisan view:cache \
- && php artisan event:cache
+ && php artisan optimize:clear
 
 # Permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
