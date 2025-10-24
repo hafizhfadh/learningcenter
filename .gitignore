@@ -29,3 +29,4 @@ frankenphp
 *.env.*
 
 /database/redis/*.rdb
+.env.production
