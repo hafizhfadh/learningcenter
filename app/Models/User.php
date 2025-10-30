@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Filament\Panel;
 use Filament\Models\Contracts\FilamentUser;
 
@@ -55,11 +56,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        if (app()->environment('production')) {
-            return str_ends_with($this->email, '@csi-academy.id') && $this->hasVerifiedEmail();
-        }
-
-        return true;
+        return str_ends_with($this->email, '@csi-academy.id') && $this->hasVerifiedEmail();
     }
     
     /**
