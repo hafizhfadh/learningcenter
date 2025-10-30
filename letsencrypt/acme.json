@@ -1,0 +1,13 @@
+{
+  "letsencrypt": {
+    "email": "firmandermawan01@gmail.com",
+    "keyType": "RSA4096",
+    "domains": {
+      "main": "learning.csi-academy.id",
+      "sans": ["www.learning.csi-academy.id"]
+    },
+    "httpChallenge": {
+      "entryPoint": "web"
+    }
+  }
+}
