@@ -1,0 +1,259 @@
+x-logging: &default-logging
+  driver: 'json-file'
+  options:
+    max-size: "50m"
+    max-file: "10"
+    compress: "true"
+x-healthcheck: &default-healthcheck
+  interval: 1s
+  retries: 10
+  timeout: 3s
+x-base: &base
+  profiles: [app]
+  depends_on:
+    redis:
+      condition: service_healthy
+  build:
+    context: .
+    dockerfile: FrankenPHP.Alpine.Dockerfile
+    cache_from:
+      - 'laravel/app:latest'
+    args:
+      USER_ID: ${HOST_UID:-1000}
+      GROUP_ID: ${HOST_GID:-1000}
+  image: 'laravel/app:latest'
+  user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+  ulimits:
+    nofile:
+      soft: 65536
+      hard: 65536
+  security_opt:
+    - no-new-privileges:true
+  networks:
+    - stack
+  volumes:
+    - './storage/app/public:/var/www/html/storage/app/public'
+    - './storage/logs:/var/www/html/storage/logs'
+  logging: *default-logging
+  restart: unless-stopped
+services:
+  traefik:
+    profiles: [app]
+    image: traefik:v3.5
+    restart: unless-stopped
+    stop_grace_period: 35s
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - "--log.level=ERROR"
+      - "--log.format=common"
+      - "--ping=false"
+      - "--api=true"
+      - "--accesslog=true"
+      - "--accesslog.format=common"
+      - "--metrics.prometheus=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--providers.docker.network=stack"
+      - "--entryPoints.traefik.address=:8190"
+      - "--entryPoints.app.address=:80"
+      - "--entryPoints.app.http.redirections.entryPoint.to=app-secure"
+      - "--entryPoints.app.http.redirections.entryPoint.scheme=https"
+      - "--entryPoints.app-secure.address=:443"
+      - "--entryPoints.app-secure.http3=true"
+      - "--entryPoints.app-secure.transport.lifeCycle.graceTimeOut=30s"
+      - "--entryPoints.pgadmin.address=:6053"
+      - "--entryPoints.pghero.address=:6660"
+      - "--entryPoints.minio-console.address=:8900"
+      - "--entryPoints.netdata.address=:19999"
+      - "--entryPoints.prometheus.address=:9090"
+      - "--entryPoints.grafana.address=:3000"
+    ports:
+      - "127.0.0.1:8190:8190" # Traefik
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+      - "443:443/udp" # HTTP/3
+      - "127.0.0.1:6053:6053" # pgAdmin
+      - "127.0.0.1:6660:6660" # PgHero
+      - "127.0.0.1:8900:8900" # MinIO console
+      - "127.0.0.1:19999:19999" # NetData
+      - "127.0.0.1:9090:9090" # Prometheus
+      - "127.0.0.1:3000:3000" # Grafana
+    networks:
+      - stack
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging: *default-logging
+    labels:
+      traefik.enable: true
+      traefik.http.routers.traefik.rule: Host(`localhost`)
+      traefik.http.routers.traefik.service: api@internal
+      traefik.http.routers.traefik.entryPoints: traefik
+      traefik.http.routers.traefik.middlewares: "traefik-auth,traefik-retry"
+      traefik.http.middlewares.traefik-retry.retry.attempts: 4
+      traefik.http.middlewares.traefik-retry.retry.initialinterval: 100ms
+      traefik.http.middlewares.traefik-auth.basicauth.removeheader: true
+      traefik.http.middlewares.traefik-auth.basicauth.users: "${TRAEFIK_AUTH_USERS:-user:$$2y$$05$$8zbpsdxg9wDiiKdqxiB0zeAlxZtG68P1SDBOvCN4IooLFewLx70Gm}"
+  app:
+    <<: *base
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--max-time", "10", "localhost:8000/up"]
+      <<: *default-healthcheck
+    stop_grace_period: 35s
+    labels:
+      traefik.enable: true
+      traefik.http.routers.app-secure.rule: Host(`localhost`) || Host(`app.docker.localhost`)
+      traefik.http.routers.app-secure.entryPoints: app-secure
+      traefik.http.routers.app-secure.priority: 10
+      traefik.http.routers.app-secure.service: app-service
+      traefik.http.routers.app-secure.tls: true
+      traefik.http.routers.app-secure.middlewares: "app-retry,app-compress,security-headers"
+      traefik.http.services.app-service.loadbalancer.server.port: 8000 # Because container exposes multiple ports
+      traefik.http.services.app-service.loadbalancer.healthCheck.path: "/up"
+      traefik.http.services.app-service.loadbalancer.healthCheck.hostname: "localhost"
+      traefik.http.services.app-service.loadbalancer.healthCheck.port: 8000
+      traefik.http.services.app-service.loadbalancer.healthCheck.interval: 2s
+      traefik.http.services.app-service.loadbalancer.healthCheck.timeout: 5s
+      traefik.http.middlewares.limit.buffering.maxRequestBodyBytes: 560000000 # 560mb
+      traefik.http.middlewares.app-retry.retry.attempts: 4
+      traefik.http.middlewares.app-retry.retry.initialinterval: 100ms
+      traefik.http.middlewares.app-compress.compress: true
+      traefik.http.middlewares.security-headers.headers.accesscontrolmaxage: 100
+      traefik.http.middlewares.security-headers.headers.addvaryheader: true # Vary: Origin
+      traefik.http.middlewares.security-headers.headers.hostsproxyheaders: X-Forwarded-Host
+      traefik.http.middlewares.security-headers.headers.stsseconds: 63072000 # Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+      traefik.http.middlewares.security-headers.headers.stsincludesubdomains: true
+      traefik.http.middlewares.security-headers.headers.stspreload: true
+      traefik.http.middlewares.security-headers.headers.forcestsheader: true
+      traefik.http.middlewares.security-headers.headers.customFrameOptionsValue: SAMEORIGIN # X-Frame-Options: same-origin
+      traefik.http.middlewares.security-headers.headers.contenttypenosniff: true # X-Content-Type-Options: nosniff
+      traefik.http.middlewares.security-headers.headers.browserxssfilter: true # X-XSS-Protection: 1; mode=block
+      traefik.http.middlewares.security-headers.headers.referrerpolicy: strict-origin-when-cross-origin
+      traefik.http.middlewares.security-headers.headers.permissionspolicy: "camera=(), geolocation=(), microphone=(), payment=(), usb=(), interest-cohort=(), gyroscope=()"
+      traefik.http.middlewares.security-headers.headers.customresponseheaders.X-Robots-Tag: "noindex, nofollow"
+  horizon:
+    <<: *base
+    environment:
+      CONTAINER_MODE: horizon
+    labels:
+      traefik.enable: false
+  scheduler:
+    <<: *base
+    environment:
+      CONTAINER_MODE: scheduler
+    labels:
+      traefik.enable: false
+  reverb:
+    <<: *base
+    environment:
+      CONTAINER_MODE: reverb
+    labels:
+      traefik.enable: true
+      traefik.http.routers.reverb.rule: (Host(`localhost`) || Host(`app.docker.localhost`)) && PathPrefix(`/app`)
+      traefik.http.routers.reverb.entryPoints: app-secure
+      traefik.http.routers.reverb.priority: 30
+      traefik.http.routers.reverb.tls: true
+      traefik.http.routers.reverb.middlewares: "reverb-retry"
+      traefik.http.middlewares.reverb-retry.retry.attempts: 4
+      traefik.http.middlewares.reverb-retry.retry.initialinterval: 100ms
+      traefik.http.routers.reverb.service: reverb-service
+      traefik.http.services.reverb-service.loadbalancer.server.port: 8080
+  redis:
+    profiles: [app]
+    image: 'redis:7-alpine'
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    command: [
+      "redis-server",
+      "--requirepass", "${REDIS_PASSWORD}",
+      "--maxmemory", "${REDIS_MAXMEMORY:-2gb}",
+      "--maxmemory-policy", "allkeys-lru",
+      "--save", "900 1",
+      "--save", "300 10",
+      "--save", "60 10000"
+    ]
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - 'stack-redis:/data'
+    networks:
+      - stack
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD}", "ping"]
+      <<: *default-healthcheck
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2.5G
+    labels:
+      traefik.enable: false
+  prometheus:
+    profiles: [administration]
+    image: prom/prometheus:v3.4.2
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - ./deployment/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - stack-prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.enable-lifecycle'
+    networks:
+      - stack
+    labels:
+      org.label-schema.group: "monitoring"
+      traefik.enable: true
+      traefik.http.routers.prometheus.rule: Host(`localhost`)
+      traefik.http.routers.prometheus.entryPoints: prometheus
+      traefik.http.routers.prometheus.middlewares: "prometheus-auth"
+      traefik.http.middlewares.prometheus-auth.basicauth.removeheader: true
+      traefik.http.middlewares.prometheus-auth.basicauth.users: "user:$$2y$$05$$8zbpsdxg9wDiiKdqxiB0zeAlxZtG68P1SDBOvCN4IooLFewLx70Gm"
+  grafana:
+    profiles: [administration]
+    image: grafana/grafana:12.0.2
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - ./deployment/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./deployment/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - stack-grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ENABLE_GZIP=true
+    networks:
+      - stack
+    labels:
+      org.label-schema.group: "monitoring"
+      traefik.enable: true
+      traefik.http.routers.grafana.rule: Host(`localhost`)
+      traefik.http.routers.grafana.entryPoints: grafana
+      traefik.http.routers.grafana.middlewares: "grafana-auth"
+      traefik.http.middlewares.grafana-auth.basicauth.removeheader: true
+      traefik.http.middlewares.grafana-auth.basicauth.users: "user:$$2y$$05$$8zbpsdxg9wDiiKdqxiB0zeAlxZtG68P1SDBOvCN4IooLFewLx70Gm"
+networks:
+  stack:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450
+volumes:
+  stack-redis:
+    driver: local
+  stack-prometheus:
+    driver: local
+  stack-grafana:
+    driver: local
