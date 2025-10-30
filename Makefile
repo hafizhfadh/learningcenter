@@ -47,6 +47,9 @@ ps: ## Containers status
 build: ## Build images
 	HOST_UID=${HOST_UID} HOST_GID=${HOST_GID} docker compose ${DC_RUN_ARGS} build
 
+build-clean: ## Build images and remove cache
+	HOST_UID=${HOST_UID} HOST_GID=${HOST_GID} docker compose ${DC_RUN_ARGS} build --no-cache
+
 update: ## Update containers
 	HOST_UID=${HOST_UID} HOST_GID=${HOST_GID} docker compose ${DC_RUN_ARGS} up -d --no-deps --build --remove-orphans
 
