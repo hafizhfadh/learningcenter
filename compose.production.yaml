@@ -50,6 +50,10 @@ services:
       - no-new-privileges:true
     command:
       - "--log.level=ERROR"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge=true"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.cloudflare.acme.email=firmandermawan01@gmail.com"
+      - "--certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json"
       - "--log.format=common"
       - "--ping=false"
       - "--api=true"
@@ -87,10 +91,12 @@ services:
       - stack
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
     logging: *default-logging
     labels:
       traefik.enable: true
-      traefik.http.routers.traefik.rule: Host(`localhost`)
+      traefik.http.routers.traefik.rule: Host(`learning.csi-academy.id`)
       traefik.http.routers.traefik.service: api@internal
       traefik.http.routers.traefik.entryPoints: traefik
       traefik.http.routers.traefik.middlewares: "traefik-auth,traefik-retry"
@@ -106,7 +112,8 @@ services:
     stop_grace_period: 35s
     labels:
       traefik.enable: true
-      traefik.http.routers.app-secure.rule: Host(`localhost`) || Host(`app.docker.localhost`)
+      traefik.http.routers.app-secure.rule: Host(`learning.csi-academy.id`) || Host(`app.docker.localhost`)
+      traefik.http.routers.app-secure.tls.certresolver: cloudflare
       traefik.http.routers.app-secure.entryPoints: app-secure
       traefik.http.routers.app-secure.priority: 10
       traefik.http.routers.app-secure.service: app-service
@@ -153,7 +160,8 @@ services:
       CONTAINER_MODE: reverb
     labels:
       traefik.enable: true
-      traefik.http.routers.reverb.rule: (Host(`localhost`) || Host(`app.docker.localhost`)) && PathPrefix(`/app`)
+      traefik.http.routers.reverb.rule: (Host(`learning.csi-academy.id`) || Host(`app.docker.localhost`)) && PathPrefix(`/app`)
+      traefik.http.routers.reverb.tls.certresolver: cloudflare
       traefik.http.routers.reverb.entryPoints: app-secure
       traefik.http.routers.reverb.priority: 30
       traefik.http.routers.reverb.tls: true
