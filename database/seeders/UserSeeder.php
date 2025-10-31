@@ -20,7 +20,7 @@ class UserSeeder extends Seeder
         // Create admin user
         User::factory()->admin()->create([
             'name' => 'Admin User',
-            'email' => 'admin@email.com',
+            'email' => 'admin@csi-academy.id',
             'password' => bcrypt('admin'),
             'bio' => 'System administrator with full access to all features.',
             'institution_id' => $institution?->id,
