@@ -1,0 +1,125 @@
+/* Navigation Permissions Styling */
+
+/* Restricted navigation items */
+.navigation-restricted {
+    opacity: 0.6;
+    position: relative;
+}
+
+.navigation-restricted:hover {
+    opacity: 0.8;
+}
+
+/* Disabled state for restricted items */
+.navigation-restricted.disabled {
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+/* Read-only indicator */
+.navigation-restricted[data-readonly="true"] {
+    border-left: 3px solid #f59e0b;
+}
+
+/* No permission indicator */
+.navigation-restricted[data-no-permission="true"] {
+    border-left: 3px solid #ef4444;
+}
+
+/* Tooltip styling for restricted items */
+.navigation-restricted[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 0.25rem;
+}
+
+.navigation-restricted[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 0.25rem solid transparent;
+    border-top-color: #1f2937;
+    z-index: 1000;
+}
+
+/* Badge styling for restricted items */
+.fi-sidebar-nav-item .fi-badge {
+    margin-left: auto;
+}
+
+/* Group styling for restricted access */
+.fi-sidebar-nav-group[data-restricted="true"] .fi-sidebar-nav-group-label {
+    opacity: 0.7;
+}
+
+/* Icon styling for restricted items */
+.navigation-restricted .fi-sidebar-nav-item-icon {
+    opacity: 0.6;
+}
+
+/* Hover effects for restricted items */
+.navigation-restricted:hover .fi-sidebar-nav-item-icon {
+    opacity: 0.8;
+}
+
+/* Focus states for accessibility */
+.navigation-restricted:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Dark mode adjustments */
+.dark .navigation-restricted[title]:hover::after {
+    background: #374151;
+    color: #f9fafb;
+}
+
+.dark .navigation-restricted[title]:hover::before {
+    border-top-color: #374151;
+}
+
+/* Animation for restricted state changes */
+.navigation-restricted {
+    transition: opacity 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .navigation-restricted[title]:hover::after {
+        display: none;
+    }
+    
+    .navigation-restricted[title]:hover::before {
+        display: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .navigation-restricted {
+        opacity: 0.8;
+    }
+    
+    .navigation-restricted.disabled {
+        opacity: 0.5;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .navigation-restricted {
+        transition: none;
+    }
+}

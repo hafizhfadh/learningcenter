@@ -19,6 +19,8 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Http\Middleware\FilamentNavigationMiddleware;
+use App\Services\NavigationService;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -57,6 +59,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                FilamentNavigationMiddleware::class,
             ])
             ->plugins([
                 FilamentShieldPlugin::make(),

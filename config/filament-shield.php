@@ -36,8 +36,7 @@ return [
     |
     */
 
-    'tenant_model' => 'App\Models\Institution',
-
+    'tenant_model' => null,
 
     /*
     |--------------------------------------------------------------------------
