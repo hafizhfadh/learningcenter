@@ -3,16 +3,13 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// Auth endpoints
+Route::post('/login', [\App\Http\Controllers\API\AuthController::class, 'login']);
+Route::post('/refresh', [\App\Http\Controllers\API\AuthController::class, 'refresh']);
+Route::post('/logout', [\App\Http\Controllers\API\AuthController::class, 'logout'])->middleware('auth:sanctum');
+
 // Full API routes for students role
 Route::middleware('auth:sanctum')->group(function () {
-    // Courses endpoints
-    Route::apiResource('courses', \App\Http\Controllers\Api\CourseController::class);
-    // Enrollments endpoints
-    Route::apiResource('enrollments', \App\Http\Controllers\Api\EnrollmentController::class);
-    // Teachers endpoints
-    Route::apiResource('teachers', \App\Http\Controllers\Api\TeacherController::class);
-    // Profiles endpoints
-    Route::apiResource('profiles', \App\Http\Controllers\Api\ProfileController::class);
-
+    
 });
 
