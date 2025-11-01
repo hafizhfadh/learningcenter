@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class Course extends Model
@@ -29,6 +30,7 @@ class Course extends Model
         'tags',
         'estimated_time',
         'is_published',
+        'created_by',
     ];
 
     public function getBannerUrlAttribute(): ?string
@@ -113,5 +115,30 @@ class Course extends Model
             ->withPivot('order_index')
             ->orderBy('learning_path_course.order_index')
             ->withTimestamps();
+    }
+
+    /**
+     * The teachers assigned to this course.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function teachers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'course_teachers', 'course_id', 'teacher_id')
+            ->withPivot('assigned_at')
+            ->withTimestamps()
+            ->whereHas('roles', function ($query) {
+                $query->where('name', 'school_teacher');
+            });
+    }
+
+    /**
+     * Get the user who created this course.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 }

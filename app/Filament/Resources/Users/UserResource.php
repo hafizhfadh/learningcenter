@@ -9,6 +9,7 @@ use App\Filament\Resources\Users\Pages\ViewUser;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use App\Filament\Resources\Users\Schemas\UserInfolist;
 use App\Filament\Resources\Users\Tables\UsersTable;
+use App\Filament\Traits\HasShieldPermissions;
 use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -21,6 +22,7 @@ use UnitEnum;
 
 class UserResource extends Resource
 {
+    use HasShieldPermissions;
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-users';

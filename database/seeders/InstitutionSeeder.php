@@ -17,7 +17,7 @@ class InstitutionSeeder extends Seeder
             [
                 'name' => 'Learning Center Academy',
                 'slug' => 'learning-center-academy',
-                'domain' => 'learning-center-academy.edu',
+                'domain' => 'learning-center-academy.local',
                 'settings' => json_encode([
                     'theme' => 'blue',
                     'allow_public_registration' => true,

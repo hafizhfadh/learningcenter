@@ -10,6 +10,7 @@ use App\Filament\Resources\Courses\Schemas\CourseForm;
 use App\Filament\Resources\Courses\Schemas\CourseInfolist;
 use App\Filament\Resources\Courses\Tables\CoursesTable;
 use App\Filament\Resources\Courses\RelationManagers\LessonsRelationManager;
+use App\Filament\Traits\HasShieldPermissions;
 use App\Models\Course;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -21,6 +22,7 @@ use UnitEnum;
 
 class CourseResource extends Resource
 {
+    use HasShieldPermissions;
     protected static ?string $model = Course::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-book-open';

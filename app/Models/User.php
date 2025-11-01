@@ -9,14 +9,16 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Filament\Panel;
 use Filament\Models\Contracts\FilamentUser;
+use Spatie\Permission\Traits\HasRoles;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -29,6 +31,7 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'role',
         'bio',
+        'institution_id',
     ];
 
     /**
@@ -56,7 +59,21 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return str_ends_with($this->email, '@csi-academy.id') && $this->hasVerifiedEmail();
+        // Students cannot access admin panel
+        if ($this->hasRole('student')) {
+            return false;
+        }
+        
+        // All other roles can access if they have the permission
+        return $this->can('access_admin_panel');
+    }
+    
+    /**
+     * Get the institution for the user.
+     */
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class);
     }
     
     /**
@@ -81,5 +98,29 @@ class User extends Authenticatable implements FilamentUser
     public function taskSubmissions(): HasMany
     {
         return $this->hasMany(TaskSubmission::class, 'student_id');
+    }
+
+    /**
+     * Get the courses assigned to this teacher.
+     * Only available for users with the 'school_teacher' role.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function courses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'course_teachers', 'teacher_id', 'course_id')
+            ->withPivot('assigned_at')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the courses assigned to this teacher (alias for courses()).
+     * This provides a more semantic method name for teacher-specific contexts.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function teachingCourses(): BelongsToMany
+    {
+        return $this->courses();
     }
 }

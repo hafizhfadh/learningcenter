@@ -41,6 +41,4 @@ class LessonSection extends Model
     {
         return $this->hasMany(Lesson::class)->orderBy('order_index');
     }
-
-    // Removed createdBy relationship as the created_by_user_id column doesn't exist
 }
