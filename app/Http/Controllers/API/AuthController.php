@@ -214,6 +214,46 @@ class AuthController extends Controller
     }
 
     /**
+     * Get Student Profile
+     * 
+     * Retrieve the authenticated student's profile information.
+     * 
+     * @authenticated
+     * 
+     * @response 200 scenario="Profile retrieved successfully" {
+     *   "code": 200,
+     *   "message": "Profile retrieved successfully",
+     *   "data": {
+     *     "id": 1,
+     *     "name": "John Doe",
+     *     "email": "john@example.com",
+     *     "email_verified_at": "2024-01-01T00:00:00.000000Z",
+     *     "created_at": "2024-01-01T00:00:00.000000Z",
+     *     "updated_at": "2024-01-01T00:00:00.000000Z"
+     *   },
+     *   "pagination": {}
+     * }
+     * 
+     * @response 401 scenario="Unauthenticated" {
+     *   "code": 401,
+     *   "message": "Unauthenticated",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * 
+     * @responseField code int HTTP status code
+     * @responseField message string Response message
+     * @responseField data object User information
+     * @responseField pagination object Pagination information (empty for this endpoint)
+     */
+    public function profile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return $this->successResponse($user, 'Profile retrieved successfully');
+    }
+
+    /**
      * User Logout
      * 
      * Logout the authenticated user by revoking all their tokens.
