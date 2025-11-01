@@ -21,6 +21,7 @@ class Enrollment extends Model
     protected $fillable = [
         'user_id',
         'course_id',
+        'learning_path_id',
         'enrollment_status',
         'progress',
         'enrolled_at',
@@ -50,5 +51,13 @@ class Enrollment extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
+    }
+    
+    /**
+     * Get the learning path that owns the enrollment.
+     */
+    public function learningPath(): BelongsTo
+    {
+        return $this->belongsTo(LearningPath::class);
     }
 }

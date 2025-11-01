@@ -82,6 +82,25 @@
                             </li>
                                                                         </ul>
                             </ul>
+                    <ul id="tocify-header-learning-paths" class="tocify-header">
+                <li class="tocify-item level-1" data-unique="learning-paths">
+                    <a href="#learning-paths">Learning Paths</a>
+                </li>
+                                    <ul id="tocify-subheader-learning-paths" class="tocify-subheader">
+                                                    <li class="tocify-item level-2" data-unique="learning-paths-GETapi-learning-paths">
+                                <a href="#learning-paths-GETapi-learning-paths">Get Learning Paths List</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="learning-paths-GETapi-learning-paths--id-">
+                                <a href="#learning-paths-GETapi-learning-paths--id-">Get Learning Path Details</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="learning-paths-POSTapi-learning-paths--id--enroll">
+                                <a href="#learning-paths-POSTapi-learning-paths--id--enroll">Enroll in Learning Path</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="learning-paths-GETapi-learning-paths-progress-my">
+                                <a href="#learning-paths-GETapi-learning-paths-progress-my">Get User's Learning Path Progress</a>
+                            </li>
+                                                                        </ul>
+                            </ul>
             </div>
 
     <ul class="toc-footer" id="toc-footer">
@@ -831,6 +850,1064 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
 <br>
 <p>Pagination information (empty for this endpoint)</p>
+        </div>
+                    <h1 id="learning-paths">Learning Paths</h1>
+
+    <p>APIs for managing learning paths for students</p>
+
+                                <h2 id="learning-paths-GETapi-learning-paths">Get Learning Paths List</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Retrieve a list of learning paths accessible to authenticated users with institution-bound roles.
+Only school_teacher, school_admin, and student roles can access learning paths.</p>
+
+<span id="example-requests-GETapi-learning-paths">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://learningcenter.local/api/learning-paths?cursor=eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0&amp;per_page=15&amp;search=programming&amp;enrolled=enrolled" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://learningcenter.local/api/learning-paths"
+);
+
+const params = {
+    "cursor": "eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0",
+    "per_page": "15",
+    "search": "programming",
+    "enrolled": "enrolled",
+};
+Object.keys(params)
+    .forEach(key =&gt; url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-learning-paths">
+            <blockquote>
+            <p>Example response (200, Success with learning paths):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Learning paths retrieved successfully&quot;,
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 1,
+            &quot;name&quot;: &quot;Full Stack Web Development&quot;,
+            &quot;slug&quot;: &quot;full-stack-web-development&quot;,
+            &quot;description&quot;: &quot;Complete web development learning path covering frontend and backend technologies&quot;,
+            &quot;banner_url&quot;: &quot;https://example.com/storage/banners/fullstack.jpg&quot;,
+            &quot;is_active&quot;: true,
+            &quot;total_estimated_time&quot;: 120,
+            &quot;courses_count&quot;: 8,
+            &quot;is_enrolled&quot;: true,
+            &quot;progress&quot;: 45.5,
+            &quot;created_at&quot;: &quot;2024-01-01T00:00:00.000000Z&quot;,
+            &quot;updated_at&quot;: &quot;2024-01-01T00:00:00.000000Z&quot;
+        }
+    ],
+    &quot;pagination&quot;: {
+        &quot;per_page&quot;: 15,
+        &quot;next_cursor&quot;: &quot;eyJpZCI6MTUsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0&quot;,
+        &quot;prev_cursor&quot;: null,
+        &quot;has_more&quot;: true,
+        &quot;count&quot;: 15
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (200, Empty result):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;No learning paths found&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-learning-paths" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-learning-paths"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-learning-paths"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-learning-paths" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-learning-paths">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-learning-paths" data-method="GET"
+      data-path="api/learning-paths"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-learning-paths', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-learning-paths"
+                    onclick="tryItOut('GETapi-learning-paths');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-learning-paths"
+                    onclick="cancelTryOut('GETapi-learning-paths');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-learning-paths"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/learning-paths</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-learning-paths"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-learning-paths"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                            <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>cursor</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="cursor"                data-endpoint="GETapi-learning-paths"
+               value="eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0"
+               data-component="query">
+    <br>
+<p>Cursor for pagination (encoded cursor from previous response). Example: <code>eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETapi-learning-paths"
+               value="15"
+               data-component="query">
+    <br>
+<p>Number of items per page (max 50). Example: <code>15</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>search</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="search"                data-endpoint="GETapi-learning-paths"
+               value="programming"
+               data-component="query">
+    <br>
+<p>Search term for filtering learning paths by name or description. Example: <code>programming</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>enrolled</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="enrolled"                data-endpoint="GETapi-learning-paths"
+               value="enrolled"
+               data-component="query">
+    <br>
+<p>Filter by enrollment status (enrolled, not_enrolled, all). Example: <code>enrolled</code></p>
+            </div>
+                </form>
+
+    <h3>Response</h3>
+    <h4 class="fancy-heading-panel"><b>Response Fields</b></h4>
+    <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>code</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>HTTP status code</p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>message</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Response message</p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>data</code></b>&nbsp;&nbsp;
+<small>string[]</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Array of learning path objects</p>
+            </summary>
+                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>id</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Learning path ID</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>name</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Learning path name</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>slug</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Learning path slug</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>description</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Learning path description</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>banner_url</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Learning path banner image URL</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>is_active</code></b>&nbsp;&nbsp;
+<small>boolean</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Whether the learning path is active</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>total_estimated_time</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Total estimated time in hours</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>courses_count</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Number of courses in the learning path</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>is_enrolled</code></b>&nbsp;&nbsp;
+<small>boolean</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Whether the current user is enrolled</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>progress</code></b>&nbsp;&nbsp;
+<small>number</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>User's progress percentage (0-100)</p>
+                    </div>
+                                    </details>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>pagination</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Pagination information</p>
+        </div>
+                        <h2 id="learning-paths-GETapi-learning-paths--id-">Get Learning Path Details</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Retrieve detailed information about a specific learning path including all courses,
+lessons, and user progress information.</p>
+
+<span id="example-requests-GETapi-learning-paths--id-">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://learningcenter.local/api/learning-paths/1" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://learningcenter.local/api/learning-paths/1"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-learning-paths--id-">
+            <blockquote>
+            <p>Example response (200, Learning path found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Learning path details retrieved successfully&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;Full Stack Web Development&quot;,
+        &quot;slug&quot;: &quot;full-stack-web-development&quot;,
+        &quot;description&quot;: &quot;Complete web development learning path covering frontend and backend technologies&quot;,
+        &quot;banner_url&quot;: &quot;https://example.com/storage/banners/fullstack.jpg&quot;,
+        &quot;is_active&quot;: true,
+        &quot;total_estimated_time&quot;: 120,
+        &quot;courses_count&quot;: 8,
+        &quot;is_enrolled&quot;: true,
+        &quot;progress&quot;: 45.5,
+        &quot;institution&quot;: {
+            &quot;id&quot;: 1,
+            &quot;name&quot;: &quot;Harvard University&quot;,
+            &quot;slug&quot;: &quot;harvard-university&quot;
+        },
+        &quot;courses&quot;: [
+            {
+                &quot;id&quot;: 1,
+                &quot;title&quot;: &quot;HTML &amp; CSS Fundamentals&quot;,
+                &quot;slug&quot;: &quot;html-css-fundamentals&quot;,
+                &quot;description&quot;: &quot;Learn the basics of HTML and CSS&quot;,
+                &quot;banner_url&quot;: &quot;https://example.com/storage/banners/html-css.jpg&quot;,
+                &quot;estimated_time&quot;: 15,
+                &quot;is_published&quot;: true,
+                &quot;order_index&quot;: 1,
+                &quot;lessons_count&quot;: 12,
+                &quot;user_progress&quot;: {
+                    &quot;is_enrolled&quot;: true,
+                    &quot;progress&quot;: 75,
+                    &quot;completed_lessons&quot;: 9,
+                    &quot;total_lessons&quot;: 12
+                },
+                &quot;created_at&quot;: &quot;2024-01-01T00:00:00.000000Z&quot;
+            }
+        ],
+        &quot;enrollment&quot;: {
+            &quot;enrolled_at&quot;: &quot;2024-01-15T10:30:00.000000Z&quot;,
+            &quot;progress&quot;: 45.5,
+            &quot;status&quot;: &quot;active&quot;
+        },
+        &quot;created_at&quot;: &quot;2024-01-01T00:00:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2024-01-01T00:00:00.000000Z&quot;
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Learning path not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 404,
+    &quot;message&quot;: &quot;Learning path not found or not accessible&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-learning-paths--id-" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-learning-paths--id-"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-learning-paths--id-"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-learning-paths--id-" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-learning-paths--id-">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-learning-paths--id-" data-method="GET"
+      data-path="api/learning-paths/{id}"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-learning-paths--id-', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-learning-paths--id-"
+                    onclick="tryItOut('GETapi-learning-paths--id-');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-learning-paths--id-"
+                    onclick="cancelTryOut('GETapi-learning-paths--id-');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-learning-paths--id-"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/learning-paths/{id}</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-learning-paths--id-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-learning-paths--id-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>id</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="id"                data-endpoint="GETapi-learning-paths--id-"
+               value="1"
+               data-component="url">
+    <br>
+<p>The learning path ID. Example: <code>1</code></p>
+            </div>
+                    </form>
+
+    <h3>Response</h3>
+    <h4 class="fancy-heading-panel"><b>Response Fields</b></h4>
+    <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>code</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>HTTP status code</p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>message</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Response message</p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>data</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Learning path details with courses and progress</p>
+            </summary>
+                                                <div style=" margin-left: 14px; clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>courses</code></b>&nbsp;&nbsp;
+<small>string[]</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Array of courses in the learning path</p>
+            </summary>
+                                                <div style="margin-left: 28px; clear: unset;">
+                        <b style="line-height: 2;"><code>user_progress</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>User's progress in each course</p>
+                    </div>
+                                    </details>
+        </div>
+                                                                    <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>enrollment</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>User's enrollment information</p>
+                    </div>
+                                    </details>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>pagination</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Pagination information (empty for single resource)</p>
+        </div>
+                        <h2 id="learning-paths-POSTapi-learning-paths--id--enroll">Enroll in Learning Path</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Enroll the authenticated student in a specific learning path.
+This will also automatically enroll the student in all courses within the learning path.</p>
+
+<span id="example-requests-POSTapi-learning-paths--id--enroll">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "http://learningcenter.local/api/learning-paths/1/enroll" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://learningcenter.local/api/learning-paths/1/enroll"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTapi-learning-paths--id--enroll">
+            <blockquote>
+            <p>Example response (201, Successfully enrolled):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 201,
+    &quot;message&quot;: &quot;Successfully enrolled in learning path&quot;,
+    &quot;data&quot;: {
+        &quot;learning_path_id&quot;: 1,
+        &quot;user_id&quot;: 5,
+        &quot;enrolled_at&quot;: &quot;2024-01-15T10:30:00.000000Z&quot;,
+        &quot;progress&quot;: 0,
+        &quot;status&quot;: &quot;active&quot;,
+        &quot;courses_enrolled&quot;: 8
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (400, Already enrolled):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 400,
+    &quot;message&quot;: &quot;You are already enrolled in this learning path&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Learning path not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 404,
+    &quot;message&quot;: &quot;Learning path not found or not accessible&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-POSTapi-learning-paths--id--enroll" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTapi-learning-paths--id--enroll"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTapi-learning-paths--id--enroll"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTapi-learning-paths--id--enroll" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTapi-learning-paths--id--enroll">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTapi-learning-paths--id--enroll" data-method="POST"
+      data-path="api/learning-paths/{id}/enroll"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTapi-learning-paths--id--enroll', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-POSTapi-learning-paths--id--enroll"
+                    onclick="tryItOut('POSTapi-learning-paths--id--enroll');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-POSTapi-learning-paths--id--enroll"
+                    onclick="cancelTryOut('POSTapi-learning-paths--id--enroll');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-POSTapi-learning-paths--id--enroll"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/learning-paths/{id}/enroll</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTapi-learning-paths--id--enroll"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTapi-learning-paths--id--enroll"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>id</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="id"                data-endpoint="POSTapi-learning-paths--id--enroll"
+               value="1"
+               data-component="url">
+    <br>
+<p>The learning path ID. Example: <code>1</code></p>
+            </div>
+                    </form>
+
+    <h3>Response</h3>
+    <h4 class="fancy-heading-panel"><b>Response Fields</b></h4>
+    <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>code</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>HTTP status code</p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>message</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Response message</p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>data</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Enrollment information</p>
+            </summary>
+                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>courses_enrolled</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Number of courses automatically enrolled</p>
+                    </div>
+                                    </details>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>pagination</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Pagination information (empty for this endpoint)</p>
+        </div>
+                        <h2 id="learning-paths-GETapi-learning-paths-progress-my">Get User&#039;s Learning Path Progress</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Get detailed progress information for the authenticated user's enrolled learning paths.</p>
+
+<span id="example-requests-GETapi-learning-paths-progress-my">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://learningcenter.local/api/learning-paths/progress/my?cursor=eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0&amp;per_page=15" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://learningcenter.local/api/learning-paths/progress/my"
+);
+
+const params = {
+    "cursor": "eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0",
+    "per_page": "15",
+};
+Object.keys(params)
+    .forEach(key =&gt; url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-learning-paths-progress-my">
+            <blockquote>
+            <p>Example response (200, Progress retrieved successfully):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Learning path progress retrieved successfully&quot;,
+    &quot;data&quot;: [
+        {
+            &quot;learning_path&quot;: {
+                &quot;id&quot;: 1,
+                &quot;name&quot;: &quot;Full Stack Web Development&quot;,
+                &quot;slug&quot;: &quot;full-stack-web-development&quot;,
+                &quot;banner_url&quot;: &quot;https://example.com/storage/banners/fullstack.jpg&quot;,
+                &quot;total_estimated_time&quot;: 120,
+                &quot;courses_count&quot;: 8
+            },
+            &quot;enrollment&quot;: {
+                &quot;enrolled_at&quot;: &quot;2024-01-15T10:30:00.000000Z&quot;,
+                &quot;progress&quot;: 45.5,
+                &quot;status&quot;: &quot;active&quot;
+            },
+            &quot;course_progress&quot;: [
+                {
+                    &quot;course_id&quot;: 1,
+                    &quot;course_title&quot;: &quot;HTML &amp; CSS Fundamentals&quot;,
+                    &quot;progress&quot;: 75,
+                    &quot;completed_lessons&quot;: 9,
+                    &quot;total_lessons&quot;: 12,
+                    &quot;status&quot;: &quot;in_progress&quot;
+                }
+            ]
+        }
+    ],
+    &quot;pagination&quot;: {
+        &quot;per_page&quot;: 15,
+        &quot;next_cursor&quot;: null,
+        &quot;prev_cursor&quot;: null,
+        &quot;has_more&quot;: false,
+        &quot;count&quot;: 3
+    }
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-learning-paths-progress-my" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-learning-paths-progress-my"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-learning-paths-progress-my"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-learning-paths-progress-my" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-learning-paths-progress-my">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-learning-paths-progress-my" data-method="GET"
+      data-path="api/learning-paths/progress/my"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-learning-paths-progress-my', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-learning-paths-progress-my"
+                    onclick="tryItOut('GETapi-learning-paths-progress-my');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-learning-paths-progress-my"
+                    onclick="cancelTryOut('GETapi-learning-paths-progress-my');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-learning-paths-progress-my"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/learning-paths/progress/my</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-learning-paths-progress-my"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-learning-paths-progress-my"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                            <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>cursor</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="cursor"                data-endpoint="GETapi-learning-paths-progress-my"
+               value="eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0"
+               data-component="query">
+    <br>
+<p>Cursor for pagination (encoded cursor from previous response). Example: <code>eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETapi-learning-paths-progress-my"
+               value="15"
+               data-component="query">
+    <br>
+<p>Number of items per page (max 50). Example: <code>15</code></p>
+            </div>
+                </form>
+
+    <h3>Response</h3>
+    <h4 class="fancy-heading-panel"><b>Response Fields</b></h4>
+    <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>code</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>HTTP status code</p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>message</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Response message</p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>data</code></b>&nbsp;&nbsp;
+<small>string[]</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Array of learning path progress objects</p>
+            </summary>
+                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>learning_path</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Learning path basic information</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>enrollment</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>User's enrollment details</p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>course_progress</code></b>&nbsp;&nbsp;
+<small>string[]</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Progress for each course in the learning path</p>
+                    </div>
+                                    </details>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>pagination</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+ &nbsp;
+ &nbsp;
+<br>
+<p>Pagination information</p>
         </div>
                 
 

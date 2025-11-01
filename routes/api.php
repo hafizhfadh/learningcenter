@@ -10,6 +10,10 @@ Route::post('/logout', [\App\Http\Controllers\API\AuthController::class, 'logout
 
 // Full API routes for students role
 Route::middleware('auth:sanctum')->group(function () {
-    
+    // Learning Path endpoints
+    Route::get('/learning-paths', [\App\Http\Controllers\API\LearningPathController::class, 'index']);
+    Route::get('/learning-paths/{id}', [\App\Http\Controllers\API\LearningPathController::class, 'show']);
+    Route::post('/learning-paths/{id}/enroll', [\App\Http\Controllers\API\LearningPathController::class, 'enroll']);
+    Route::get('/learning-paths/progress/my', [\App\Http\Controllers\API\LearningPathController::class, 'progress']);
 });
 

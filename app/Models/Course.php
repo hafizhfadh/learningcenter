@@ -141,4 +141,14 @@ class Course extends Model
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
+
+    /**
+     * Get the progress logs for this course.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function progressLogs(): HasMany
+    {
+        return $this->hasMany(ProgressLog::class);
+    }
 }
