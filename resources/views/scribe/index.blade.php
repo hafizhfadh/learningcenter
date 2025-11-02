@@ -88,6 +88,22 @@
                             </li>
                                                                         </ul>
                             </ul>
+                    <ul id="tocify-header-course-management" class="tocify-header">
+                <li class="tocify-item level-1" data-unique="course-management">
+                    <a href="#course-management">Course Management</a>
+                </li>
+                                    <ul id="tocify-subheader-course-management" class="tocify-subheader">
+                                                    <li class="tocify-item level-2" data-unique="course-management-GETapi-courses">
+                                <a href="#course-management-GETapi-courses">Course Listing</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="course-management-GETapi-courses-search">
+                                <a href="#course-management-GETapi-courses-search">Course Search</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="course-management-GETapi-courses--courseId-">
+                                <a href="#course-management-GETapi-courses--courseId-">Course Details</a>
+                            </li>
+                                                                        </ul>
+                            </ul>
                     <ul id="tocify-header-learning-paths" class="tocify-header">
                 <li class="tocify-item level-1" data-unique="learning-paths">
                     <a href="#learning-paths">Learning Paths</a>
@@ -1298,7 +1314,1006 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <br>
 <p>Pagination information (empty for this endpoint)</p>
         </div>
-                    <h1 id="learning-paths">Learning Paths</h1>
+                    <h1 id="course-management">Course Management</h1>
+
+    <p>APIs for managing courses, including listing, searching, and retrieving detailed course information</p>
+
+                                <h2 id="course-management-GETapi-courses">Course Listing</h2>
+
+<p>
+</p>
+
+<p>Retrieve all available courses with pagination support. Returns basic course information
+including ID, title, instructor, and brief description. Students can only see published courses.</p>
+
+<span id="example-requests-GETapi-courses">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://learningcenter.local/api/courses?page=1&amp;per_page=20&amp;sort=title&amp;order=asc" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json" \
+    --data "{
+    \"page\": 16,
+    \"per_page\": 22,
+    \"sort\": \"estimated_time\",
+    \"order\": \"desc\"
+}"
+</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://learningcenter.local/api/courses"
+);
+
+const params = {
+    "page": "1",
+    "per_page": "20",
+    "sort": "title",
+    "order": "asc",
+};
+Object.keys(params)
+    .forEach(key =&gt; url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+let body = {
+    "page": 16,
+    "per_page": 22,
+    "sort": "estimated_time",
+    "order": "desc"
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+    body: JSON.stringify(body),
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-courses">
+            <blockquote>
+            <p>Example response (200, Successful course listing):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Courses retrieved successfully&quot;,
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 1,
+            &quot;title&quot;: &quot;Introduction to Programming&quot;,
+            &quot;slug&quot;: &quot;intro-programming&quot;,
+            &quot;description&quot;: &quot;Learn the basics of programming with hands-on exercises&quot;,
+            &quot;banner_url&quot;: &quot;https://example.com/storage/banners/course1.jpg&quot;,
+            &quot;tags&quot;: &quot;programming,basics,beginner&quot;,
+            &quot;estimated_time&quot;: 120,
+            &quot;is_published&quot;: true,
+            &quot;created_at&quot;: &quot;2024-01-01T00:00:00.000000Z&quot;,
+            &quot;instructor&quot;: {
+                &quot;id&quot;: 2,
+                &quot;name&quot;: &quot;Dr. Jane Smith&quot;,
+                &quot;email&quot;: &quot;jane.smith@example.com&quot;
+            },
+            &quot;enrollment_status&quot;: &quot;not_enrolled&quot;,
+            &quot;total_lessons&quot;: 15,
+            &quot;total_tasks&quot;: 8
+        }
+    ],
+    &quot;pagination&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;per_page&quot;: 20,
+        &quot;total&quot;: 50,
+        &quot;last_page&quot;: 3,
+        &quot;from&quot;: 1,
+        &quot;to&quot;: 20,
+        &quot;has_more_pages&quot;: true
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Unauthenticated):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;Unauthenticated&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-courses" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-courses"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-courses"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-courses" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-courses">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-courses" data-method="GET"
+      data-path="api/courses"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-courses', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-courses"
+                    onclick="tryItOut('GETapi-courses');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-courses"
+                    onclick="cancelTryOut('GETapi-courses');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-courses"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/courses</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-courses"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-courses"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                            <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="page"                data-endpoint="GETapi-courses"
+               value="1"
+               data-component="query">
+    <br>
+<p>The page number for pagination. Example: <code>1</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETapi-courses"
+               value="20"
+               data-component="query">
+    <br>
+<p>Number of courses per page (max 100, default 20). Example: <code>20</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>sort</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="sort"                data-endpoint="GETapi-courses"
+               value="title"
+               data-component="query">
+    <br>
+<p>Sort field (title, created_at, estimated_time). Example: <code>title</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>order</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="order"                data-endpoint="GETapi-courses"
+               value="asc"
+               data-component="query">
+    <br>
+<p>Sort order (asc, desc). Example: <code>asc</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
+        <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="page"                data-endpoint="GETapi-courses"
+               value="16"
+               data-component="body">
+    <br>
+<p>Must be at least 1. Example: <code>16</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETapi-courses"
+               value="22"
+               data-component="body">
+    <br>
+<p>Must be at least 1. Must not be greater than 100. Example: <code>22</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>sort</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="sort"                data-endpoint="GETapi-courses"
+               value="estimated_time"
+               data-component="body">
+    <br>
+<p>Example: <code>estimated_time</code></p>
+Must be one of:
+<ul style="list-style-type: square;"><li><code>title</code></li> <li><code>created_at</code></li> <li><code>estimated_time</code></li></ul>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>order</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="order"                data-endpoint="GETapi-courses"
+               value="desc"
+               data-component="body">
+    <br>
+<p>Example: <code>desc</code></p>
+Must be one of:
+<ul style="list-style-type: square;"><li><code>asc</code></li> <li><code>desc</code></li></ul>
+        </div>
+        </form>
+
+                    <h2 id="course-management-GETapi-courses-search">Course Search</h2>
+
+<p>
+</p>
+
+<p>Search for courses using various filters including title, instructor name, department/subject,
+and date range. Supports full-text search capabilities where applicable.</p>
+
+<span id="example-requests-GETapi-courses-search">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://learningcenter.local/api/courses/search?q=programming&amp;instructor=Smith&amp;tags=programming&amp;start_date=2024-01-01&amp;end_date=2024-12-31&amp;min_time=60&amp;max_time=300&amp;page=1&amp;per_page=20&amp;sort=relevance&amp;order=desc" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json" \
+    --data "{
+    \"q\": \"b\",
+    \"instructor\": \"n\",
+    \"tags\": \"g\",
+    \"start_date\": \"2025-11-02\",
+    \"end_date\": \"2051-11-26\",
+    \"min_time\": 39,
+    \"max_time\": 84,
+    \"page\": 66,
+    \"per_page\": 17,
+    \"sort\": \"relevance\",
+    \"order\": \"desc\"
+}"
+</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://learningcenter.local/api/courses/search"
+);
+
+const params = {
+    "q": "programming",
+    "instructor": "Smith",
+    "tags": "programming",
+    "start_date": "2024-01-01",
+    "end_date": "2024-12-31",
+    "min_time": "60",
+    "max_time": "300",
+    "page": "1",
+    "per_page": "20",
+    "sort": "relevance",
+    "order": "desc",
+};
+Object.keys(params)
+    .forEach(key =&gt; url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+let body = {
+    "q": "b",
+    "instructor": "n",
+    "tags": "g",
+    "start_date": "2025-11-02",
+    "end_date": "2051-11-26",
+    "min_time": 39,
+    "max_time": 84,
+    "page": 66,
+    "per_page": 17,
+    "sort": "relevance",
+    "order": "desc"
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+    body: JSON.stringify(body),
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-courses-search">
+            <blockquote>
+            <p>Example response (200, Successful search results):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Search completed successfully&quot;,
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 1,
+            &quot;title&quot;: &quot;Advanced Programming Concepts&quot;,
+            &quot;slug&quot;: &quot;advanced-programming&quot;,
+            &quot;description&quot;: &quot;Deep dive into advanced programming techniques and patterns&quot;,
+            &quot;banner_url&quot;: &quot;https://example.com/storage/banners/course1.jpg&quot;,
+            &quot;tags&quot;: &quot;programming,advanced,patterns&quot;,
+            &quot;estimated_time&quot;: 180,
+            &quot;is_published&quot;: true,
+            &quot;created_at&quot;: &quot;2024-01-15T00:00:00.000000Z&quot;,
+            &quot;instructor&quot;: {
+                &quot;id&quot;: 2,
+                &quot;name&quot;: &quot;Dr. Jane Smith&quot;,
+                &quot;email&quot;: &quot;jane.smith@example.com&quot;
+            },
+            &quot;enrollment_status&quot;: &quot;enrolled&quot;,
+            &quot;total_lessons&quot;: 20,
+            &quot;total_tasks&quot;: 12,
+            &quot;relevance_score&quot;: 0.95
+        }
+    ],
+    &quot;pagination&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;per_page&quot;: 20,
+        &quot;total&quot;: 5,
+        &quot;last_page&quot;: 1,
+        &quot;from&quot;: 1,
+        &quot;to&quot;: 5,
+        &quot;has_more_pages&quot;: false
+    }
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-courses-search" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-courses-search"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-courses-search"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-courses-search" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-courses-search">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-courses-search" data-method="GET"
+      data-path="api/courses/search"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-courses-search', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-courses-search"
+                    onclick="tryItOut('GETapi-courses-search');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-courses-search"
+                    onclick="cancelTryOut('GETapi-courses-search');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-courses-search"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/courses/search</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-courses-search"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-courses-search"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                            <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>q</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="q"                data-endpoint="GETapi-courses-search"
+               value="programming"
+               data-component="query">
+    <br>
+<p>Search query for course title (partial match). Example: <code>programming</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>instructor</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="instructor"                data-endpoint="GETapi-courses-search"
+               value="Smith"
+               data-component="query">
+    <br>
+<p>Search by instructor name (partial match). Example: <code>Smith</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>tags</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="tags"                data-endpoint="GETapi-courses-search"
+               value="programming"
+               data-component="query">
+    <br>
+<p>Search by tags/subject (partial match). Example: <code>programming</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>start_date</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="start_date"                data-endpoint="GETapi-courses-search"
+               value="2024-01-01"
+               data-component="query">
+    <br>
+<p>Filter courses created after this date (Y-m-d format). Example: <code>2024-01-01</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>end_date</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="end_date"                data-endpoint="GETapi-courses-search"
+               value="2024-12-31"
+               data-component="query">
+    <br>
+<p>Filter courses created before this date (Y-m-d format). Example: <code>2024-12-31</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>min_time</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="min_time"                data-endpoint="GETapi-courses-search"
+               value="60"
+               data-component="query">
+    <br>
+<p>Minimum estimated time in minutes. Example: <code>60</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>max_time</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="max_time"                data-endpoint="GETapi-courses-search"
+               value="300"
+               data-component="query">
+    <br>
+<p>Maximum estimated time in minutes. Example: <code>300</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="page"                data-endpoint="GETapi-courses-search"
+               value="1"
+               data-component="query">
+    <br>
+<p>The page number for pagination. Example: <code>1</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETapi-courses-search"
+               value="20"
+               data-component="query">
+    <br>
+<p>Number of courses per page (max 100, default 20). Example: <code>20</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>sort</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="sort"                data-endpoint="GETapi-courses-search"
+               value="relevance"
+               data-component="query">
+    <br>
+<p>Sort field (title, created_at, estimated_time, relevance). Example: <code>relevance</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>order</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="order"                data-endpoint="GETapi-courses-search"
+               value="desc"
+               data-component="query">
+    <br>
+<p>Sort order (asc, desc). Example: <code>desc</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
+        <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>q</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="q"                data-endpoint="GETapi-courses-search"
+               value="b"
+               data-component="body">
+    <br>
+<p>Must not be greater than 255 characters. Example: <code>b</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>instructor</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="instructor"                data-endpoint="GETapi-courses-search"
+               value="n"
+               data-component="body">
+    <br>
+<p>Must not be greater than 255 characters. Example: <code>n</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>tags</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="tags"                data-endpoint="GETapi-courses-search"
+               value="g"
+               data-component="body">
+    <br>
+<p>Must not be greater than 255 characters. Example: <code>g</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>start_date</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="start_date"                data-endpoint="GETapi-courses-search"
+               value="2025-11-02"
+               data-component="body">
+    <br>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2025-11-02</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>end_date</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="end_date"                data-endpoint="GETapi-courses-search"
+               value="2051-11-26"
+               data-component="body">
+    <br>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>start_date</code>. Example: <code>2051-11-26</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>min_time</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="min_time"                data-endpoint="GETapi-courses-search"
+               value="39"
+               data-component="body">
+    <br>
+<p>Must be at least 0. Example: <code>39</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>max_time</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="max_time"                data-endpoint="GETapi-courses-search"
+               value="84"
+               data-component="body">
+    <br>
+<p>Must be at least 0. Example: <code>84</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="page"                data-endpoint="GETapi-courses-search"
+               value="66"
+               data-component="body">
+    <br>
+<p>Must be at least 1. Example: <code>66</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETapi-courses-search"
+               value="17"
+               data-component="body">
+    <br>
+<p>Must be at least 1. Must not be greater than 100. Example: <code>17</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>sort</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="sort"                data-endpoint="GETapi-courses-search"
+               value="relevance"
+               data-component="body">
+    <br>
+<p>Example: <code>relevance</code></p>
+Must be one of:
+<ul style="list-style-type: square;"><li><code>title</code></li> <li><code>created_at</code></li> <li><code>estimated_time</code></li> <li><code>relevance</code></li></ul>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>order</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="order"                data-endpoint="GETapi-courses-search"
+               value="desc"
+               data-component="body">
+    <br>
+<p>Example: <code>desc</code></p>
+Must be one of:
+<ul style="list-style-type: square;"><li><code>asc</code></li> <li><code>desc</code></li></ul>
+        </div>
+        </form>
+
+                    <h2 id="course-management-GETapi-courses--courseId-">Course Details</h2>
+
+<p>
+</p>
+
+<p>Retrieve complete information for a specific course including full description,
+syllabus, schedule information, prerequisites, enrollment status, and associated materials.</p>
+
+<span id="example-requests-GETapi-courses--courseId-">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "http://learningcenter.local/api/courses/1" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://learningcenter.local/api/courses/1"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-courses--courseId-">
+            <blockquote>
+            <p>Example response (200, Successful course details retrieval):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Course details retrieved successfully&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: 1,
+        &quot;title&quot;: &quot;Introduction to Programming&quot;,
+        &quot;slug&quot;: &quot;intro-programming&quot;,
+        &quot;description&quot;: &quot;Comprehensive introduction to programming concepts with hands-on exercises and real-world projects&quot;,
+        &quot;banner_url&quot;: &quot;https://example.com/storage/banners/course1.jpg&quot;,
+        &quot;tags&quot;: &quot;programming,basics,beginner&quot;,
+        &quot;estimated_time&quot;: 120,
+        &quot;is_published&quot;: true,
+        &quot;created_at&quot;: &quot;2024-01-01T00:00:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2024-01-15T00:00:00.000000Z&quot;,
+        &quot;instructor&quot;: {
+            &quot;id&quot;: 2,
+            &quot;name&quot;: &quot;Dr. Jane Smith&quot;,
+            &quot;email&quot;: &quot;jane.smith@example.com&quot;
+        },
+        &quot;teachers&quot;: [
+            {
+                &quot;id&quot;: 3,
+                &quot;name&quot;: &quot;Prof. John Doe&quot;,
+                &quot;email&quot;: &quot;john.doe@example.com&quot;,
+                &quot;assigned_at&quot;: &quot;2024-01-01T00:00:00.000000Z&quot;
+            }
+        ],
+        &quot;enrollment_status&quot;: &quot;enrolled&quot;,
+        &quot;enrollment_date&quot;: &quot;2024-01-10T00:00:00.000000Z&quot;,
+        &quot;progress_percentage&quot;: 45.5,
+        &quot;lessons&quot;: [
+            {
+                &quot;id&quot;: 1,
+                &quot;title&quot;: &quot;Getting Started&quot;,
+                &quot;slug&quot;: &quot;getting-started&quot;,
+                &quot;order_index&quot;: 1,
+                &quot;estimated_time&quot;: 30,
+                &quot;is_completed&quot;: true
+            }
+        ],
+        &quot;lesson_sections&quot;: [
+            {
+                &quot;id&quot;: 1,
+                &quot;title&quot;: &quot;Fundamentals&quot;,
+                &quot;order_index&quot;: 1,
+                &quot;lessons&quot;: [
+                    {
+                        &quot;id&quot;: 1,
+                        &quot;title&quot;: &quot;Getting Started&quot;,
+                        &quot;slug&quot;: &quot;getting-started&quot;,
+                        &quot;order_index&quot;: 1,
+                        &quot;estimated_time&quot;: 30,
+                        &quot;is_completed&quot;: true
+                    }
+                ]
+            }
+        ],
+        &quot;tasks&quot;: [
+            {
+                &quot;id&quot;: 1,
+                &quot;title&quot;: &quot;First Programming Exercise&quot;,
+                &quot;description&quot;: &quot;Complete your first programming challenge&quot;,
+                &quot;type&quot;: &quot;assignment&quot;,
+                &quot;is_completed&quot;: false,
+                &quot;due_date&quot;: &quot;2024-02-01T23:59:59.000000Z&quot;
+            }
+        ],
+        &quot;learning_paths&quot;: [
+            {
+                &quot;id&quot;: 1,
+                &quot;title&quot;: &quot;Full Stack Development&quot;,
+                &quot;order_index&quot;: 1
+            }
+        ],
+        &quot;statistics&quot;: {
+            &quot;total_lessons&quot;: 15,
+            &quot;completed_lessons&quot;: 7,
+            &quot;total_tasks&quot;: 8,
+            &quot;completed_tasks&quot;: 3,
+            &quot;total_enrolled_students&quot;: 150,
+            &quot;average_completion_rate&quot;: 78.5
+        }
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Access denied to unpublished course):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 403,
+    &quot;message&quot;: &quot;Access denied. This course is not published.&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Course not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 404,
+    &quot;message&quot;: &quot;Course not found&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-courses--courseId-" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-courses--courseId-"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-courses--courseId-"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-courses--courseId-" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-courses--courseId-">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-courses--courseId-" data-method="GET"
+      data-path="api/courses/{courseId}"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-courses--courseId-', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETapi-courses--courseId-"
+                    onclick="tryItOut('GETapi-courses--courseId-');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETapi-courses--courseId-"
+                    onclick="cancelTryOut('GETapi-courses--courseId-');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETapi-courses--courseId-"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/courses/{courseId}</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETapi-courses--courseId-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-courses--courseId-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>courseId</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="courseId"                data-endpoint="GETapi-courses--courseId-"
+               value="1"
+               data-component="url">
+    <br>
+<p>The ID of the course. Example: <code>1</code></p>
+            </div>
+                    </form>
+
+                <h1 id="learning-paths">Learning Paths</h1>
 
     <p>APIs for managing learning paths for students</p>
 

@@ -1,0 +1,682 @@
+<?php
+
+namespace App\Http\Controllers\API;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\Enrollment;
+use App\Traits\ApiResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\Eloquent\Builder;
+use Carbon\Carbon;
+
+/**
+ * @group Course Management
+ * 
+ * APIs for managing courses, including listing, searching, and retrieving detailed course information
+ */
+class CourseController extends Controller
+{
+    use ApiResponse;
+
+    /**
+     * Course Listing
+     * 
+     * Retrieve all available courses with pagination support. Returns basic course information
+     * including ID, title, instructor, and brief description. Students can only see published courses.
+     * 
+     * @queryParam page integer The page number for pagination. Example: 1
+     * @queryParam per_page integer Number of courses per page (max 100, default 20). Example: 20
+     * @queryParam sort string Sort field (title, created_at, estimated_time). Example: title
+     * @queryParam order string Sort order (asc, desc). Example: asc
+     * 
+     * @response 200 scenario="Successful course listing" {
+     *   "code": 200,
+     *   "message": "Courses retrieved successfully",
+     *   "data": [
+     *     {
+     *       "id": 1,
+     *       "title": "Introduction to Programming",
+     *       "slug": "intro-programming",
+     *       "description": "Learn the basics of programming with hands-on exercises",
+     *       "banner_url": "https://example.com/storage/banners/course1.jpg",
+     *       "tags": "programming,basics,beginner",
+     *       "estimated_time": 120,
+     *       "is_published": true,
+     *       "created_at": "2024-01-01T00:00:00.000000Z",
+     *       "instructor": {
+     *         "id": 2,
+     *         "name": "Dr. Jane Smith",
+     *         "email": "jane.smith@example.com"
+     *       },
+     *       "enrollment_status": "not_enrolled",
+     *       "total_lessons": 15,
+     *       "total_tasks": 8
+     *     }
+     *   ],
+     *   "pagination": {
+     *     "current_page": 1,
+     *     "per_page": 20,
+     *     "total": 50,
+     *     "last_page": 3,
+     *     "from": 1,
+     *     "to": 20,
+     *     "has_more_pages": true
+     *   }
+     * }
+     * 
+     * @response 401 scenario="Unauthenticated" {
+     *   "code": 401,
+     *   "message": "Unauthenticated",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'page' => 'integer|min:1',
+            'per_page' => 'integer|min:1|max:100',
+            'sort' => 'string|in:title,created_at,estimated_time',
+            'order' => 'string|in:asc,desc',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors()->toArray());
+        }
+
+        $perPage = $request->get('per_page', 20);
+        $sort = $request->get('sort', 'created_at');
+        $order = $request->get('order', 'desc');
+
+        $user = Auth::user();
+        
+        // Build query based on user role
+        $query = Course::with(['creator', 'teachers', 'lessons', 'tasks'])
+            ->withCount(['lessons', 'tasks']);
+
+        // Students can only see published courses
+        if ($user->hasRole('student')) {
+            $query->where('is_published', true);
+        }
+
+        // Apply sorting
+        $query->orderBy($sort, $order);
+
+        $courses = $query->paginate($perPage);
+
+        // Transform the data to include enrollment status and instructor info
+        $transformedCourses = $courses->getCollection()->map(function ($course) use ($user) {
+            $enrollment = null;
+            if ($user->hasRole('student')) {
+                $enrollment = Enrollment::where('user_id', $user->id)
+                    ->where('course_id', $course->id)
+                    ->first();
+            }
+
+            // Get primary instructor (creator or first assigned teacher)
+            $instructor = $course->creator;
+            if ($course->teachers->isNotEmpty()) {
+                $instructor = $course->teachers->first();
+            }
+
+            return [
+                'id' => $course->id,
+                'title' => $course->title,
+                'slug' => $course->slug,
+                'description' => $course->description,
+                'banner_url' => $course->banner_url,
+                'tags' => $course->tags,
+                'estimated_time' => $course->estimated_time,
+                'is_published' => $course->is_published,
+                'created_at' => $course->created_at,
+                'instructor' => $instructor ? [
+                    'id' => $instructor->id,
+                    'name' => $instructor->name,
+                    'email' => $instructor->email,
+                ] : null,
+                'enrollment_status' => $enrollment ? $enrollment->enrollment_status : 'not_enrolled',
+                'total_lessons' => $course->lessons_count,
+                'total_tasks' => $course->tasks_count,
+            ];
+        });
+
+        $pagination = [
+            'current_page' => $courses->currentPage(),
+            'per_page' => $courses->perPage(),
+            'total' => $courses->total(),
+            'last_page' => $courses->lastPage(),
+            'from' => $courses->firstItem(),
+            'to' => $courses->lastItem(),
+            'has_more_pages' => $courses->hasMorePages(),
+        ];
+
+        return $this->paginatedResponse(
+            $transformedCourses,
+            $pagination,
+            'Courses retrieved successfully'
+        );
+    }
+
+    /**
+     * Course Search
+     * 
+     * Search for courses using various filters including title, instructor name, department/subject,
+     * and date range. Supports full-text search capabilities where applicable.
+     * 
+     * @queryParam q string Search query for course title (partial match). Example: programming
+     * @queryParam instructor string Search by instructor name (partial match). Example: Smith
+     * @queryParam tags string Search by tags/subject (partial match). Example: programming
+     * @queryParam start_date string Filter courses created after this date (Y-m-d format). Example: 2024-01-01
+     * @queryParam end_date string Filter courses created before this date (Y-m-d format). Example: 2024-12-31
+     * @queryParam min_time integer Minimum estimated time in minutes. Example: 60
+     * @queryParam max_time integer Maximum estimated time in minutes. Example: 300
+     * @queryParam page integer The page number for pagination. Example: 1
+     * @queryParam per_page integer Number of courses per page (max 100, default 20). Example: 20
+     * @queryParam sort string Sort field (title, created_at, estimated_time, relevance). Example: relevance
+     * @queryParam order string Sort order (asc, desc). Example: desc
+     * 
+     * @response 200 scenario="Successful search results" {
+     *   "code": 200,
+     *   "message": "Search completed successfully",
+     *   "data": [
+     *     {
+     *       "id": 1,
+     *       "title": "Advanced Programming Concepts",
+     *       "slug": "advanced-programming",
+     *       "description": "Deep dive into advanced programming techniques and patterns",
+     *       "banner_url": "https://example.com/storage/banners/course1.jpg",
+     *       "tags": "programming,advanced,patterns",
+     *       "estimated_time": 180,
+     *       "is_published": true,
+     *       "created_at": "2024-01-15T00:00:00.000000Z",
+     *       "instructor": {
+     *         "id": 2,
+     *         "name": "Dr. Jane Smith",
+     *         "email": "jane.smith@example.com"
+     *       },
+     *       "enrollment_status": "enrolled",
+     *       "total_lessons": 20,
+     *       "total_tasks": 12,
+     *       "relevance_score": 0.95
+     *     }
+     *   ],
+     *   "pagination": {
+     *     "current_page": 1,
+     *     "per_page": 20,
+     *     "total": 5,
+     *     "last_page": 1,
+     *     "from": 1,
+     *     "to": 5,
+     *     "has_more_pages": false
+     *   }
+     * }
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'q' => 'string|max:255',
+            'instructor' => 'string|max:255',
+            'tags' => 'string|max:255',
+            'start_date' => 'date_format:Y-m-d',
+            'end_date' => 'date_format:Y-m-d|after_or_equal:start_date',
+            'min_time' => 'integer|min:0',
+            'max_time' => 'integer|min:0|gte:min_time',
+            'page' => 'integer|min:1',
+            'per_page' => 'integer|min:1|max:100',
+            'sort' => 'string|in:title,created_at,estimated_time,relevance',
+            'order' => 'string|in:asc,desc',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors()->toArray());
+        }
+
+        $perPage = $request->get('per_page', 20);
+        $sort = $request->get('sort', 'relevance');
+        $order = $request->get('order', 'desc');
+
+        $user = Auth::user();
+        
+        // Build search query
+        $query = Course::with(['creator', 'teachers', 'lessons', 'tasks'])
+            ->withCount(['lessons', 'tasks']);
+
+        // Students can only see published courses
+        if ($user->hasRole('student')) {
+            $query->where('is_published', true);
+        }
+
+        // Apply search filters
+        if ($request->filled('q')) {
+            $searchTerm = $request->get('q');
+            $query->where(function (Builder $q) use ($searchTerm) {
+                $q->where('title', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('description', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('tags', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+
+        if ($request->filled('instructor')) {
+            $instructorName = $request->get('instructor');
+            $query->where(function (Builder $q) use ($instructorName) {
+                $q->whereHas('creator', function (Builder $creatorQuery) use ($instructorName) {
+                    $creatorQuery->where('name', 'LIKE', "%{$instructorName}%");
+                })->orWhereHas('teachers', function (Builder $teacherQuery) use ($instructorName) {
+                    $teacherQuery->where('name', 'LIKE', "%{$instructorName}%");
+                });
+            });
+        }
+
+        if ($request->filled('tags')) {
+            $tags = $request->get('tags');
+            $query->where('tags', 'LIKE', "%{$tags}%");
+        }
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->get('start_date'));
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->get('end_date'));
+        }
+
+        if ($request->filled('min_time')) {
+            $query->where('estimated_time', '>=', $request->get('min_time'));
+        }
+
+        if ($request->filled('max_time')) {
+            $query->where('estimated_time', '<=', $request->get('max_time'));
+        }
+
+        // Apply sorting (relevance sorting is handled differently)
+        if ($sort === 'relevance' && $request->filled('q')) {
+            // Simple relevance scoring based on title match priority
+            $searchTerm = $request->get('q');
+            $query->selectRaw('courses.*, 
+                CASE 
+                    WHEN title LIKE ? THEN 3
+                    WHEN description LIKE ? THEN 2
+                    WHEN tags LIKE ? THEN 1
+                    ELSE 0
+                END as relevance_score', [
+                "%{$searchTerm}%",
+                "%{$searchTerm}%", 
+                "%{$searchTerm}%"
+            ])->orderBy('relevance_score', 'desc');
+        } else {
+            $query->orderBy($sort === 'relevance' ? 'created_at' : $sort, $order);
+        }
+
+        $courses = $query->paginate($perPage);
+
+        // Transform the data
+        $transformedCourses = $courses->getCollection()->map(function ($course) use ($user, $request) {
+            $enrollment = null;
+            if ($user->hasRole('student')) {
+                $enrollment = Enrollment::where('user_id', $user->id)
+                    ->where('course_id', $course->id)
+                    ->first();
+            }
+
+            // Get primary instructor
+            $instructor = $course->creator;
+            if ($course->teachers->isNotEmpty()) {
+                $instructor = $course->teachers->first();
+            }
+
+            $courseData = [
+                'id' => $course->id,
+                'title' => $course->title,
+                'slug' => $course->slug,
+                'description' => $course->description,
+                'banner_url' => $course->banner_url,
+                'tags' => $course->tags,
+                'estimated_time' => $course->estimated_time,
+                'is_published' => $course->is_published,
+                'created_at' => $course->created_at,
+                'instructor' => $instructor ? [
+                    'id' => $instructor->id,
+                    'name' => $instructor->name,
+                    'email' => $instructor->email,
+                ] : null,
+                'enrollment_status' => $enrollment ? $enrollment->enrollment_status : 'not_enrolled',
+                'total_lessons' => $course->lessons_count,
+                'total_tasks' => $course->tasks_count,
+            ];
+
+            // Add relevance score if available
+            if (isset($course->relevance_score)) {
+                $courseData['relevance_score'] = $course->relevance_score / 3; // Normalize to 0-1
+            }
+
+            return $courseData;
+        });
+
+        $pagination = [
+            'current_page' => $courses->currentPage(),
+            'per_page' => $courses->perPage(),
+            'total' => $courses->total(),
+            'last_page' => $courses->lastPage(),
+            'from' => $courses->firstItem(),
+            'to' => $courses->lastItem(),
+            'has_more_pages' => $courses->hasMorePages(),
+        ];
+
+        return $this->paginatedResponse(
+            $transformedCourses,
+            $pagination,
+            'Search completed successfully'
+        );
+    }
+
+    /**
+     * Course Details
+     * 
+     * Retrieve complete information for a specific course including full description,
+     * syllabus, schedule information, prerequisites, enrollment status, and associated materials.
+     * 
+     * @urlParam courseId integer required The ID of the course. Example: 1
+     * 
+     * @response 200 scenario="Successful course details retrieval" {
+     *   "code": 200,
+     *   "message": "Course details retrieved successfully",
+     *   "data": {
+     *     "id": 1,
+     *     "title": "Introduction to Programming",
+     *     "slug": "intro-programming",
+     *     "description": "Comprehensive introduction to programming concepts with hands-on exercises and real-world projects",
+     *     "banner_url": "https://example.com/storage/banners/course1.jpg",
+     *     "tags": "programming,basics,beginner",
+     *     "estimated_time": 120,
+     *     "is_published": true,
+     *     "created_at": "2024-01-01T00:00:00.000000Z",
+     *     "updated_at": "2024-01-15T00:00:00.000000Z",
+     *     "instructor": {
+     *       "id": 2,
+     *       "name": "Dr. Jane Smith",
+     *       "email": "jane.smith@example.com"
+     *     },
+     *     "teachers": [
+     *       {
+     *         "id": 3,
+     *         "name": "Prof. John Doe",
+     *         "email": "john.doe@example.com",
+     *         "assigned_at": "2024-01-01T00:00:00.000000Z"
+     *       }
+     *     ],
+     *     "enrollment_status": "enrolled",
+     *     "enrollment_date": "2024-01-10T00:00:00.000000Z",
+     *     "progress_percentage": 45.5,
+     *     "lessons": [
+     *       {
+     *         "id": 1,
+     *         "title": "Getting Started",
+     *         "slug": "getting-started",
+     *         "order_index": 1,
+     *         "estimated_time": 30,
+     *         "is_completed": true
+     *       }
+     *     ],
+     *     "lesson_sections": [
+     *       {
+     *         "id": 1,
+     *         "title": "Fundamentals",
+     *         "order_index": 1,
+     *         "lessons": [
+     *           {
+     *             "id": 1,
+     *             "title": "Getting Started",
+     *             "slug": "getting-started",
+     *             "order_index": 1,
+     *             "estimated_time": 30,
+     *             "is_completed": true
+     *           }
+     *         ]
+     *       }
+     *     ],
+     *     "tasks": [
+     *       {
+     *         "id": 1,
+     *         "title": "First Programming Exercise",
+     *         "description": "Complete your first programming challenge",
+     *         "type": "assignment",
+     *         "is_completed": false,
+     *         "due_date": "2024-02-01T23:59:59.000000Z"
+     *       }
+     *     ],
+     *     "learning_paths": [
+     *       {
+     *         "id": 1,
+     *         "title": "Full Stack Development",
+     *         "order_index": 1
+     *       }
+     *     ],
+     *     "statistics": {
+     *       "total_lessons": 15,
+     *       "completed_lessons": 7,
+     *       "total_tasks": 8,
+     *       "completed_tasks": 3,
+     *       "total_enrolled_students": 150,
+     *       "average_completion_rate": 78.5
+     *     }
+     *   },
+     *   "pagination": {}
+     * }
+     * 
+     * @response 404 scenario="Course not found" {
+     *   "code": 404,
+     *   "message": "Course not found",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * 
+     * @response 403 scenario="Access denied to unpublished course" {
+     *   "code": 403,
+     *   "message": "Access denied. This course is not published.",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
+    public function show(Request $request, $courseId): JsonResponse
+    {
+        $user = Auth::user();
+        
+        $course = Course::with([
+            'creator',
+            'teachers',
+            'lessons' => function ($query) {
+                $query->orderBy('order_index');
+            },
+            'lessonSections' => function ($query) {
+                $query->with(['lessons' => function ($lessonQuery) {
+                    $lessonQuery->orderBy('order_index');
+                }])->orderBy('order_index');
+            },
+            'tasks',
+            'learningPaths',
+            'enrollments'
+        ])->find($courseId);
+
+        if (!$course) {
+            return $this->errorResponse('Course not found', 404);
+        }
+
+        // Check if student can access unpublished course
+        if ($user->hasRole('student') && !$course->is_published) {
+            return $this->errorResponse('Access denied. This course is not published.', 403);
+        }
+
+        // Get enrollment information for students
+        $enrollment = null;
+        $progressPercentage = 0;
+        if ($user->hasRole('student')) {
+            $enrollment = Enrollment::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+            
+            if ($enrollment) {
+                // Calculate progress percentage based on completed lessons
+                $totalLessons = $course->lessons->count();
+                if ($totalLessons > 0) {
+                    $completedLessons = $course->progressLogs()
+                        ->where('user_id', $user->id)
+                        ->where('lesson_id', '!=', null)
+                        ->where('action', 'completed')
+                        ->distinct('lesson_id')
+                        ->count();
+                    $progressPercentage = ($completedLessons / $totalLessons) * 100;
+                }
+            }
+        }
+
+        // Get primary instructor
+        $instructor = $course->creator;
+        if ($course->teachers->isNotEmpty()) {
+            $instructor = $course->teachers->first();
+        }
+
+        // Get user progress for lessons
+        $userProgress = [];
+        if ($user->hasRole('student')) {
+            $progressLogs = $course->progressLogs()
+                ->where('user_id', $user->id)
+                ->whereNotNull('lesson_id')
+                ->get()
+                ->keyBy('lesson_id');
+            $userProgress = $progressLogs;
+        }
+
+        // Transform lessons with completion status
+        $transformedLessons = $course->lessons->map(function ($lesson) use ($userProgress) {
+            return [
+                'id' => $lesson->id,
+                'title' => $lesson->title,
+                'slug' => $lesson->slug,
+                'order_index' => $lesson->order_index,
+                'estimated_time' => $lesson->estimated_time,
+                'is_completed' => isset($userProgress[$lesson->id]) && $userProgress[$lesson->id]->action === 'completed',
+                'completed_at' => isset($userProgress[$lesson->id]) && $userProgress[$lesson->id]->action === 'completed' 
+                    ? $userProgress[$lesson->id]->completed_at 
+                    : null,
+            ];
+        });
+
+        // Transform lesson sections with completion status
+        $transformedSections = $course->lessonSections->map(function ($section) use ($userProgress) {
+            $sectionLessons = $section->lessons->map(function ($lesson) use ($userProgress) {
+                return [
+                    'id' => $lesson->id,
+                    'title' => $lesson->title,
+                    'slug' => $lesson->slug,
+                    'order_index' => $lesson->order_index,
+                    'estimated_time' => $lesson->estimated_time,
+                    'is_completed' => isset($userProgress[$lesson->id]) && $userProgress[$lesson->id]->action === 'completed',
+                    'completed_at' => isset($userProgress[$lesson->id]) && $userProgress[$lesson->id]->action === 'completed' 
+                        ? $userProgress[$lesson->id]->completed_at 
+                        : null,
+                ];
+            });
+
+            return [
+                'id' => $section->id,
+                'title' => $section->title,
+                'order_index' => $section->order_index,
+                'lessons' => $sectionLessons,
+            ];
+        });
+
+        // Transform tasks with completion status
+        $transformedTasks = $course->tasks->map(function ($task) use ($user) {
+            $isCompleted = false;
+            $completedAt = null;
+            
+            if ($user->hasRole('student')) {
+                // Check if user has submitted this task
+                $submission = $task->submissions()->where('student_id', $user->id)->first();
+                if ($submission) {
+                    $isCompleted = true;
+                    $completedAt = $submission->submitted_at;
+                }
+            }
+
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'task_type' => $task->task_type,
+                'is_completed' => $isCompleted,
+                'completed_at' => $completedAt,
+                'due_date' => $task->due_date,
+            ];
+        });
+
+        // Calculate statistics
+        $totalEnrolledStudents = $course->enrollments()->count();
+        $completedLessonsCount = $course->progressLogs()
+            ->where('action', 'completed')
+            ->distinct('user_id')
+            ->count();
+        $averageCompletionRate = $totalEnrolledStudents > 0 
+            ? ($completedLessonsCount / $totalEnrolledStudents) * 100 
+            : 0;
+
+        $courseData = [
+            'id' => $course->id,
+            'title' => $course->title,
+            'slug' => $course->slug,
+            'description' => $course->description,
+            'banner_url' => $course->banner_url,
+            'tags' => $course->tags,
+            'estimated_time' => $course->estimated_time,
+            'is_published' => $course->is_published,
+            'created_at' => $course->created_at,
+            'updated_at' => $course->updated_at,
+            'instructor' => $instructor ? [
+                'id' => $instructor->id,
+                'name' => $instructor->name,
+                'email' => $instructor->email,
+            ] : null,
+            'teachers' => $course->teachers->map(function ($teacher) {
+                return [
+                    'id' => $teacher->id,
+                    'name' => $teacher->name,
+                    'email' => $teacher->email,
+                    'assigned_at' => $teacher->pivot->assigned_at,
+                ];
+            }),
+            'enrollment_status' => $enrollment ? $enrollment->enrollment_status : 'not_enrolled',
+            'enrollment_date' => $enrollment ? $enrollment->created_at : null,
+            'progress_percentage' => round($progressPercentage, 1),
+            'lessons' => $transformedLessons,
+            'lesson_sections' => $transformedSections,
+            'tasks' => $transformedTasks,
+            'learning_paths' => $course->learningPaths->map(function ($path) {
+                return [
+                    'id' => $path->id,
+                    'title' => $path->title,
+                    'order_index' => $path->pivot->order_index,
+                ];
+            }),
+            'statistics' => [
+                'total_lessons' => $course->lessons->count(),
+                'completed_lessons' => $user->hasRole('student') ? 
+                    $course->progressLogs()
+                        ->where('user_id', $user->id)
+                        ->where('action', 'completed')
+                        ->distinct('lesson_id')
+                        ->count() : 0,
+                'total_tasks' => $course->tasks->count(),
+                'completed_tasks' => $user->hasRole('student') ?
+                    $transformedTasks->where('is_completed', true)->count() : 0,
+                'total_enrolled_students' => $totalEnrolledStudents,
+                'average_completion_rate' => round($averageCompletionRate, 1),
+            ],
+        ];
+
+        return $this->successResponse($courseData, 'Course details retrieved successfully');
+    }
+}

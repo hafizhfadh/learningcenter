@@ -19,5 +19,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/learning-paths/{id}', [\App\Http\Controllers\API\LearningPathController::class, 'show']);
     Route::post('/learning-paths/{id}/enroll', [\App\Http\Controllers\API\LearningPathController::class, 'enroll']);
     Route::get('/learning-paths/progress/my', [\App\Http\Controllers\API\LearningPathController::class, 'progress']);
+    
+    // Course Management endpoints
+    Route::get('/courses', [\App\Http\Controllers\API\CourseController::class, 'index']);
+    Route::get('/courses/search', [\App\Http\Controllers\API\CourseController::class, 'search']);
+    Route::get('/courses/{courseId}', [\App\Http\Controllers\API\CourseController::class, 'show']);
 });
 
