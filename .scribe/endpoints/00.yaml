@@ -484,3 +484,327 @@ endpoints:
     controller: null
     method: null
     route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/profile
+    metadata:
+      custom: []
+      groupName: Authentication
+      groupDescription: |-
+
+        APIs for managing user authentication
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get Student Profile'
+      description: "Retrieve the authenticated student's profile information."
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "code": 200,
+            "message": "Profile retrieved successfully",
+            "data": {
+              "id": 1,
+              "name": "John Doe",
+              "email": "john@example.com",
+              "email_verified_at": "2024-01-01T00:00:00.000000Z",
+              "created_at": "2024-01-01T00:00:00.000000Z",
+              "updated_at": "2024-01-01T00:00:00.000000Z"
+            },
+            "pagination": {}
+          }
+        headers: []
+        description: 'Profile retrieved successfully'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "code": 401,
+            "message": "Unauthenticated",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: Unauthenticated
+    responseFields:
+      code:
+        custom: []
+        name: code
+        description: 'HTTP status code'
+        required: false
+        example: null
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      message:
+        custom: []
+        name: message
+        description: 'Response message'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      data:
+        custom: []
+        name: data
+        description: 'User information'
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      pagination:
+        custom: []
+        name: pagination
+        description: 'Pagination information (empty for this endpoint)'
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/institution
+    metadata:
+      custom: []
+      groupName: Authentication
+      groupDescription: |-
+
+        APIs for managing user authentication
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get Student Institution'
+      description: |-
+        Retrieve the institution information for the authenticated student.
+        Only students with institution-bound roles can access this endpoint.
+      authenticated: true
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "code": 200,
+            "message": "Institution information retrieved successfully",
+            "data": {
+              "id": 1,
+              "name": "Harvard University",
+              "slug": "harvard-university",
+              "domain": "harvard.edu",
+              "settings": {
+                "timezone": "America/New_York",
+                "academic_year": "2024-2025",
+                "contact_email": "admin@harvard.edu"
+              },
+              "created_at": "2024-01-01T00:00:00.000000Z",
+              "updated_at": "2024-01-01T00:00:00.000000Z"
+            },
+            "pagination": {}
+          }
+        headers: []
+        description: 'Institution retrieved successfully'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "code": 401,
+            "message": "Unauthenticated",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: Unauthenticated
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "code": 403,
+            "message": "Access denied. Only users with institution-bound roles can access institution information",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'Access denied'
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "code": 404,
+            "message": "No institution found for this user",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'No institution found'
+    responseFields:
+      code:
+        custom: []
+        name: code
+        description: 'HTTP status code'
+        required: false
+        example: null
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      message:
+        custom: []
+        name: message
+        description: 'Response message'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      data:
+        custom: []
+        name: data
+        description: 'Institution information'
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      data.id:
+        custom: []
+        name: data.id
+        description: 'Institution ID'
+        required: false
+        example: null
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      data.name:
+        custom: []
+        name: data.name
+        description: 'Institution name'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      data.slug:
+        custom: []
+        name: data.slug
+        description: 'Institution slug'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      data.domain:
+        custom: []
+        name: data.domain
+        description: 'Institution domain'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      data.settings:
+        custom: []
+        name: data.settings
+        description: 'Institution settings and configuration'
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      data.created_at:
+        custom: []
+        name: data.created_at
+        description: 'Institution creation timestamp'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      data.updated_at:
+        custom: []
+        name: data.updated_at
+        description: 'Institution last update timestamp'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      pagination:
+        custom: []
+        name: pagination
+        description: 'Pagination information (empty for this endpoint)'
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    auth: []
+    controller: null
+    method: null
+    route: null

@@ -218,7 +218,6 @@ class AuthController extends Controller
      * 
      * Retrieve the authenticated student's profile information.
      * 
-     * @authenticated
      * 
      * @response 200 scenario="Profile retrieved successfully" {
      *   "code": 200,
@@ -251,6 +250,106 @@ class AuthController extends Controller
         $user = $request->user();
 
         return $this->successResponse($user, 'Profile retrieved successfully');
+    }
+
+    /**
+     * Get Student Institution
+     * 
+     * Retrieve the institution information for the authenticated student.
+     * Only students with institution-bound roles can access this endpoint.
+     * 
+     * @authenticated
+     * 
+     * @response 200 scenario="Institution retrieved successfully" {
+     *   "code": 200,
+     *   "message": "Institution information retrieved successfully",
+     *   "data": {
+     *     "id": 1,
+     *     "name": "Harvard University",
+     *     "slug": "harvard-university",
+     *     "domain": "harvard.edu",
+     *     "settings": {
+     *       "timezone": "America/New_York",
+     *       "academic_year": "2024-2025",
+     *       "contact_email": "admin@harvard.edu"
+     *     },
+     *     "created_at": "2024-01-01T00:00:00.000000Z",
+     *     "updated_at": "2024-01-01T00:00:00.000000Z"
+     *   },
+     *   "pagination": {}
+     * }
+     * 
+     * @response 404 scenario="No institution found" {
+     *   "code": 404,
+     *   "message": "No institution found for this user",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * 
+     * @response 403 scenario="Access denied" {
+     *   "code": 403,
+     *   "message": "Access denied. Only users with institution-bound roles can access institution information",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * 
+     * @response 401 scenario="Unauthenticated" {
+     *   "code": 401,
+     *   "message": "Unauthenticated",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * 
+     * @responseField code int HTTP status code
+     * @responseField message string Response message
+     * @responseField data object Institution information
+     * @responseField data.id int Institution ID
+     * @responseField data.name string Institution name
+     * @responseField data.slug string Institution slug
+     * @responseField data.domain string Institution domain
+     * @responseField data.settings object Institution settings and configuration
+     * @responseField data.created_at string Institution creation timestamp
+     * @responseField data.updated_at string Institution last update timestamp
+     * @responseField pagination object Pagination information (empty for this endpoint)
+     */
+    public function institution(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Check if user has institution-bound roles
+        $institutionBoundRoles = ['school_teacher', 'school_admin', 'student'];
+        $hasInstitutionBoundRole = $user->roles()->whereIn('name', $institutionBoundRoles)->exists();
+
+        if (!$hasInstitutionBoundRole) {
+            return $this->errorResponse(
+                'Access denied. Only users with institution-bound roles can access institution information',
+                403
+            );
+        }
+
+        // Check if user has an institution
+        if (!$user->institution_id) {
+            return $this->errorResponse('No institution found for this user', 404);
+        }
+
+        // Load the institution with its settings
+        $institution = $user->institution;
+
+        if (!$institution) {
+            return $this->errorResponse('No institution found for this user', 404);
+        }
+
+        $institutionData = [
+            'id' => $institution->id,
+            'name' => $institution->name,
+            'slug' => $institution->slug,
+            'domain' => $institution->domain,
+            'settings' => $institution->settings ?? [],
+            'created_at' => $institution->created_at,
+            'updated_at' => $institution->updated_at,
+        ];
+
+        return $this->successResponse($institutionData, 'Institution information retrieved successfully');
     }
 
     /**
