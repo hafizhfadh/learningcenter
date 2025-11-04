@@ -1338,8 +1338,8 @@ including ID, title, instructor, and brief description. Students can only see pu
     --data "{
     \"page\": 16,
     \"per_page\": 22,
-    \"sort\": \"estimated_time\",
-    \"order\": \"desc\"
+    \"sort\": \"title\",
+    \"order\": \"asc\"
 }"
 </code></pre></div>
 
@@ -1366,8 +1366,8 @@ const headers = {
 let body = {
     "page": 16,
     "per_page": 22,
-    "sort": "estimated_time",
-    "order": "desc"
+    "sort": "title",
+    "order": "asc"
 };
 
 fetch(url, {
@@ -1584,10 +1584,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-courses"
-               value="estimated_time"
+               value="title"
                data-component="body">
     <br>
-<p>Example: <code>estimated_time</code></p>
+<p>Example: <code>title</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>title</code></li> <li><code>created_at</code></li> <li><code>estimated_time</code></li></ul>
         </div>
@@ -1598,10 +1598,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="order"                data-endpoint="GETapi-courses"
-               value="desc"
+               value="asc"
                data-component="body">
     <br>
-<p>Example: <code>desc</code></p>
+<p>Example: <code>asc</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>asc</code></li> <li><code>desc</code></li></ul>
         </div>
@@ -1634,7 +1634,7 @@ and date range. Supports full-text search capabilities where applicable.</p>
     \"max_time\": 84,
     \"page\": 66,
     \"per_page\": 17,
-    \"sort\": \"estimated_time\",
+    \"sort\": \"relevance\",
     \"order\": \"asc\"
 }"
 </code></pre></div>
@@ -1676,7 +1676,7 @@ let body = {
     "max_time": 84,
     "page": 66,
     "per_page": 17,
-    "sort": "estimated_time",
+    "sort": "relevance",
     "order": "asc"
 };
 
@@ -2051,10 +2051,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-courses-search"
-               value="estimated_time"
+               value="relevance"
                data-component="body">
     <br>
-<p>Example: <code>estimated_time</code></p>
+<p>Example: <code>relevance</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>title</code></li> <li><code>created_at</code></li> <li><code>estimated_time</code></li> <li><code>relevance</code></li></ul>
         </div>

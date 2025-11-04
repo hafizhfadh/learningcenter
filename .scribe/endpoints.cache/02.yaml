@@ -107,7 +107,7 @@ endpoints:
         name: sort
         description: ''
         required: false
-        example: estimated_time
+        example: title
         type: string
         enumValues:
           - title
@@ -121,7 +121,7 @@ endpoints:
         name: order
         description: ''
         required: false
-        example: desc
+        example: asc
         type: string
         enumValues:
           - asc
@@ -132,8 +132,8 @@ endpoints:
     cleanBodyParameters:
       page: 16
       per_page: 22
-      sort: estimated_time
-      order: desc
+      sort: title
+      order: asc
     fileParameters: []
     responses:
       -
@@ -456,7 +456,7 @@ endpoints:
         name: sort
         description: ''
         required: false
-        example: estimated_time
+        example: relevance
         type: string
         enumValues:
           - title
@@ -489,7 +489,7 @@ endpoints:
       max_time: 84
       page: 66
       per_page: 17
-      sort: estimated_time
+      sort: relevance
       order: asc
     fileParameters: []
     responses:
