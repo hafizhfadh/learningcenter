@@ -388,7 +388,7 @@ endpoints:
         name: start_date
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: false
-        example: '2025-11-02'
+        example: '2025-11-04'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -399,7 +399,7 @@ endpoints:
         name: end_date
         description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>start_date</code>.'
         required: false
-        example: '2051-11-26'
+        example: '2051-11-28'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -454,7 +454,7 @@ endpoints:
         name: sort
         description: ''
         required: false
-        example: relevance
+        example: estimated_time
         type: string
         enumValues:
           - title
@@ -469,7 +469,7 @@ endpoints:
         name: order
         description: ''
         required: false
-        example: desc
+        example: asc
         type: string
         enumValues:
           - asc
@@ -481,14 +481,14 @@ endpoints:
       q: b
       instructor: 'n'
       tags: g
-      start_date: '2025-11-02'
-      end_date: '2051-11-26'
+      start_date: '2025-11-04'
+      end_date: '2051-11-28'
       min_time: 39
       max_time: 84
       page: 66
       per_page: 17
-      sort: relevance
-      order: desc
+      sort: estimated_time
+      order: asc
     fileParameters: []
     responses:
       -

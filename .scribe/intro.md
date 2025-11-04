@@ -3,7 +3,7 @@
 
 
 <aside>
-    <strong>Base URL</strong>: <code>http://learningcenter.local</code>
+    <strong>Base URL</strong>: <code>http://learning.csi-academy.id</code>
 </aside>
 
     This documentation aims to provide all the information you need to work with our API.

@@ -26,7 +26,7 @@
             </style>
 
     <script>
-        var tryItOutBaseUrl = "http://learningcenter.local";
+        var tryItOutBaseUrl = "http://learning.csi-academy.id";
         var useCsrf = Boolean();
         var csrfUrl = "/sanctum/csrf-cookie";
     </script>
@@ -132,7 +132,7 @@
     </ul>
 
     <ul class="toc-footer" id="last-updated">
-        <li>Last updated: November 2, 2025</li>
+        <li>Last updated: November 4, 2025</li>
     </ul>
 </div>
 
@@ -141,7 +141,7 @@
     <div class="content">
         <h1 id="introduction">Introduction</h1>
 <aside>
-    <strong>Base URL</strong>: <code>http://learningcenter.local</code>
+    <strong>Base URL</strong>: <code>http://learning.csi-academy.id</code>
 </aside>
 <pre><code>This documentation aims to provide all the information you need to work with our API.
 
@@ -169,7 +169,7 @@ A secure HTTP-only cookie will also be set for web authentication.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://learningcenter.local/api/login" \
+    "http://learning.csi-academy.id/api/login" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -181,7 +181,7 @@ A secure HTTP-only cookie will also be set for web authentication.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/login"
+    "http://learning.csi-academy.id/api/login"
 );
 
 const headers = {
@@ -443,7 +443,7 @@ This will revoke the current token and generate a new one.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://learningcenter.local/api/refresh" \
+    "http://learning.csi-academy.id/api/refresh" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -455,7 +455,7 @@ This will revoke the current token and generate a new one.</p>
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/refresh"
+    "http://learning.csi-academy.id/api/refresh"
 );
 
 const headers = {
@@ -718,14 +718,14 @@ This will invalidate the current session and require re-authentication.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://learningcenter.local/api/logout" \
+    "http://learning.csi-academy.id/api/logout" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/logout"
+    "http://learning.csi-academy.id/api/logout"
 );
 
 const headers = {
@@ -886,14 +886,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://learningcenter.local/api/profile" \
+    --get "http://learning.csi-academy.id/api/profile" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/profile"
+    "http://learning.csi-academy.id/api/profile"
 );
 
 const headers = {
@@ -1063,14 +1063,14 @@ Only students with institution-bound roles can access this endpoint.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://learningcenter.local/api/institution" \
+    --get "http://learning.csi-academy.id/api/institution" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/institution"
+    "http://learning.csi-academy.id/api/institution"
 );
 
 const headers = {
@@ -1332,7 +1332,7 @@ including ID, title, instructor, and brief description. Students can only see pu
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://learningcenter.local/api/courses?page=1&amp;per_page=20&amp;sort=title&amp;order=asc" \
+    --get "http://learning.csi-academy.id/api/courses?page=1&amp;per_page=20&amp;sort=title&amp;order=asc" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1346,7 +1346,7 @@ including ID, title, instructor, and brief description. Students can only see pu
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/courses"
+    "http://learning.csi-academy.id/api/courses"
 );
 
 const params = {
@@ -1621,28 +1621,28 @@ and date range. Supports full-text search capabilities where applicable.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://learningcenter.local/api/courses/search?q=programming&amp;instructor=Smith&amp;tags=programming&amp;start_date=2024-01-01&amp;end_date=2024-12-31&amp;min_time=60&amp;max_time=300&amp;page=1&amp;per_page=20&amp;sort=relevance&amp;order=desc" \
+    --get "http://learning.csi-academy.id/api/courses/search?q=programming&amp;instructor=Smith&amp;tags=programming&amp;start_date=2024-01-01&amp;end_date=2024-12-31&amp;min_time=60&amp;max_time=300&amp;page=1&amp;per_page=20&amp;sort=relevance&amp;order=desc" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"q\": \"b\",
     \"instructor\": \"n\",
     \"tags\": \"g\",
-    \"start_date\": \"2025-11-02\",
-    \"end_date\": \"2051-11-26\",
+    \"start_date\": \"2025-11-04\",
+    \"end_date\": \"2051-11-28\",
     \"min_time\": 39,
     \"max_time\": 84,
     \"page\": 66,
     \"per_page\": 17,
-    \"sort\": \"relevance\",
-    \"order\": \"desc\"
+    \"sort\": \"estimated_time\",
+    \"order\": \"asc\"
 }"
 </code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/courses/search"
+    "http://learning.csi-academy.id/api/courses/search"
 );
 
 const params = {
@@ -1670,14 +1670,14 @@ let body = {
     "q": "b",
     "instructor": "n",
     "tags": "g",
-    "start_date": "2025-11-02",
-    "end_date": "2051-11-26",
+    "start_date": "2025-11-04",
+    "end_date": "2051-11-28",
     "min_time": 39,
     "max_time": 84,
     "page": 66,
     "per_page": 17,
-    "sort": "relevance",
-    "order": "desc"
+    "sort": "estimated_time",
+    "order": "asc"
 };
 
 fetch(url, {
@@ -1979,10 +1979,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="start_date"                data-endpoint="GETapi-courses-search"
-               value="2025-11-02"
+               value="2025-11-04"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2025-11-02</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Example: <code>2025-11-04</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>end_date</code></b>&nbsp;&nbsp;
@@ -1991,10 +1991,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="end_date"                data-endpoint="GETapi-courses-search"
-               value="2051-11-26"
+               value="2051-11-28"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>start_date</code>. Example: <code>2051-11-26</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>start_date</code>. Example: <code>2051-11-28</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>min_time</code></b>&nbsp;&nbsp;
@@ -2051,10 +2051,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-courses-search"
-               value="relevance"
+               value="estimated_time"
                data-component="body">
     <br>
-<p>Example: <code>relevance</code></p>
+<p>Example: <code>estimated_time</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>title</code></li> <li><code>created_at</code></li> <li><code>estimated_time</code></li> <li><code>relevance</code></li></ul>
         </div>
@@ -2065,10 +2065,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="order"                data-endpoint="GETapi-courses-search"
-               value="desc"
+               value="asc"
                data-component="body">
     <br>
-<p>Example: <code>desc</code></p>
+<p>Example: <code>asc</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>asc</code></li> <li><code>desc</code></li></ul>
         </div>
@@ -2088,14 +2088,14 @@ syllabus, schedule information, prerequisites, enrollment status, and associated
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://learningcenter.local/api/courses/1" \
+    --get "http://learning.csi-academy.id/api/courses/1" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/courses/1"
+    "http://learning.csi-academy.id/api/courses/1"
 );
 
 const headers = {
@@ -2332,14 +2332,14 @@ Only school_teacher, school_admin, and student roles can access learning paths.<
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://learningcenter.local/api/learning-paths?cursor=eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0&amp;per_page=15&amp;search=programming&amp;enrolled=enrolled" \
+    --get "http://learning.csi-academy.id/api/learning-paths?cursor=eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0&amp;per_page=15&amp;search=programming&amp;enrolled=enrolled" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/learning-paths"
+    "http://learning.csi-academy.id/api/learning-paths"
 );
 
 const params = {
@@ -2665,14 +2665,14 @@ lessons, and user progress information.</p>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://learningcenter.local/api/learning-paths/1" \
+    --get "http://learning.csi-academy.id/api/learning-paths/1" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/learning-paths/1"
+    "http://learning.csi-academy.id/api/learning-paths/1"
 );
 
 const headers = {
@@ -2923,14 +2923,14 @@ This will also automatically enroll the student in all courses within the learni
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
-    "http://learningcenter.local/api/learning-paths/1/enroll" \
+    "http://learning.csi-academy.id/api/learning-paths/1/enroll" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/learning-paths/1/enroll"
+    "http://learning.csi-academy.id/api/learning-paths/1/enroll"
 );
 
 const headers = {
@@ -3136,14 +3136,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "http://learningcenter.local/api/learning-paths/progress/my?cursor=eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0&amp;per_page=15" \
+    --get "http://learning.csi-academy.id/api/learning-paths/progress/my?cursor=eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0&amp;per_page=15" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "http://learningcenter.local/api/learning-paths/progress/my"
+    "http://learning.csi-academy.id/api/learning-paths/progress/my"
 );
 
 const params = {
