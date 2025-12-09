@@ -63,6 +63,7 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedByDefault=false"
       - "--providers.docker.network=stack"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
       - "--entryPoints.traefik.address=:8190"
       - "--entryPoints.app.address=:80"
       - "--entryPoints.app.http.redirections.entryPoint.to=app-secure"
