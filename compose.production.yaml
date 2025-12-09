@@ -16,8 +16,6 @@ x-base: &base
   build:
     context: .
     dockerfile: FrankenPHP.Alpine.Dockerfile
-    cache_from:
-      - 'laravel/app:latest'
     args:
       USER_ID: ${HOST_UID:-1000}
       GROUP_ID: ${HOST_GID:-1000}
