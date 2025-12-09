@@ -63,7 +63,6 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedByDefault=false"
       - "--providers.docker.network=stack"
-      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
       - "--entryPoints.traefik.address=:8190"
       - "--entryPoints.app.address=:80"
       - "--entryPoints.app.http.redirections.entryPoint.to=app-secure"
@@ -90,8 +89,6 @@ services:
       - "127.0.0.1:3000:3000" # Grafana
     networks:
       - stack
-    environment:
-      - DOCKER_API_VERSION=${DOCKER_API_VERSION}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro

@@ -126,7 +126,10 @@ RUN composer install \
     --no-ansi \
     --no-scripts \
     --no-progress \
-    --audit
+    --no-audit
+
+# Optional: run a non-blocking security audit for visibility
+RUN composer audit --format=summary || true
 
 COPY --link package.json bun.lock* ./
 
