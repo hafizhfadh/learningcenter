@@ -89,6 +89,8 @@ services:
       - "127.0.0.1:3000:3000" # Grafana
     networks:
       - stack
+    environment:
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
