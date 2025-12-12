@@ -26,7 +26,7 @@
             </style>
 
     <script>
-        var tryItOutBaseUrl = "http://learning.csi-academy.id";
+        var tryItOutBaseUrl = "https://learning.csi-academy.id";
         var useCsrf = Boolean();
         var csrfUrl = "/sanctum/csrf-cookie";
     </script>

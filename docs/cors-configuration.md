@@ -3,6 +3,8 @@
 ## Overview
 This Laravel application has been configured to allow Cross-Origin Resource Sharing (CORS) for localhost development environments, specifically to support React Vite SWC frontend applications running on different ports.
 
+In production, CORS is controlled via the `CORS_ALLOWED_ORIGINS` environment variable so that only explicitly trusted HTTPS origins can access the API.
+
 ## Configuration Details
 
 ### File: `config/cors.php`
@@ -69,7 +71,9 @@ const dataResponse = await fetch('http://localhost/api/protected-endpoint', {
 
 ## Security Considerations
 
-1. **Production Environment**: The configuration automatically restricts origins in production
+1. **Production Environment**: The configuration automatically restricts origins in production, and you should explicitly configure:
+   - `FORCE_HTTPS=true`
+   - `CORS_ALLOWED_ORIGINS` with your HTTPS frontend origins (for example `https://app.your-domain.com`)
 2. **Credentials Support**: Enabled to support Sanctum authentication cookies
 3. **Pattern Matching**: Uses specific localhost patterns instead of wildcard for better security
 4. **Header Control**: While all headers are allowed in development, consider restricting in production

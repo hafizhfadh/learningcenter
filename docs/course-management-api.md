@@ -9,6 +9,19 @@ The Course Management API provides comprehensive endpoints for managing and acce
 https://your-domain.com/api
 ```
 
+In production deployments, configure the Laravel backend with:
+
+- `APP_URL=https://your-domain.com`
+- `API_URL=https://api.your-domain.com` (if using a separate API subdomain)
+- `FORCE_HTTPS=true`
+
+When using a separate frontend domain, ensure the backend CORS configuration
+allows the frontend origin via the `CORS_ALLOWED_ORIGINS` environment variable, for example:
+
+```
+CORS_ALLOWED_ORIGINS=https://app.your-domain.com,https://your-domain.com
+```
+
 ## Authentication
 
 All endpoints require authentication using Laravel Sanctum tokens. Include the token in the Authorization header:

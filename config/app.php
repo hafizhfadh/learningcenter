@@ -84,6 +84,8 @@ return [
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
+    'force_https' => env('FORCE_HTTPS', false),
+
     /*
     |--------------------------------------------------------------------------
     | Encryption Key
