@@ -86,6 +86,10 @@ return [
 
     'force_https' => env('FORCE_HTTPS', false),
 
+    'api_url' => env('API_URL', env('APP_URL')),
+
+    'api_host' => parse_url(env('API_URL', env('APP_URL')), PHP_URL_HOST),
+
     /*
     |--------------------------------------------------------------------------
     | Encryption Key
