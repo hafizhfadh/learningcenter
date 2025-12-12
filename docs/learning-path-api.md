@@ -297,7 +297,6 @@ class Enrollment extends Model
 - **Authentication Required**: All methods require valid Sanctum tokens and an `APP_TOKEN` header
 - **Institution-based Filtering**: Automatic filtering by user's institution
 - **Comprehensive Error Handling**: Proper HTTP status codes and error messages
-- **Automatically Generated Documentation**: Scramble-based OpenAPI docs with request/response schemas
 
 ### Key Methods
 1. **`index()`**: List learning paths with filtering and pagination

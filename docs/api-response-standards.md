@@ -9,7 +9,6 @@ All API endpoints in the learning center application follow a consistent respons
 - **HTTP Status Codes**: Proper HTTP status codes for different scenarios
 - **Error Handling**: Comprehensive error response format
 - **Pagination Support**: Built-in pagination for list endpoints
-- **Documentation**: Comprehensive API documentation generated automatically using Scramble <mcreference link="https://scramble.dedoc.co" index="0">0</mcreference>
 
 ## Standardized Response Format
 
@@ -330,24 +329,6 @@ If you previously used only a Bearer token for authentication:
      `APP_TOKEN: {app_token}`
 4. **Review role-based access rules** for each endpoint and update your client-side navigation or feature toggles accordingly.
 
-## API Documentation Generation with Scramble
-
-Scramble analyzes Laravel routes, controllers, requests, and resources to generate OpenAPI documentation automatically, without requiring manual PHPDoc annotations on each endpoint. This keeps the documentation aligned with the actual behavior of the code.
-
-Key characteristics:
-
-- Documentation is generated in OpenAPI 3.1.0 format.
-- The default UI is available at `/docs/api` in local environment.
-- The raw OpenAPI JSON document is available at `/docs/api.json`.
-- Authentication requirements are inferred from middleware and configured globally via Scramble’s security configuration.
-
-Authentication is documented using a combined security scheme:
-
-- `Authorization: Bearer {token}` header (Sanctum token).
-- `APP_TOKEN: {app_token}` header (enhanced application token with user claims).
-
-The `POST /login` route is explicitly marked as unauthenticated in code so that the documentation correctly reflects that only the `APP_TOKEN` header is required for that endpoint.
-
 ## Best Practices
 
 ### 1. Consistent Error Messages
@@ -497,17 +478,13 @@ return response()->json(['error' => 'Not found'], 404);
 return $this->errorResponse('User not found', 404);
 ```
 
-4. **Rely on Scramble for documentation:**
-
-Scramble will derive most request and response schemas directly from your controllers, request validation rules, and resource transformations. You generally do not need to add manual documentation annotations to keep the API docs accurate.
-
 ## Conclusion
 
 The standardized API response format provides:
 
 - **Consistency**: All endpoints follow the same response structure
 - **Predictability**: Clients can rely on consistent field names and types
-- **Documentation**: Comprehensive API documentation with examples
+- **Documentation**: API documentation with examples
 - **Error Handling**: Standardized error responses with proper HTTP status codes
 - **Maintainability**: Easy to maintain and extend with the ApiResponse trait
 
