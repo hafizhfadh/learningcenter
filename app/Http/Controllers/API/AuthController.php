@@ -10,10 +10,75 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @group Authentication
+ *
+ * Endpoints for user login, token refresh, profile, institution info and logout.
+ */
 class AuthController extends Controller
 {
     use ApiResponse;
 
+    /**
+     * User login
+     *
+     * Authenticate a user with email and password and issue access tokens.
+     * Returns a Sanctum bearer token and an enhanced APP_TOKEN tied to the user.
+     *
+     * @unauthenticated
+     * @headerParam APP_TOKEN string required Client application token configured in app.client_tokens.
+     * @bodyParam email string required The user's email address. Example: admin@learningcenter.com
+     * @bodyParam password string required The user's password. Example: password
+     * @response 200 scenario="Successful login" {
+     *   "code": 200,
+     *   "message": "Login successful",
+     *   "data": {
+     *     "user": {
+     *       "id": 1,
+     *       "name": "Super User",
+     *       "email": "admin@learningcenter.com"
+     *     },
+     *     "token": "1|abcdef123456789",
+     *     "token_type": "Bearer",
+     *     "expires_in": 2592000,
+     *     "app_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+     *   },
+     *   "pagination": {}
+     * }
+     * @response 401 scenario="Invalid credentials" {
+     *   "code": 401,
+     *   "message": "The provided credentials do not match our records",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 401 scenario="Missing client APP_TOKEN" {
+     *   "code": 401,
+     *   "message": "Unauthorized",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 403 scenario="Invalid client APP_TOKEN" {
+     *   "code": 403,
+     *   "message": "Forbidden",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 422 scenario="Validation failed" {
+     *   "code": 422,
+     *   "message": "Validation failed",
+     *   "data": {
+     *     "errors": {
+     *       "email": [
+     *         "The email field is required."
+     *       ],
+     *       "password": [
+     *         "The password field is required."
+     *       ]
+     *     }
+     *   },
+     *   "pagination": {}
+     * }
+     */
     public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -76,6 +141,52 @@ class AuthController extends Controller
         return $this->successResponse($responseData, 'Login successful')->withCookie($cookie);
     }
 
+    /**
+     * Refresh auth token
+     *
+     * Revoke existing tokens for the user and issue a new Sanctum bearer token.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token for the current user. Example: "Bearer 1|abcdef123456789"
+     * @bodyParam email string required The user's email address. Example: student@example.com
+     * @bodyParam password string required The user's current password. Example: password123
+     * @response 200 scenario="Token refreshed" {
+     *   "code": 200,
+     *   "message": "Token refreshed successfully",
+     *   "data": {
+     *     "user": {
+     *       "id": 1,
+     *       "name": "Student User",
+     *       "email": "student@example.com"
+     *     },
+     *     "token": "2|newtoken123456789",
+     *     "token_type": "Bearer",
+     *     "expires_in": 2592000
+     *   },
+     *   "pagination": {}
+     * }
+     * @response 401 scenario="Invalid credentials" {
+     *   "code": 401,
+     *   "message": "The provided credentials do not match our records",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 422 scenario="Validation failed" {
+     *   "code": 422,
+     *   "message": "Validation failed",
+     *   "data": {
+     *     "errors": {
+     *       "email": [
+     *         "The email field is required."
+     *       ],
+     *       "password": [
+     *         "The password field is required."
+     *       ]
+     *     }
+     *   },
+     *   "pagination": {}
+     * }
+     */
     public function refresh(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -117,6 +228,37 @@ class AuthController extends Controller
         return $this->successResponse($responseData, 'Token refreshed successfully');
     }
 
+    /**
+     * Get current user profile
+     *
+     * Return the authenticated user's profile information.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token returned from login.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @response 200 scenario="Profile retrieved" {
+     *   "code": 200,
+     *   "message": "Profile retrieved successfully",
+     *   "data": {
+     *     "id": 1,
+     *     "name": "Student User",
+     *     "email": "student@example.com"
+     *   },
+     *   "pagination": {}
+     * }
+     * @response 401 scenario="Missing or invalid tokens" {
+     *   "code": 401,
+     *   "message": "Unauthorized",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 403 scenario="Expired app token" {
+     *   "code": 403,
+     *   "message": "Forbidden",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
     public function profile(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -124,6 +266,42 @@ class AuthController extends Controller
         return $this->successResponse($user, 'Profile retrieved successfully');
     }
 
+    /**
+     * Get institution information
+     *
+     * Retrieve the institution associated with the authenticated user.
+     * Only users with institution-bound roles can access this endpoint.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token returned from login.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @response 200 scenario="Institution retrieved" {
+     *   "code": 200,
+     *   "message": "Institution information retrieved successfully",
+     *   "data": {
+     *     "id": 1,
+     *     "name": "Learning Center University",
+     *     "slug": "learning-center-university",
+     *     "domain": "university.example.com",
+     *     "settings": [],
+     *     "created_at": "2024-01-01T12:00:00Z",
+     *     "updated_at": "2024-01-02T12:00:00Z"
+     *   },
+     *   "pagination": {}
+     * }
+     * @response 403 scenario="User without institution-bound role" {
+     *   "code": 403,
+     *   "message": "Access denied. Only users with institution-bound roles can access institution information",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 404 scenario="No institution found for user" {
+     *   "code": 404,
+     *   "message": "No institution found for this user",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
     public function institution(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -164,6 +342,21 @@ class AuthController extends Controller
         return $this->successResponse($institutionData, 'Institution information retrieved successfully');
     }
 
+    /**
+     * Logout
+     *
+     * Revoke all active tokens for the authenticated user.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token for the current user.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @response 200 scenario="Logged out" {
+     *   "code": 200,
+     *   "message": "Successfully logged out",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
     public function logout(Request $request): JsonResponse
     {
         $request->user()->tokens()->delete();

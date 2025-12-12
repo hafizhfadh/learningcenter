@@ -1,9 +1,20 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
 Route::post('/login', [\App\Http\Controllers\API\AuthController::class, 'login'])
-    ->middleware(['app.token', 'throttle:10,1']);
+    ->middleware([
+        EncryptCookies::class,
+        AddQueuedCookiesToResponse::class,
+        StartSession::class,
+        VerifyCsrfToken::class,
+        'app.token',
+        'throttle:10,1',
+    ]);
 
 Route::middleware(['auth:sanctum', 'app.token'])->group(function () {
     Route::post('/refresh', [\App\Http\Controllers\API\AuthController::class, 'refresh']);

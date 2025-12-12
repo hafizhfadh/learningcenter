@@ -13,10 +13,75 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 
+/**
+ * @group Courses
+ *
+ * Endpoints for browsing, searching and viewing course details.
+ */
 class CourseController extends Controller
 {
     use ApiResponse;
 
+    /**
+     * List courses
+     *
+     * Return a paginated list of courses accessible to the current user.
+     * Students only see published courses; staff can see all.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token returned from login.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @queryParam page int The page number to return. Example: 1
+     * @queryParam per_page int Number of items per page (1-100). Example: 20
+     * @queryParam sort string Field to sort by: title, created_at, estimated_time. Example: "created_at"
+     * @queryParam order string Sort direction: asc or desc. Example: "desc"
+     * @response 200 scenario="Courses retrieved" {
+     *   "code": 200,
+     *   "message": "Courses retrieved successfully",
+     *   "data": [
+     *     {
+     *       "id": 1,
+     *       "title": "Intro to Programming",
+     *       "slug": "intro-to-programming",
+     *       "description": "Learn the basics of programming.",
+     *       "banner_url": "https://example.com/banners/intro-to-programming.png",
+     *       "tags": ["programming", "beginner"],
+     *       "estimated_time": 3600,
+     *       "is_published": true,
+     *       "created_at": "2024-01-01T12:00:00Z",
+     *       "instructor": {
+     *         "id": 10,
+     *         "name": "Jane Doe",
+     *         "email": "jane@example.com"
+     *       },
+     *       "enrollment_status": "not_enrolled",
+     *       "total_lessons": 10,
+     *       "total_tasks": 5
+     *     }
+     *   ],
+     *   "pagination": {
+     *     "current_page": 1,
+     *     "per_page": 20,
+     *     "total": 35,
+     *     "last_page": 2,
+     *     "from": 1,
+     *     "to": 20,
+     *     "has_more_pages": true
+     *   }
+     * }
+     * @response 422 scenario="Validation failed" {
+     *   "code": 422,
+     *   "message": "Validation failed",
+     *   "data": {
+     *     "errors": {
+     *       "page": [
+     *         "The page must be at least 1."
+     *       ]
+     *     }
+     *   },
+     *   "pagination": {}
+     * }
+     */
     public function index(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -103,6 +168,74 @@ class CourseController extends Controller
         );
     }
 
+    /**
+     * Search courses
+     *
+     * Search courses by title, description, tags, instructor and date/time filters.
+     * Supports relevance-based sorting when a search query is provided.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token returned from login.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @queryParam q string Search term used to match title, description or tags. Example: "programming"
+     * @queryParam instructor string Filter by instructor name. Example: "Jane Doe"
+     * @queryParam tags string Comma-separated list of tags to filter by. Example: "beginner,backend"
+     * @queryParam start_date string Filter courses created on or after this date (Y-m-d). Example: "2024-01-01"
+     * @queryParam end_date string Filter courses created on or before this date (Y-m-d). Example: "2024-12-31"
+     * @queryParam min_time int Minimum estimated time in minutes. Example: 30
+     * @queryParam max_time int Maximum estimated time in minutes. Example: 120
+     * @queryParam page int The page number to return. Example: 1
+     * @queryParam per_page int Number of items per page (1-100). Example: 20
+     * @queryParam sort string Sort field: title, created_at, estimated_time, relevance. Example: "relevance"
+     * @queryParam order string Sort direction: asc or desc. Example: "desc"
+     * @response 200 scenario="Search completed" {
+     *   "code": 200,
+     *   "message": "Search completed successfully",
+     *   "data": [
+     *     {
+     *       "id": 1,
+     *       "title": "Intro to Programming",
+     *       "slug": "intro-to-programming",
+     *       "description": "Learn the basics of programming.",
+     *       "banner_url": "https://example.com/banners/intro-to-programming.png",
+     *       "tags": ["programming", "beginner"],
+     *       "estimated_time": 3600,
+     *       "is_published": true,
+     *       "created_at": "2024-01-01T12:00:00Z",
+     *       "instructor": {
+     *         "id": 10,
+     *         "name": "Jane Doe",
+     *         "email": "jane@example.com"
+     *       },
+     *       "enrollment_status": "not_enrolled",
+     *       "total_lessons": 10,
+     *       "total_tasks": 5,
+     *       "relevance_score": 1
+     *     }
+     *   ],
+     *   "pagination": {
+     *     "current_page": 1,
+     *     "per_page": 20,
+     *     "total": 10,
+     *     "last_page": 1,
+     *     "from": 1,
+     *     "to": 10,
+     *     "has_more_pages": false
+     *   }
+     * }
+     * @response 422 scenario="Validation failed" {
+     *   "code": 422,
+     *   "message": "Validation failed",
+     *   "data": {
+     *     "errors": {
+     *       "start_date": [
+     *         "The start date does not match the format Y-m-d."
+     *       ]
+     *     }
+     *   },
+     *   "pagination": {}
+     * }
+     */
     public function search(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -261,6 +394,67 @@ class CourseController extends Controller
         );
     }
 
+    /**
+     * Get course details
+     *
+     * Retrieve full details for a single course, including lessons, sections, tasks and statistics.
+     * Students cannot access unpublished courses.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token returned from login.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @urlParam courseId int required The ID of the course to retrieve. Example: 1
+     * @response 200 scenario="Course found" {
+     *   "code": 200,
+     *   "message": "Course details retrieved successfully",
+     *   "data": {
+     *     "id": 1,
+     *     "title": "Intro to Programming",
+     *     "slug": "intro-to-programming",
+     *     "description": "Learn the basics of programming.",
+     *     "banner_url": "https://example.com/banners/intro-to-programming.png",
+     *     "tags": ["programming", "beginner"],
+     *     "estimated_time": 3600,
+     *     "is_published": true,
+     *     "created_at": "2024-01-01T12:00:00Z",
+     *     "updated_at": "2024-01-02T12:00:00Z",
+     *     "instructor": {
+     *       "id": 10,
+     *       "name": "Jane Doe",
+     *       "email": "jane@example.com"
+     *     },
+     *     "teachers": [],
+     *     "enrollment_status": "not_enrolled",
+     *     "enrollment_date": null,
+     *     "progress_percentage": 0,
+     *     "lessons": [],
+     *     "lesson_sections": [],
+     *     "tasks": [],
+     *     "learning_paths": [],
+     *     "statistics": {
+     *       "total_lessons": 10,
+     *       "completed_lessons": 0,
+     *       "total_tasks": 5,
+     *       "completed_tasks": 0,
+     *       "total_enrolled_students": 0,
+     *       "average_completion_rate": 0
+     *     }
+     *   },
+     *   "pagination": {}
+     * }
+     * @response 403 scenario="Unpublished course for student" {
+     *   "code": 403,
+     *   "message": "Access denied. This course is not published.",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 404 scenario="Course not found" {
+     *   "code": 404,
+     *   "message": "Course not found",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
     public function show(Request $request, $courseId): JsonResponse
     {
         $user = Auth::user();

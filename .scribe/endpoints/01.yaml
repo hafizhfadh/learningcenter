@@ -1,0 +1,451 @@
+name: 'Learning Paths'
+description: |-
+
+  Endpoints for browsing learning paths, viewing details, enrolling and tracking progress.
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: learning-paths
+    metadata:
+      custom: []
+      groupName: 'Learning Paths'
+      groupDescription: |-
+
+        Endpoints for browsing learning paths, viewing details, enrolling and tracking progress.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List learning paths'
+      description: 'Return a cursor-paginated list of learning paths accessible to the current user.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer Bearer {token}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      per_page:
+        custom: []
+        name: per_page
+        description: 'Number of items per page, maximum 50.'
+        required: false
+        example: 15
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      cursor:
+        custom: []
+        name: cursor
+        description: 'The pagination cursor from the previous response.'
+        required: false
+        example: '"eyJpZCI6M30"'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      search:
+        custom: []
+        name: search
+        description: 'Filter by learning path name or description.'
+        required: false
+        example: '"programming"'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      enrolled:
+        custom: []
+        name: enrolled
+        description: 'Filter by enrollment status: all, enrolled, not_enrolled.'
+        required: false
+        example: '"enrolled"'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      per_page: 15
+      cursor: '"eyJpZCI6M30"'
+      search: '"programming"'
+      enrolled: '"enrolled"'
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "code": 200,
+            "message": "Learning paths retrieved successfully",
+            "data": [
+              {
+                "id": 1,
+                "name": "Programming Basics",
+                "slug": "programming-basics",
+                "description": "Introductory programming path",
+                "banner_url": "https://example.com/banners/programming-basics.png",
+                "is_active": true,
+                "total_estimated_time": 7200,
+                "courses_count": 3,
+                "is_enrolled": true,
+                "progress": 45,
+                "created_at": "2024-01-01T12:00:00Z",
+                "updated_at": "2024-01-02T12:00:00Z"
+              }
+            ],
+            "pagination": {
+              "per_page": 15,
+              "next_cursor": "eyJpZCI6M30",
+              "prev_cursor": null,
+              "has_more": true,
+              "count": 1
+            }
+          }
+        headers: []
+        description: 'Learning paths found'
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "code": 200,
+            "message": "No learning paths found",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'No learning paths'
+      -
+        custom: []
+        status: 401
+        content: |-
+          {
+            "code": 401,
+            "message": "Unauthorized",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'Missing or invalid tokens'
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "code": 403,
+            "message": "Forbidden",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'Expired app token'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'learning-paths/{id}'
+    metadata:
+      custom: []
+      groupName: 'Learning Paths'
+      groupDescription: |-
+
+        Endpoints for browsing learning paths, viewing details, enrolling and tracking progress.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get learning path details'
+      description: 'Retrieve full details for a single learning path, including enrolled courses and user progress.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer Bearer {token}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'The ID of the learning path.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "code": 200,
+            "message": "Learning path details retrieved successfully",
+            "data": {
+              "id": 1,
+              "name": "Programming Basics",
+              "slug": "programming-basics",
+              "description": "Introductory programming path",
+              "banner_url": "https://example.com/banners/programming-basics.png",
+              "is_active": true,
+              "total_estimated_time": 7200,
+              "courses_count": 3,
+              "is_enrolled": true,
+              "progress": 45,
+              "courses": [],
+              "enrollment": {
+                "enrolled_at": "2024-01-01T12:00:00Z",
+                "progress": 45,
+                "status": "enrolled"
+              },
+              "created_at": "2024-01-01T12:00:00Z",
+              "updated_at": "2024-01-02T12:00:00Z"
+            },
+            "pagination": {}
+          }
+        headers: []
+        description: 'Learning path found'
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "code": 404,
+            "message": "Learning path not found or not accessible",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'Learning path not accessible'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'learning-paths/{id}/enroll'
+    metadata:
+      custom: []
+      groupName: 'Learning Paths'
+      groupDescription: |-
+
+        Endpoints for browsing learning paths, viewing details, enrolling and tracking progress.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Enroll in a learning path'
+      description: 'Enroll the authenticated user in the given learning path and its courses.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer Bearer {token}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'The ID of the learning path to enroll in.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |-
+          {
+            "code": 201,
+            "message": "Successfully enrolled in learning path",
+            "data": {
+              "learning_path_id": 1,
+              "user_id": 1,
+              "enrolled_at": "2024-01-01T12:00:00Z",
+              "progress": 0,
+              "status": "enrolled",
+              "courses_enrolled": 3
+            },
+            "pagination": {}
+          }
+        headers: []
+        description: 'Enrollment created'
+      -
+        custom: []
+        status: 400
+        content: |-
+          {
+            "code": 400,
+            "message": "You are already enrolled in this learning path",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'Already enrolled'
+      -
+        custom: []
+        status: 404
+        content: |-
+          {
+            "code": 404,
+            "message": "Learning path not found or not accessible",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'Learning path not accessible'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: learning-paths/progress/my
+    metadata:
+      custom: []
+      groupName: 'Learning Paths'
+      groupDescription: |-
+
+        Endpoints for browsing learning paths, viewing details, enrolling and tracking progress.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get learning path progress'
+      description: 'Retrieve progress for the authenticated user across all enrolled learning paths.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer Bearer {token}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      per_page:
+        custom: []
+        name: per_page
+        description: 'Number of items per page, maximum 50.'
+        required: false
+        example: 15
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      cursor:
+        custom: []
+        name: cursor
+        description: 'The pagination cursor from the previous response.'
+        required: false
+        example: '"eyJpZCI6M30"'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      per_page: 15
+      cursor: '"eyJpZCI6M30"'
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "code": 200,
+            "message": "Learning path progress retrieved successfully",
+            "data": [
+              {
+                "learning_path": {
+                  "id": 1,
+                  "name": "Programming Basics",
+                  "slug": "programming-basics",
+                  "banner_url": "https://example.com/banners/programming-basics.png",
+                  "total_estimated_time": 7200,
+                  "courses_count": 3
+                },
+                "enrollment": {
+                  "enrolled_at": "2024-01-01T12:00:00Z",
+                  "progress": 45,
+                  "status": "enrolled"
+                },
+                "course_progress": []
+              }
+            ],
+            "pagination": {
+              "per_page": 15,
+              "next_cursor": "eyJpZCI6M30",
+              "prev_cursor": null,
+              "has_more": true,
+              "count": 1
+            }
+          }
+        headers: []
+        description: 'Progress retrieved'
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "code": 200,
+            "message": "No learning path enrollments found",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'No enrollments'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

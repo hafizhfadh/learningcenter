@@ -66,46 +66,60 @@
                     <a href="#authenticating-requests">Authenticating requests</a>
                 </li>
                             </ul>
-                    <ul id="tocify-header-endpoints" class="tocify-header">
-                <li class="tocify-item level-1" data-unique="endpoints">
-                    <a href="#endpoints">Endpoints</a>
+                    <ul id="tocify-header-authentication" class="tocify-header">
+                <li class="tocify-item level-1" data-unique="authentication">
+                    <a href="#authentication">Authentication</a>
                 </li>
-                                    <ul id="tocify-subheader-endpoints" class="tocify-subheader">
-                                                    <li class="tocify-item level-2" data-unique="endpoints-POSTlogin">
-                                <a href="#endpoints-POSTlogin">POST login</a>
+                                    <ul id="tocify-subheader-authentication" class="tocify-subheader">
+                                                    <li class="tocify-item level-2" data-unique="authentication-POSTlogin">
+                                <a href="#authentication-POSTlogin">User login</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-POSTrefresh">
-                                <a href="#endpoints-POSTrefresh">POST refresh</a>
+                                                                                <li class="tocify-item level-2" data-unique="authentication-POSTrefresh">
+                                <a href="#authentication-POSTrefresh">Refresh auth token</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-POSTlogout">
-                                <a href="#endpoints-POSTlogout">POST logout</a>
+                                                                                <li class="tocify-item level-2" data-unique="authentication-POSTlogout">
+                                <a href="#authentication-POSTlogout">Logout</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETprofile">
-                                <a href="#endpoints-GETprofile">GET profile</a>
+                                                                                <li class="tocify-item level-2" data-unique="authentication-GETprofile">
+                                <a href="#authentication-GETprofile">Get current user profile</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETinstitution">
-                                <a href="#endpoints-GETinstitution">GET institution</a>
+                                                                                <li class="tocify-item level-2" data-unique="authentication-GETinstitution">
+                                <a href="#authentication-GETinstitution">Get institution information</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETlearning-paths">
-                                <a href="#endpoints-GETlearning-paths">GET learning-paths</a>
+                                                                        </ul>
+                            </ul>
+                    <ul id="tocify-header-courses" class="tocify-header">
+                <li class="tocify-item level-1" data-unique="courses">
+                    <a href="#courses">Courses</a>
+                </li>
+                                    <ul id="tocify-subheader-courses" class="tocify-subheader">
+                                                    <li class="tocify-item level-2" data-unique="courses-GETcourses">
+                                <a href="#courses-GETcourses">List courses</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETlearning-paths--id-">
-                                <a href="#endpoints-GETlearning-paths--id-">GET learning-paths/{id}</a>
+                                                                                <li class="tocify-item level-2" data-unique="courses-GETcourses-search">
+                                <a href="#courses-GETcourses-search">Search courses</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-POSTlearning-paths--id--enroll">
-                                <a href="#endpoints-POSTlearning-paths--id--enroll">POST learning-paths/{id}/enroll</a>
+                                                                                <li class="tocify-item level-2" data-unique="courses-GETcourses--courseId-">
+                                <a href="#courses-GETcourses--courseId-">Get course details</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETlearning-paths-progress-my">
-                                <a href="#endpoints-GETlearning-paths-progress-my">GET learning-paths/progress/my</a>
+                                                                        </ul>
+                            </ul>
+                    <ul id="tocify-header-learning-paths" class="tocify-header">
+                <li class="tocify-item level-1" data-unique="learning-paths">
+                    <a href="#learning-paths">Learning Paths</a>
+                </li>
+                                    <ul id="tocify-subheader-learning-paths" class="tocify-subheader">
+                                                    <li class="tocify-item level-2" data-unique="learning-paths-GETlearning-paths">
+                                <a href="#learning-paths-GETlearning-paths">List learning paths</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETcourses">
-                                <a href="#endpoints-GETcourses">GET courses</a>
+                                                                                <li class="tocify-item level-2" data-unique="learning-paths-GETlearning-paths--id-">
+                                <a href="#learning-paths-GETlearning-paths--id-">Get learning path details</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETcourses-search">
-                                <a href="#endpoints-GETcourses-search">GET courses/search</a>
+                                                                                <li class="tocify-item level-2" data-unique="learning-paths-POSTlearning-paths--id--enroll">
+                                <a href="#learning-paths-POSTlearning-paths--id--enroll">Enroll in a learning path</a>
                             </li>
-                                                                                <li class="tocify-item level-2" data-unique="endpoints-GETcourses--courseId-">
-                                <a href="#endpoints-GETcourses--courseId-">GET courses/{courseId}</a>
+                                                                                <li class="tocify-item level-2" data-unique="learning-paths-GETlearning-paths-progress-my">
+                                <a href="#learning-paths-GETlearning-paths-progress-my">Get learning path progress</a>
                             </li>
                                                                         </ul>
                             </ul>
@@ -135,20 +149,21 @@
 You can switch the language used with the tabs at the top right (or from the nav menu at the top left on mobile).&lt;/aside&gt;</code></pre>
 
         <h1 id="authenticating-requests">Authenticating requests</h1>
-<p>To authenticate requests, include a <strong><code>Authorization</code></strong> header with the value <strong><code>"Bearer {token}"</code></strong>.</p>
+<p>To authenticate requests, include an <strong><code>Authorization</code></strong> header with the value <strong><code>"Bearer Bearer {token}"</code></strong>.</p>
 <p>All authenticated endpoints are marked with a <code>requires authentication</code> badge in the documentation below.</p>
 <p>Protected endpoints require an Authorization: Bearer token and an APP_TOKEN header. Obtain both tokens from the POST /login endpoint.</p>
 
-        <h1 id="endpoints">Endpoints</h1>
+        <h1 id="authentication">Authentication</h1>
 
-    
+    <p>Endpoints for user login, token refresh, profile, institution info and logout.</p>
 
-                                <h2 id="endpoints-POSTlogin">POST login</h2>
+                                <h2 id="authentication-POSTlogin">User login</h2>
 
 <p>
 </p>
 
-
+<p>Authenticate a user with email and password and issue access tokens.
+Returns a Sanctum bearer token and an enhanced APP_TOKEN tied to the user.</p>
 
 <span id="example-requests-POSTlogin">
 <blockquote>Example request:</blockquote>
@@ -160,8 +175,8 @@ You can switch the language used with the tabs at the top right (or from the nav
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"email\": \"gbailey@example.net\",
-    \"password\": \"|]|{+-\"
+    \"email\": \"admin@learningcenter.com\",
+    \"password\": \"password\"
 }"
 </code></pre></div>
 
@@ -177,8 +192,8 @@ const headers = {
 };
 
 let body = {
-    "email": "gbailey@example.net",
-    "password": "|]|{+-"
+    "email": "admin@learningcenter.com",
+    "password": "password"
 };
 
 fetch(url, {
@@ -190,7 +205,86 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTlogin">
-</span>
+            <blockquote>
+            <p>Example response (200, Successful login):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Login successful&quot;,
+    &quot;data&quot;: {
+        &quot;user&quot;: {
+            &quot;id&quot;: 1,
+            &quot;name&quot;: &quot;Super User&quot;,
+            &quot;email&quot;: &quot;admin@learningcenter.com&quot;
+        },
+        &quot;token&quot;: &quot;1|abcdef123456789&quot;,
+        &quot;token_type&quot;: &quot;Bearer&quot;,
+        &quot;expires_in&quot;: 2592000,
+        &quot;app_token&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Invalid credentials):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;The provided credentials do not match our records&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Missing client APP_TOKEN):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;Unauthorized&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Invalid client APP_TOKEN):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 403,
+    &quot;message&quot;: &quot;Forbidden&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation failed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 422,
+    &quot;message&quot;: &quot;Validation failed&quot;,
+    &quot;data&quot;: {
+        &quot;errors&quot;: {
+            &quot;email&quot;: [
+                &quot;The email field is required.&quot;
+            ],
+            &quot;password&quot;: [
+                &quot;The password field is required.&quot;
+            ]
+        }
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTlogin" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTlogin"></span>:
@@ -270,10 +364,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="email"                data-endpoint="POSTlogin"
-               value="gbailey@example.net"
+               value="admin@learningcenter.com"
                data-component="body">
     <br>
-<p>Must be a valid email address. Example: <code>gbailey@example.net</code></p>
+<p>The user's email address. Example: <code>admin@learningcenter.com</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>password</code></b>&nbsp;&nbsp;
@@ -282,19 +376,20 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="password"                data-endpoint="POSTlogin"
-               value="|]|{+-"
+               value="password"
                data-component="body">
     <br>
-<p>Example: <code>|]|{+-</code></p>
+<p>The user's password. Example: <code>password</code></p>
         </div>
         </form>
 
-                    <h2 id="endpoints-POSTrefresh">POST refresh</h2>
+                    <h2 id="authentication-POSTrefresh">Refresh auth token</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Revoke existing tokens for the user and issue a new Sanctum bearer token.</p>
 
 <span id="example-requests-POSTrefresh">
 <blockquote>Example request:</blockquote>
@@ -303,11 +398,12 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "https://api.learning-center-academy.local/refresh" \
+    --header "Authorization: Bearer Bearer {token}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
-    \"email\": \"gbailey@example.net\",
-    \"password\": \"|]|{+-\"
+    \"email\": \"student@example.com\",
+    \"password\": \"password123\"
 }"
 </code></pre></div>
 
@@ -318,13 +414,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer Bearer {token}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
 
 let body = {
-    "email": "gbailey@example.net",
-    "password": "|]|{+-"
+    "email": "student@example.com",
+    "password": "password123"
 };
 
 fetch(url, {
@@ -336,7 +433,61 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTrefresh">
-</span>
+            <blockquote>
+            <p>Example response (200, Token refreshed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Token refreshed successfully&quot;,
+    &quot;data&quot;: {
+        &quot;user&quot;: {
+            &quot;id&quot;: 1,
+            &quot;name&quot;: &quot;Student User&quot;,
+            &quot;email&quot;: &quot;student@example.com&quot;
+        },
+        &quot;token&quot;: &quot;2|newtoken123456789&quot;,
+        &quot;token_type&quot;: &quot;Bearer&quot;,
+        &quot;expires_in&quot;: 2592000
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Invalid credentials):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;The provided credentials do not match our records&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation failed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 422,
+    &quot;message&quot;: &quot;Validation failed&quot;,
+    &quot;data&quot;: {
+        &quot;errors&quot;: {
+            &quot;email&quot;: [
+                &quot;The email field is required.&quot;
+            ],
+            &quot;password&quot;: [
+                &quot;The password field is required.&quot;
+            ]
+        }
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTrefresh" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTrefresh"></span>:
@@ -354,7 +505,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTrefresh" data-method="POST"
       data-path="refresh"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -384,6 +535,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <b><code>refresh</code></b>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTrefresh"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
                                 <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
@@ -416,10 +579,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="email"                data-endpoint="POSTrefresh"
-               value="gbailey@example.net"
+               value="student@example.com"
                data-component="body">
     <br>
-<p>Must be a valid email address. Example: <code>gbailey@example.net</code></p>
+<p>The user's email address. Example: <code>student@example.com</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>password</code></b>&nbsp;&nbsp;
@@ -428,19 +591,20 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="password"                data-endpoint="POSTrefresh"
-               value="|]|{+-"
+               value="password123"
                data-component="body">
     <br>
-<p>Example: <code>|]|{+-</code></p>
+<p>The user's current password. Example: <code>password123</code></p>
         </div>
         </form>
 
-                    <h2 id="endpoints-POSTlogout">POST logout</h2>
+                    <h2 id="authentication-POSTlogout">Logout</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Revoke all active tokens for the authenticated user.</p>
 
 <span id="example-requests-POSTlogout">
 <blockquote>Example request:</blockquote>
@@ -449,6 +613,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request POST \
     "https://api.learning-center-academy.local/logout" \
+    --header "Authorization: Bearer Bearer {token}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -459,6 +624,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer Bearer {token}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -471,7 +637,19 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTlogout">
-</span>
+            <blockquote>
+            <p>Example response (200, Logged out):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Successfully logged out&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
 <span id="execution-results-POSTlogout" hidden>
     <blockquote>Received response<span
                 id="execution-response-status-POSTlogout"></span>:
@@ -489,7 +667,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-POSTlogout" data-method="POST"
       data-path="logout"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -520,6 +698,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTlogout"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -545,12 +735,13 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                    <h2 id="endpoints-GETprofile">GET profile</h2>
+                    <h2 id="authentication-GETprofile">Get current user profile</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Return the authenticated user's profile information.</p>
 
 <span id="example-requests-GETprofile">
 <blockquote>Example request:</blockquote>
@@ -559,6 +750,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
     --get "https://api.learning-center-academy.local/profile" \
+    --header "Authorization: Bearer Bearer {token}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -569,6 +761,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer Bearer {token}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -582,19 +775,43 @@ fetch(url, {
 
 <span id="example-responses-GETprofile">
             <blockquote>
-            <p>Example response (401):</p>
+            <p>Example response (200, Profile retrieved):</p>
         </blockquote>
-                <details class="annotation">
-            <summary style="cursor: pointer;">
-                <small onclick="textContent = parentElement.parentElement.open ? 'Show headers' : 'Hide headers'">Show headers</small>
-            </summary>
-            <pre><code class="language-http">cache-control: no-cache, private
-content-type: application/json
-set-cookie: XSRF-TOKEN=eyJpdiI6IlZoSHJGd1k1WHRQZkpiREJnK0QwSXc9PSIsInZhbHVlIjoiOG1odUNrMlJPaU42VWtUVEtJemNwOWRpeHNqbVJ1WFZOeGFkc0FySEhvS2N5TExrTGUwT3VtYlVPaFJaVGpFMXB4Vm9sNnI2UmJ6RWZVNjJsOEJDWGw2cEhKejhVa2F5dVRzN056OXg2UTJ6ckl3cXM5L3pQa0c1WWEwVXZadFMiLCJtYWMiOiJmNDg5YjQzM2QwZmI5ODQ2OGY5NmNiMWZhYzIxZDY1MjQ3ZmQ3NjEwMDkyNTRlNDFjN2U3MGQ2ODVlYTM3NTJkIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; samesite=lax; laravel-session=eyJpdiI6Im14R21KRG41TjMraVNvSVpRd2RwNXc9PSIsInZhbHVlIjoiOXhwZ2FCZ1dnOXZvb093L2N4UHhVbG96ajFDemFxUFhBd3F4cTZ2M0l4Zzd5YnJwc3lJWGZLcHZacnZwa29uSFFwSnAyUnZ2ZC9aWkV5NDh3NUpIa0F5dGFrZDZBcVBZTDMvNUY0M2c1WmliZkF6WjJmciswOGs3YmdnNGZiSUciLCJtYWMiOiI5NjU1MDk5NDNjNWZkOTk0OGY4NjJhMmQ1MDE1NmZlZjFiYWM1NjZmNjFlMmMwNWY2MzViYjUxMmE2M2I4NTk3IiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
- </code></pre></details>         <pre>
+                <pre>
 
 <code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;Unauthenticated.&quot;
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Profile retrieved successfully&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;Student User&quot;,
+        &quot;email&quot;: &quot;student@example.com&quot;
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Missing or invalid tokens):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;Unauthorized&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Expired app token):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 403,
+    &quot;message&quot;: &quot;Forbidden&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
 }</code>
  </pre>
     </span>
@@ -615,7 +832,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETprofile" data-method="GET"
       data-path="profile"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -646,6 +863,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETprofile"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -671,12 +900,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                    <h2 id="endpoints-GETinstitution">GET institution</h2>
+                    <h2 id="authentication-GETinstitution">Get institution information</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Retrieve the institution associated with the authenticated user.
+Only users with institution-bound roles can access this endpoint.</p>
 
 <span id="example-requests-GETinstitution">
 <blockquote>Example request:</blockquote>
@@ -685,6 +916,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
     --get "https://api.learning-center-academy.local/institution" \
+    --header "Authorization: Bearer Bearer {token}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
@@ -695,6 +927,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const headers = {
+    "Authorization": "Bearer Bearer {token}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -708,19 +941,47 @@ fetch(url, {
 
 <span id="example-responses-GETinstitution">
             <blockquote>
-            <p>Example response (401):</p>
+            <p>Example response (200, Institution retrieved):</p>
         </blockquote>
-                <details class="annotation">
-            <summary style="cursor: pointer;">
-                <small onclick="textContent = parentElement.parentElement.open ? 'Show headers' : 'Hide headers'">Show headers</small>
-            </summary>
-            <pre><code class="language-http">cache-control: no-cache, private
-content-type: application/json
-set-cookie: XSRF-TOKEN=eyJpdiI6IitaWkZRVkNGRHl4NllGeXJ6aXJpRlE9PSIsInZhbHVlIjoiSktRYnM2ZFVaQ2l6Umh0TWVpdVkwbUlRbnBtRE5DSDI3dk90M0VGKzNRWVJ6Z2FDNnUwbHozOUh3WGcyeHFCZXkzbHdvMkVmN3d1WllCMVhNcnU3ek5CRmxrRVl0aVJDMVNtNG5ISW9paUk1cjZKNGRrR0gxVlI5VVNrVUVnY3EiLCJtYWMiOiI4MzI4MmY0YTgyY2Q4NTg0Y2M4YjY3NWI4MDZlOTlmNDM3ZjMxMjE2YjYxYTE1ODc0OTZmMDUyYzljN2RjNjUxIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; samesite=lax; laravel-session=eyJpdiI6Im5qelBjYnRCWkVnODVlUFBnNEx5eGc9PSIsInZhbHVlIjoiVFJkWHRObUlhNkUxM3JvR0hwZGNHMmRXTGZrL3hWUll5RWRMYWpvQ1ljZU94Rzl3SU5oS2xZaVNsbktvdXAzN1pXOTlGYzZxVDBNZlI2cHlWUU9DVEFqbjlaVElkZG8zQ0NjYnk1ZzhVL3d6U2NLelp5enNoZFN3UEFXZ1hqYkIiLCJtYWMiOiI4YTkyMzU0NmNhNDcxYzczMjU1ZmI1YWI4ZWMyYzk3OWRjZjQzMDc4MDE3ZjM0YWYwYTg3ZjcyYTg2ZWQ1ZjZmIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
- </code></pre></details>         <pre>
+                <pre>
 
 <code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;Unauthenticated.&quot;
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Institution information retrieved successfully&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;Learning Center University&quot;,
+        &quot;slug&quot;: &quot;learning-center-university&quot;,
+        &quot;domain&quot;: &quot;university.example.com&quot;,
+        &quot;settings&quot;: [],
+        &quot;created_at&quot;: &quot;2024-01-01T12:00:00Z&quot;,
+        &quot;updated_at&quot;: &quot;2024-01-02T12:00:00Z&quot;
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, User without institution-bound role):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 403,
+    &quot;message&quot;: &quot;Access denied. Only users with institution-bound roles can access institution information&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, No institution found for user):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 404,
+    &quot;message&quot;: &quot;No institution found for this user&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
 }</code>
  </pre>
     </span>
@@ -741,7 +1002,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETinstitution" data-method="GET"
       data-path="institution"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -772,6 +1033,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETinstitution"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -797,526 +1070,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
-                    <h2 id="endpoints-GETlearning-paths">GET learning-paths</h2>
+                <h1 id="courses">Courses</h1>
+
+    <p>Endpoints for browsing, searching and viewing course details.</p>
+
+                                <h2 id="courses-GETcourses">List courses</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
-
-<span id="example-requests-GETlearning-paths">
-<blockquote>Example request:</blockquote>
-
-
-<div class="bash-example">
-    <pre><code class="language-bash">curl --request GET \
-    --get "https://api.learning-center-academy.local/learning-paths" \
-    --header "Content-Type: application/json" \
-    --header "Accept: application/json"</code></pre></div>
-
-
-<div class="javascript-example">
-    <pre><code class="language-javascript">const url = new URL(
-    "https://api.learning-center-academy.local/learning-paths"
-);
-
-const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-};
-
-fetch(url, {
-    method: "GET",
-    headers,
-}).then(response =&gt; response.json());</code></pre></div>
-
-</span>
-
-<span id="example-responses-GETlearning-paths">
-            <blockquote>
-            <p>Example response (401):</p>
-        </blockquote>
-                <details class="annotation">
-            <summary style="cursor: pointer;">
-                <small onclick="textContent = parentElement.parentElement.open ? 'Show headers' : 'Hide headers'">Show headers</small>
-            </summary>
-            <pre><code class="language-http">cache-control: no-cache, private
-content-type: application/json
-set-cookie: XSRF-TOKEN=eyJpdiI6IklSbFdiQjdobGlCb3R0VUV6UmYxUVE9PSIsInZhbHVlIjoibWZqN3ByVDFHdUl0MUMxRHpqMkdBR2g0SFdMalk0Szh1Z2ppaldMc29XbTZZTlBOMWhSeVFxcjlaZGRGNmpScHFuSTN4bm1Wa20vWXhlSUttSzZnczhUTkVFTFZTeTg1ekVsMWdHaWpIa1R4WFVuamdmeGpvUUhnR25rbU1YNXMiLCJtYWMiOiIxNWExMDVjNWUxYjAwNDQzYzQzZWU2MDUxMzMyMDU3Y2M0ZGNjM2E5MDg1ZWE0MDQ3ZGE3NjMwZDFkMWNhMGNkIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; samesite=lax; laravel-session=eyJpdiI6InZNVHB5K2VPR0NoVzYrV0NkVGk3MlE9PSIsInZhbHVlIjoibGI0MzBTcEVqZnQ2V1hjYW5ua0dyZjFUK2lMTkVld3hvbE5RT1ZpZlZGQVZQVXVEVVk0REJ0Z2ZrZkJsUkJxZ0ZkQlpqMHYybCtFYktpRGdJYUtUMUZmSkNVMUNsTHVqRW9YTy8veFA5RVhIeHczazhJL2pYVUswcXJUYkpSVGkiLCJtYWMiOiIwMzUzMzgwZWE0OTA0Y2Y0MjZjOTdkYmNiODZmMDM4NDIxNzFmNGIzMDUxZjVhYmJlYmZjOGIxYTFhZmQxZThlIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
- </code></pre></details>         <pre>
-
-<code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;Unauthenticated.&quot;
-}</code>
- </pre>
-    </span>
-<span id="execution-results-GETlearning-paths" hidden>
-    <blockquote>Received response<span
-                id="execution-response-status-GETlearning-paths"></span>:
-    </blockquote>
-    <pre class="json"><code id="execution-response-content-GETlearning-paths"
-      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
-</span>
-<span id="execution-error-GETlearning-paths" hidden>
-    <blockquote>Request failed with error:</blockquote>
-    <pre><code id="execution-error-message-GETlearning-paths">
-
-Tip: Check that you&#039;re properly connected to the network.
-If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
-You can check the Dev Tools console for debugging information.</code></pre>
-</span>
-<form id="form-GETlearning-paths" data-method="GET"
-      data-path="learning-paths"
-      data-authed="0"
-      data-hasfiles="0"
-      data-isarraybody="0"
-      autocomplete="off"
-      onsubmit="event.preventDefault(); executeTryOut('GETlearning-paths', this);">
-    <h3>
-        Request&nbsp;&nbsp;&nbsp;
-                    <button type="button"
-                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-tryout-GETlearning-paths"
-                    onclick="tryItOut('GETlearning-paths');">Try it out ⚡
-            </button>
-            <button type="button"
-                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-canceltryout-GETlearning-paths"
-                    onclick="cancelTryOut('GETlearning-paths');" hidden>Cancel 🛑
-            </button>&nbsp;&nbsp;
-            <button type="submit"
-                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-executetryout-GETlearning-paths"
-                    data-initial-text="Send Request 💥"
-                    data-loading-text="⏱ Sending..."
-                    hidden>Send Request 💥
-            </button>
-            </h3>
-            <p>
-            <small class="badge badge-green">GET</small>
-            <b><code>learning-paths</code></b>
-        </p>
-                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Content-Type"                data-endpoint="GETlearning-paths"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Accept"                data-endpoint="GETlearning-paths"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                        </form>
-
-                    <h2 id="endpoints-GETlearning-paths--id-">GET learning-paths/{id}</h2>
-
-<p>
-</p>
-
-
-
-<span id="example-requests-GETlearning-paths--id-">
-<blockquote>Example request:</blockquote>
-
-
-<div class="bash-example">
-    <pre><code class="language-bash">curl --request GET \
-    --get "https://api.learning-center-academy.local/learning-paths/architecto" \
-    --header "Content-Type: application/json" \
-    --header "Accept: application/json"</code></pre></div>
-
-
-<div class="javascript-example">
-    <pre><code class="language-javascript">const url = new URL(
-    "https://api.learning-center-academy.local/learning-paths/architecto"
-);
-
-const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-};
-
-fetch(url, {
-    method: "GET",
-    headers,
-}).then(response =&gt; response.json());</code></pre></div>
-
-</span>
-
-<span id="example-responses-GETlearning-paths--id-">
-            <blockquote>
-            <p>Example response (401):</p>
-        </blockquote>
-                <details class="annotation">
-            <summary style="cursor: pointer;">
-                <small onclick="textContent = parentElement.parentElement.open ? 'Show headers' : 'Hide headers'">Show headers</small>
-            </summary>
-            <pre><code class="language-http">cache-control: no-cache, private
-content-type: application/json
-set-cookie: XSRF-TOKEN=eyJpdiI6ImF5azZ3dG9ZMmV3QWtUYTdiU1BqNVE9PSIsInZhbHVlIjoiWWtSY3FSdmxHS29OQkNUbzJoTlJGdjg5VitNWjBYN1RoNElveVBOTVhDSXBSSHBJS0NmaHd6TEtnVFBsdHJFLzFFSWYwLzNzZEN1OHVoUkd1YzhTK2hqZ1UvK3JVRzNRQXR6VmNzM3g1Uk9STjFPRVh1VVdmNnZMaEs4dVZMN2ciLCJtYWMiOiI4ZWNjYWZhOWFlMjBhZDAyOTE0N2E3Nzc1YTQyMGY0YTk0MmE2ZmU5NzhmM2Q4ZDRjMzQ0YTdkNWUzNjMxNjIzIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; samesite=lax; laravel-session=eyJpdiI6IklpOFJtRW9oZlpoQU12bG0ydmdQNVE9PSIsInZhbHVlIjoiblVXR2hxbnpjTy9BUlRCd3NPZVpBL0FseDNBTytIR01SSE9EWmdIeFFWWSt6dUhYUFZJd1Y0SkoyZUdYQUw5ZCtPUjNZeTR0ajRLOXlYazdNamVVTkZkMXNxbUJzVnpRSVlqeVF6Y3NaQ2MwNmJWZFhiMW16dndUMnU0UnVKNmwiLCJtYWMiOiJkZDljNzIyNmJjMDc0ODBhNTgyZDgxMGIwYWFjNmExY2Y3NjY1ZDY5NzNjODNkZWRjMmJlZDJjNjUxZDBjYTk1IiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
- </code></pre></details>         <pre>
-
-<code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;Unauthenticated.&quot;
-}</code>
- </pre>
-    </span>
-<span id="execution-results-GETlearning-paths--id-" hidden>
-    <blockquote>Received response<span
-                id="execution-response-status-GETlearning-paths--id-"></span>:
-    </blockquote>
-    <pre class="json"><code id="execution-response-content-GETlearning-paths--id-"
-      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
-</span>
-<span id="execution-error-GETlearning-paths--id-" hidden>
-    <blockquote>Request failed with error:</blockquote>
-    <pre><code id="execution-error-message-GETlearning-paths--id-">
-
-Tip: Check that you&#039;re properly connected to the network.
-If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
-You can check the Dev Tools console for debugging information.</code></pre>
-</span>
-<form id="form-GETlearning-paths--id-" data-method="GET"
-      data-path="learning-paths/{id}"
-      data-authed="0"
-      data-hasfiles="0"
-      data-isarraybody="0"
-      autocomplete="off"
-      onsubmit="event.preventDefault(); executeTryOut('GETlearning-paths--id-', this);">
-    <h3>
-        Request&nbsp;&nbsp;&nbsp;
-                    <button type="button"
-                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-tryout-GETlearning-paths--id-"
-                    onclick="tryItOut('GETlearning-paths--id-');">Try it out ⚡
-            </button>
-            <button type="button"
-                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-canceltryout-GETlearning-paths--id-"
-                    onclick="cancelTryOut('GETlearning-paths--id-');" hidden>Cancel 🛑
-            </button>&nbsp;&nbsp;
-            <button type="submit"
-                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-executetryout-GETlearning-paths--id-"
-                    data-initial-text="Send Request 💥"
-                    data-loading-text="⏱ Sending..."
-                    hidden>Send Request 💥
-            </button>
-            </h3>
-            <p>
-            <small class="badge badge-green">GET</small>
-            <b><code>learning-paths/{id}</code></b>
-        </p>
-                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Content-Type"                data-endpoint="GETlearning-paths--id-"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Accept"                data-endpoint="GETlearning-paths--id-"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
-                    <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>id</code></b>&nbsp;&nbsp;
-<small>string</small>&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="id"                data-endpoint="GETlearning-paths--id-"
-               value="architecto"
-               data-component="url">
-    <br>
-<p>The ID of the learning path. Example: <code>architecto</code></p>
-            </div>
-                    </form>
-
-                    <h2 id="endpoints-POSTlearning-paths--id--enroll">POST learning-paths/{id}/enroll</h2>
-
-<p>
-</p>
-
-
-
-<span id="example-requests-POSTlearning-paths--id--enroll">
-<blockquote>Example request:</blockquote>
-
-
-<div class="bash-example">
-    <pre><code class="language-bash">curl --request POST \
-    "https://api.learning-center-academy.local/learning-paths/architecto/enroll" \
-    --header "Content-Type: application/json" \
-    --header "Accept: application/json"</code></pre></div>
-
-
-<div class="javascript-example">
-    <pre><code class="language-javascript">const url = new URL(
-    "https://api.learning-center-academy.local/learning-paths/architecto/enroll"
-);
-
-const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-};
-
-fetch(url, {
-    method: "POST",
-    headers,
-}).then(response =&gt; response.json());</code></pre></div>
-
-</span>
-
-<span id="example-responses-POSTlearning-paths--id--enroll">
-</span>
-<span id="execution-results-POSTlearning-paths--id--enroll" hidden>
-    <blockquote>Received response<span
-                id="execution-response-status-POSTlearning-paths--id--enroll"></span>:
-    </blockquote>
-    <pre class="json"><code id="execution-response-content-POSTlearning-paths--id--enroll"
-      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
-</span>
-<span id="execution-error-POSTlearning-paths--id--enroll" hidden>
-    <blockquote>Request failed with error:</blockquote>
-    <pre><code id="execution-error-message-POSTlearning-paths--id--enroll">
-
-Tip: Check that you&#039;re properly connected to the network.
-If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
-You can check the Dev Tools console for debugging information.</code></pre>
-</span>
-<form id="form-POSTlearning-paths--id--enroll" data-method="POST"
-      data-path="learning-paths/{id}/enroll"
-      data-authed="0"
-      data-hasfiles="0"
-      data-isarraybody="0"
-      autocomplete="off"
-      onsubmit="event.preventDefault(); executeTryOut('POSTlearning-paths--id--enroll', this);">
-    <h3>
-        Request&nbsp;&nbsp;&nbsp;
-                    <button type="button"
-                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-tryout-POSTlearning-paths--id--enroll"
-                    onclick="tryItOut('POSTlearning-paths--id--enroll');">Try it out ⚡
-            </button>
-            <button type="button"
-                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-canceltryout-POSTlearning-paths--id--enroll"
-                    onclick="cancelTryOut('POSTlearning-paths--id--enroll');" hidden>Cancel 🛑
-            </button>&nbsp;&nbsp;
-            <button type="submit"
-                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-executetryout-POSTlearning-paths--id--enroll"
-                    data-initial-text="Send Request 💥"
-                    data-loading-text="⏱ Sending..."
-                    hidden>Send Request 💥
-            </button>
-            </h3>
-            <p>
-            <small class="badge badge-black">POST</small>
-            <b><code>learning-paths/{id}/enroll</code></b>
-        </p>
-                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Content-Type"                data-endpoint="POSTlearning-paths--id--enroll"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Accept"                data-endpoint="POSTlearning-paths--id--enroll"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
-                    <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>id</code></b>&nbsp;&nbsp;
-<small>string</small>&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="id"                data-endpoint="POSTlearning-paths--id--enroll"
-               value="architecto"
-               data-component="url">
-    <br>
-<p>The ID of the learning path. Example: <code>architecto</code></p>
-            </div>
-                    </form>
-
-                    <h2 id="endpoints-GETlearning-paths-progress-my">GET learning-paths/progress/my</h2>
-
-<p>
-</p>
-
-
-
-<span id="example-requests-GETlearning-paths-progress-my">
-<blockquote>Example request:</blockquote>
-
-
-<div class="bash-example">
-    <pre><code class="language-bash">curl --request GET \
-    --get "https://api.learning-center-academy.local/learning-paths/progress/my" \
-    --header "Content-Type: application/json" \
-    --header "Accept: application/json"</code></pre></div>
-
-
-<div class="javascript-example">
-    <pre><code class="language-javascript">const url = new URL(
-    "https://api.learning-center-academy.local/learning-paths/progress/my"
-);
-
-const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-};
-
-fetch(url, {
-    method: "GET",
-    headers,
-}).then(response =&gt; response.json());</code></pre></div>
-
-</span>
-
-<span id="example-responses-GETlearning-paths-progress-my">
-            <blockquote>
-            <p>Example response (401):</p>
-        </blockquote>
-                <details class="annotation">
-            <summary style="cursor: pointer;">
-                <small onclick="textContent = parentElement.parentElement.open ? 'Show headers' : 'Hide headers'">Show headers</small>
-            </summary>
-            <pre><code class="language-http">cache-control: no-cache, private
-content-type: application/json
-set-cookie: XSRF-TOKEN=eyJpdiI6IjJoNTcyRHJBbDRuc1F3UkZhSlN1eHc9PSIsInZhbHVlIjoiUDRVWEx0S2xEZHd5bFV0UGxXRU9ONHB6UUFjb01OdnBkQ1JUYkxNVWNjdjdSdnBRclpqc3UzcHBPWWVPcDFDK1R6TXhXMW9DWkFUbXFIVVpnL1JZTW4rNm5vOFlmeVdES0VMOWdZWGEvb0hpRWdUWXZBU25kbUFzb05HWGxPUDYiLCJtYWMiOiI0NmIwZTRmMjgzZGM5MjFjNjg2YzM5OTIxZTI2MzRmYTUwMThkMmFhN2EzOTQyNjhlYTRkMDY1YWFiODYyNmYzIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; samesite=lax; laravel-session=eyJpdiI6InU1ajcreWxuNnRpUjJoSmF6T3dYOFE9PSIsInZhbHVlIjoicUdnMGpHWFFGWml4NSthQUJOWTVQOFhCeEtQQ2NuMFhDUUNvYTVIYmo4em5jMmxKVml3U21RQkg2ZjNWWk9Ua1pCRjVVcHI3QUJPUDF4eEh4b3hKWnJpVUJzNGJmOURjbytVamJzSDY4YnAvcFNoR0xOWkVOb2RPL3dLSzVRaUoiLCJtYWMiOiJkOWE3MGE1NDUzM2MwODcxYzU5ZTg2OTc1ZTU0ZjBmMDVkZTA1M2Q2NWIwZmE3ZGQyMzkzNjIwMDQxMmRkZTZkIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
- </code></pre></details>         <pre>
-
-<code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;Unauthenticated.&quot;
-}</code>
- </pre>
-    </span>
-<span id="execution-results-GETlearning-paths-progress-my" hidden>
-    <blockquote>Received response<span
-                id="execution-response-status-GETlearning-paths-progress-my"></span>:
-    </blockquote>
-    <pre class="json"><code id="execution-response-content-GETlearning-paths-progress-my"
-      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
-</span>
-<span id="execution-error-GETlearning-paths-progress-my" hidden>
-    <blockquote>Request failed with error:</blockquote>
-    <pre><code id="execution-error-message-GETlearning-paths-progress-my">
-
-Tip: Check that you&#039;re properly connected to the network.
-If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
-You can check the Dev Tools console for debugging information.</code></pre>
-</span>
-<form id="form-GETlearning-paths-progress-my" data-method="GET"
-      data-path="learning-paths/progress/my"
-      data-authed="0"
-      data-hasfiles="0"
-      data-isarraybody="0"
-      autocomplete="off"
-      onsubmit="event.preventDefault(); executeTryOut('GETlearning-paths-progress-my', this);">
-    <h3>
-        Request&nbsp;&nbsp;&nbsp;
-                    <button type="button"
-                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-tryout-GETlearning-paths-progress-my"
-                    onclick="tryItOut('GETlearning-paths-progress-my');">Try it out ⚡
-            </button>
-            <button type="button"
-                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-canceltryout-GETlearning-paths-progress-my"
-                    onclick="cancelTryOut('GETlearning-paths-progress-my');" hidden>Cancel 🛑
-            </button>&nbsp;&nbsp;
-            <button type="submit"
-                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
-                    id="btn-executetryout-GETlearning-paths-progress-my"
-                    data-initial-text="Send Request 💥"
-                    data-loading-text="⏱ Sending..."
-                    hidden>Send Request 💥
-            </button>
-            </h3>
-            <p>
-            <small class="badge badge-green">GET</small>
-            <b><code>learning-paths/progress/my</code></b>
-        </p>
-                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Content-Type"                data-endpoint="GETlearning-paths-progress-my"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                                <div style="padding-left: 28px; clear: unset;">
-                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
-&nbsp;
- &nbsp;
- &nbsp;
-                <input type="text" style="display: none"
-                              name="Accept"                data-endpoint="GETlearning-paths-progress-my"
-               value="application/json"
-               data-component="header">
-    <br>
-<p>Example: <code>application/json</code></p>
-            </div>
-                        </form>
-
-                    <h2 id="endpoints-GETcourses">GET courses</h2>
-
-<p>
-</p>
-
-
+<p>Return a paginated list of courses accessible to the current user.
+Students only see published courses; staff can see all.</p>
 
 <span id="example-requests-GETcourses">
 <blockquote>Example request:</blockquote>
@@ -1324,13 +1089,14 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://api.learning-center-academy.local/courses" \
+    --get "https://api.learning-center-academy.local/courses?page=1&amp;per_page=20&amp;sort=%22created_at%22&amp;order=%22desc%22" \
+    --header "Authorization: Bearer Bearer {token}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
     \"page\": 16,
     \"per_page\": 22,
-    \"sort\": \"estimated_time\",
+    \"sort\": \"created_at\",
     \"order\": \"desc\"
 }"
 </code></pre></div>
@@ -1341,7 +1107,17 @@ You can check the Dev Tools console for debugging information.</code></pre>
     "https://api.learning-center-academy.local/courses"
 );
 
+const params = {
+    "page": "1",
+    "per_page": "20",
+    "sort": ""created_at"",
+    "order": ""desc"",
+};
+Object.keys(params)
+    .forEach(key =&gt; url.searchParams.append(key, params[key]));
+
 const headers = {
+    "Authorization": "Bearer Bearer {token}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -1349,7 +1125,7 @@ const headers = {
 let body = {
     "page": 16,
     "per_page": 22,
-    "sort": "estimated_time",
+    "sort": "created_at",
     "order": "desc"
 };
 
@@ -1363,19 +1139,64 @@ fetch(url, {
 
 <span id="example-responses-GETcourses">
             <blockquote>
-            <p>Example response (401):</p>
+            <p>Example response (200, Courses retrieved):</p>
         </blockquote>
-                <details class="annotation">
-            <summary style="cursor: pointer;">
-                <small onclick="textContent = parentElement.parentElement.open ? 'Show headers' : 'Hide headers'">Show headers</small>
-            </summary>
-            <pre><code class="language-http">cache-control: no-cache, private
-content-type: application/json
-set-cookie: XSRF-TOKEN=eyJpdiI6IkZiaW4wdmtQQ3hwVXdOaXNIWVRPVXc9PSIsInZhbHVlIjoiVGdPcHNGc0xzbXdVaU1jVHRxckU3MHR4bUc1TzdXSy9hS0drNndxYTh3OXQ4Z3NtR0Y1K05xRFFUQ00xNjdrdzY0NFhWNFRVYjEvSnh6OUhVbTVEb1BLQTVLTGcxNXgyY3BRVHo2THM4eUlpdGN6WDBEMmJZbXJnazdrQitETlUiLCJtYWMiOiI2YTc2OTIzMjA0Yjk1NjRjMjk0YWI1NTFiYjNmMDllMzU1NjJmMzUxYTJlNzE1YTJkODY0M2Q1NzUxYmMwZTZjIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; samesite=lax; laravel-session=eyJpdiI6Ijd6TDZHRTc1eDB1eDJhbHhuM00rS2c9PSIsInZhbHVlIjoibnptR055a0NuU0ljU2dKY2FGMGpxODFpUmxBVDFvQ3VNek96Rll5cTc4RzFobjhhMXN3OStIZm1uNTJZY2FDWkNtakZHUWlsQVJVZktyYjhzTGJlbVFRWDRiaVZPY3VrZUJ2QmlROFRoNUFvMTM4Tm0zZjRxL3hsQnd0SGVYNU8iLCJtYWMiOiI0Njc0NzFjMDc4MGE0M2E3MWFhMTk1NzUxMmI4NzhmMmE3Yjk4ZmM3MGU3MmU3NDdkMjE5YThjZWViMWZlOGI2IiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
- </code></pre></details>         <pre>
+                <pre>
 
 <code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;Unauthenticated.&quot;
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Courses retrieved successfully&quot;,
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 1,
+            &quot;title&quot;: &quot;Intro to Programming&quot;,
+            &quot;slug&quot;: &quot;intro-to-programming&quot;,
+            &quot;description&quot;: &quot;Learn the basics of programming.&quot;,
+            &quot;banner_url&quot;: &quot;https://example.com/banners/intro-to-programming.png&quot;,
+            &quot;tags&quot;: [
+                &quot;programming&quot;,
+                &quot;beginner&quot;
+            ],
+            &quot;estimated_time&quot;: 3600,
+            &quot;is_published&quot;: true,
+            &quot;created_at&quot;: &quot;2024-01-01T12:00:00Z&quot;,
+            &quot;instructor&quot;: {
+                &quot;id&quot;: 10,
+                &quot;name&quot;: &quot;Jane Doe&quot;,
+                &quot;email&quot;: &quot;jane@example.com&quot;
+            },
+            &quot;enrollment_status&quot;: &quot;not_enrolled&quot;,
+            &quot;total_lessons&quot;: 10,
+            &quot;total_tasks&quot;: 5
+        }
+    ],
+    &quot;pagination&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;per_page&quot;: 20,
+        &quot;total&quot;: 35,
+        &quot;last_page&quot;: 2,
+        &quot;from&quot;: 1,
+        &quot;to&quot;: 20,
+        &quot;has_more_pages&quot;: true
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation failed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 422,
+    &quot;message&quot;: &quot;Validation failed&quot;,
+    &quot;data&quot;: {
+        &quot;errors&quot;: {
+            &quot;page&quot;: [
+                &quot;The page must be at least 1.&quot;
+            ]
+        }
+    },
+    &quot;pagination&quot;: {}
 }</code>
  </pre>
     </span>
@@ -1396,7 +1217,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETcourses" data-method="GET"
       data-path="courses"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -1427,6 +1248,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETcourses"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -1450,7 +1283,56 @@ You can check the Dev Tools console for debugging information.</code></pre>
     <br>
 <p>Example: <code>application/json</code></p>
             </div>
-                                <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
+                            <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="page"                data-endpoint="GETcourses"
+               value="1"
+               data-component="query">
+    <br>
+<p>The page number to return. Example: <code>1</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETcourses"
+               value="20"
+               data-component="query">
+    <br>
+<p>Number of items per page (1-100). Example: <code>20</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>sort</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="sort"                data-endpoint="GETcourses"
+               value=""created_at""
+               data-component="query">
+    <br>
+<p>Field to sort by: title, created_at, estimated_time. Example: <code>"created_at"</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>order</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="order"                data-endpoint="GETcourses"
+               value=""desc""
+               data-component="query">
+    <br>
+<p>Sort direction: asc or desc. Example: <code>"desc"</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
 <small>integer</small>&nbsp;
@@ -1482,10 +1364,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETcourses"
-               value="estimated_time"
+               value="created_at"
                data-component="body">
     <br>
-<p>Example: <code>estimated_time</code></p>
+<p>Example: <code>created_at</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>title</code></li> <li><code>created_at</code></li> <li><code>estimated_time</code></li></ul>
         </div>
@@ -1505,12 +1387,14 @@ Must be one of:
         </div>
         </form>
 
-                    <h2 id="endpoints-GETcourses-search">GET courses/search</h2>
+                    <h2 id="courses-GETcourses-search">Search courses</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Search courses by title, description, tags, instructor and date/time filters.
+Supports relevance-based sorting when a search query is provided.</p>
 
 <span id="example-requests-GETcourses-search">
 <blockquote>Example request:</blockquote>
@@ -1518,7 +1402,8 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://api.learning-center-academy.local/courses/search" \
+    --get "https://api.learning-center-academy.local/courses/search?q=%22programming%22&amp;instructor=%22Jane+Doe%22&amp;tags=%22beginner%2Cbackend%22&amp;start_date=%222024-01-01%22&amp;end_date=%222024-12-31%22&amp;min_time=30&amp;max_time=120&amp;page=1&amp;per_page=20&amp;sort=%22relevance%22&amp;order=%22desc%22" \
+    --header "Authorization: Bearer Bearer {token}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
     --data "{
@@ -1531,8 +1416,8 @@ Must be one of:
     \"max_time\": 84,
     \"page\": 66,
     \"per_page\": 17,
-    \"sort\": \"title\",
-    \"order\": \"desc\"
+    \"sort\": \"estimated_time\",
+    \"order\": \"asc\"
 }"
 </code></pre></div>
 
@@ -1542,7 +1427,24 @@ Must be one of:
     "https://api.learning-center-academy.local/courses/search"
 );
 
+const params = {
+    "q": ""programming"",
+    "instructor": ""Jane Doe"",
+    "tags": ""beginner,backend"",
+    "start_date": ""2024-01-01"",
+    "end_date": ""2024-12-31"",
+    "min_time": "30",
+    "max_time": "120",
+    "page": "1",
+    "per_page": "20",
+    "sort": ""relevance"",
+    "order": ""desc"",
+};
+Object.keys(params)
+    .forEach(key =&gt; url.searchParams.append(key, params[key]));
+
 const headers = {
+    "Authorization": "Bearer Bearer {token}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -1557,8 +1459,8 @@ let body = {
     "max_time": 84,
     "page": 66,
     "per_page": 17,
-    "sort": "title",
-    "order": "desc"
+    "sort": "estimated_time",
+    "order": "asc"
 };
 
 fetch(url, {
@@ -1571,19 +1473,65 @@ fetch(url, {
 
 <span id="example-responses-GETcourses-search">
             <blockquote>
-            <p>Example response (401):</p>
+            <p>Example response (200, Search completed):</p>
         </blockquote>
-                <details class="annotation">
-            <summary style="cursor: pointer;">
-                <small onclick="textContent = parentElement.parentElement.open ? 'Show headers' : 'Hide headers'">Show headers</small>
-            </summary>
-            <pre><code class="language-http">cache-control: no-cache, private
-content-type: application/json
-set-cookie: XSRF-TOKEN=eyJpdiI6Im9JNHZCM0FGc29Ja2hraGlIVlE0cEE9PSIsInZhbHVlIjoiQmlFRVZYSWpXYTV5T281VG5IQUlrc3V0UWpiZWpmUExPWkpFQW16a3d4aCtFMzFxRXNnZVdJajJkZEdQZEZJcFczbEdhUEFNWnB5K2krUGp3Q2txaVZxNy8rdm5SbzVmcERsZjhUOUVtQi9rTGZUY1ErT20rOERva2RUSlMrTEMiLCJtYWMiOiJmOWVkNmMzZDI2MDc3MGMyZDY1Mjg4MzhlYjlkM2VmYjgxYjExYzFiMTQ4MzA1NWNlZThmOWI2YzA3Yjg5YjYxIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; samesite=lax; laravel-session=eyJpdiI6IkNOYXJrRkpBTXp1YXFKVVVHTk41b1E9PSIsInZhbHVlIjoiQ0c1ek4waGN6bXNCVDlhKzJFdUNEWEo5QjYrWjQ2eU8vSDYra1c2bFRITWJpYWsyVVgzcitpalBBNmhFVmh3MnUrQUNoeXIvUmxQSmR6cnMwNU5yR0thMFBNRHdTVFBWS0RIQ3VCZy96Z1VRNU5LTVJlZVptNFB3d2IvcFNhQnMiLCJtYWMiOiJmNmMzMDdlNWQyNmFmYWE4MWNmNDE2YjI1Mzg5YjUzZjRkZjRjNDg3MDZiMDNlNDE4OWFjYmM4NTEzYWNhMDYwIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
- </code></pre></details>         <pre>
+                <pre>
 
 <code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;Unauthenticated.&quot;
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Search completed successfully&quot;,
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 1,
+            &quot;title&quot;: &quot;Intro to Programming&quot;,
+            &quot;slug&quot;: &quot;intro-to-programming&quot;,
+            &quot;description&quot;: &quot;Learn the basics of programming.&quot;,
+            &quot;banner_url&quot;: &quot;https://example.com/banners/intro-to-programming.png&quot;,
+            &quot;tags&quot;: [
+                &quot;programming&quot;,
+                &quot;beginner&quot;
+            ],
+            &quot;estimated_time&quot;: 3600,
+            &quot;is_published&quot;: true,
+            &quot;created_at&quot;: &quot;2024-01-01T12:00:00Z&quot;,
+            &quot;instructor&quot;: {
+                &quot;id&quot;: 10,
+                &quot;name&quot;: &quot;Jane Doe&quot;,
+                &quot;email&quot;: &quot;jane@example.com&quot;
+            },
+            &quot;enrollment_status&quot;: &quot;not_enrolled&quot;,
+            &quot;total_lessons&quot;: 10,
+            &quot;total_tasks&quot;: 5,
+            &quot;relevance_score&quot;: 1
+        }
+    ],
+    &quot;pagination&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;per_page&quot;: 20,
+        &quot;total&quot;: 10,
+        &quot;last_page&quot;: 1,
+        &quot;from&quot;: 1,
+        &quot;to&quot;: 10,
+        &quot;has_more_pages&quot;: false
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation failed):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 422,
+    &quot;message&quot;: &quot;Validation failed&quot;,
+    &quot;data&quot;: {
+        &quot;errors&quot;: {
+            &quot;start_date&quot;: [
+                &quot;The start date does not match the format Y-m-d.&quot;
+            ]
+        }
+    },
+    &quot;pagination&quot;: {}
 }</code>
  </pre>
     </span>
@@ -1604,7 +1552,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETcourses-search" data-method="GET"
       data-path="courses/search"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -1635,6 +1583,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETcourses-search"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -1658,7 +1618,140 @@ You can check the Dev Tools console for debugging information.</code></pre>
     <br>
 <p>Example: <code>application/json</code></p>
             </div>
-                                <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
+                            <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>q</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="q"                data-endpoint="GETcourses-search"
+               value=""programming""
+               data-component="query">
+    <br>
+<p>Search term used to match title, description or tags. Example: <code>"programming"</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>instructor</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="instructor"                data-endpoint="GETcourses-search"
+               value=""Jane Doe""
+               data-component="query">
+    <br>
+<p>Filter by instructor name. Example: <code>"Jane Doe"</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>tags</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="tags"                data-endpoint="GETcourses-search"
+               value=""beginner,backend""
+               data-component="query">
+    <br>
+<p>Comma-separated list of tags to filter by. Example: <code>"beginner,backend"</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>start_date</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="start_date"                data-endpoint="GETcourses-search"
+               value=""2024-01-01""
+               data-component="query">
+    <br>
+<p>Filter courses created on or after this date (Y-m-d). Example: <code>"2024-01-01"</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>end_date</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="end_date"                data-endpoint="GETcourses-search"
+               value=""2024-12-31""
+               data-component="query">
+    <br>
+<p>Filter courses created on or before this date (Y-m-d). Example: <code>"2024-12-31"</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>min_time</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="min_time"                data-endpoint="GETcourses-search"
+               value="30"
+               data-component="query">
+    <br>
+<p>Minimum estimated time in minutes. Example: <code>30</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>max_time</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="max_time"                data-endpoint="GETcourses-search"
+               value="120"
+               data-component="query">
+    <br>
+<p>Maximum estimated time in minutes. Example: <code>120</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="page"                data-endpoint="GETcourses-search"
+               value="1"
+               data-component="query">
+    <br>
+<p>The page number to return. Example: <code>1</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETcourses-search"
+               value="20"
+               data-component="query">
+    <br>
+<p>Number of items per page (1-100). Example: <code>20</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>sort</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="sort"                data-endpoint="GETcourses-search"
+               value=""relevance""
+               data-component="query">
+    <br>
+<p>Sort field: title, created_at, estimated_time, relevance. Example: <code>"relevance"</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>order</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="order"                data-endpoint="GETcourses-search"
+               value=""desc""
+               data-component="query">
+    <br>
+<p>Sort direction: asc or desc. Example: <code>"desc"</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
         <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>q</code></b>&nbsp;&nbsp;
 <small>string</small>&nbsp;
@@ -1774,10 +1867,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETcourses-search"
-               value="title"
+               value="estimated_time"
                data-component="body">
     <br>
-<p>Example: <code>title</code></p>
+<p>Example: <code>estimated_time</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>title</code></li> <li><code>created_at</code></li> <li><code>estimated_time</code></li> <li><code>relevance</code></li></ul>
         </div>
@@ -1788,21 +1881,23 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="order"                data-endpoint="GETcourses-search"
-               value="desc"
+               value="asc"
                data-component="body">
     <br>
-<p>Example: <code>desc</code></p>
+<p>Example: <code>asc</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>asc</code></li> <li><code>desc</code></li></ul>
         </div>
         </form>
 
-                    <h2 id="endpoints-GETcourses--courseId-">GET courses/{courseId}</h2>
+                    <h2 id="courses-GETcourses--courseId-">Get course details</h2>
 
 <p>
+<small class="badge badge-darkred">requires authentication</small>
 </p>
 
-
+<p>Retrieve full details for a single course, including lessons, sections, tasks and statistics.
+Students cannot access unpublished courses.</p>
 
 <span id="example-requests-GETcourses--courseId-">
 <blockquote>Example request:</blockquote>
@@ -1810,17 +1905,19 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://api.learning-center-academy.local/courses/architecto" \
+    --get "https://api.learning-center-academy.local/courses/1" \
+    --header "Authorization: Bearer Bearer {token}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json"</code></pre></div>
 
 
 <div class="javascript-example">
     <pre><code class="language-javascript">const url = new URL(
-    "https://api.learning-center-academy.local/courses/architecto"
+    "https://api.learning-center-academy.local/courses/1"
 );
 
 const headers = {
+    "Authorization": "Bearer Bearer {token}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 };
@@ -1834,19 +1931,74 @@ fetch(url, {
 
 <span id="example-responses-GETcourses--courseId-">
             <blockquote>
-            <p>Example response (401):</p>
+            <p>Example response (200, Course found):</p>
         </blockquote>
-                <details class="annotation">
-            <summary style="cursor: pointer;">
-                <small onclick="textContent = parentElement.parentElement.open ? 'Show headers' : 'Hide headers'">Show headers</small>
-            </summary>
-            <pre><code class="language-http">cache-control: no-cache, private
-content-type: application/json
-set-cookie: XSRF-TOKEN=eyJpdiI6IkFlSVY1QmExVGt1MzVNZU9jSjl4OWc9PSIsInZhbHVlIjoiOWdMRk9Dc21aU3M0Z1piSmJJZVdDb1luQWFyQ2lYWFlxRUNESFNOZmxKL01FdlByTHVSTTRvSjhoSUZDbGJ4bGFqbjhGcldBODNtWGYrZWhFbjhDRk5uNGlHU3lqRytjaVc5dnZ3b0RlYlRnaldBaklXaTl3VjdZWmdpc0ZoYXAiLCJtYWMiOiJhMmFlYTdjYTk0MTE1MDM0OTJlMzViZTk2OGE3MTJmZTZmNWNhZTM4OTVhOWVhZDdiMmFiMDU4YWJlNzBjMzNhIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; samesite=lax; laravel-session=eyJpdiI6IkZrMmFMNXdEcVMrUHFmME9UNEsrM3c9PSIsInZhbHVlIjoiUUZVYTRKNHhBazBqeVJzdEZYK1kzRzJJTkc0Rm1kRllIRzRLT3d5QXhDQkZtUVBWbk5JQ21rQk1rNGxUV1I2QjFNV3Y0TGNkWFh3cUk3WE9hKzJQVWU2TllqTFhVcDl6YUJ3VXRjYVZIUmRlUVV6NEtMWmV0NzZMZm52OU9YOVIiLCJtYWMiOiI2ZTZjMDE1Mzc2ZDVlMTFjOGMwMzc0M2IxNDNhNGU5ZTUyOTk0ZjJiZjQwZTVkM2RhNDRmMTYxMDRiYTQ5YWFhIiwidGFnIjoiIn0%3D; expires=Fri, 12 Dec 2025 17:37:20 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
- </code></pre></details>         <pre>
+                <pre>
 
 <code class="language-json" style="max-height: 300px;">{
-    &quot;message&quot;: &quot;Unauthenticated.&quot;
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Course details retrieved successfully&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: 1,
+        &quot;title&quot;: &quot;Intro to Programming&quot;,
+        &quot;slug&quot;: &quot;intro-to-programming&quot;,
+        &quot;description&quot;: &quot;Learn the basics of programming.&quot;,
+        &quot;banner_url&quot;: &quot;https://example.com/banners/intro-to-programming.png&quot;,
+        &quot;tags&quot;: [
+            &quot;programming&quot;,
+            &quot;beginner&quot;
+        ],
+        &quot;estimated_time&quot;: 3600,
+        &quot;is_published&quot;: true,
+        &quot;created_at&quot;: &quot;2024-01-01T12:00:00Z&quot;,
+        &quot;updated_at&quot;: &quot;2024-01-02T12:00:00Z&quot;,
+        &quot;instructor&quot;: {
+            &quot;id&quot;: 10,
+            &quot;name&quot;: &quot;Jane Doe&quot;,
+            &quot;email&quot;: &quot;jane@example.com&quot;
+        },
+        &quot;teachers&quot;: [],
+        &quot;enrollment_status&quot;: &quot;not_enrolled&quot;,
+        &quot;enrollment_date&quot;: null,
+        &quot;progress_percentage&quot;: 0,
+        &quot;lessons&quot;: [],
+        &quot;lesson_sections&quot;: [],
+        &quot;tasks&quot;: [],
+        &quot;learning_paths&quot;: [],
+        &quot;statistics&quot;: {
+            &quot;total_lessons&quot;: 10,
+            &quot;completed_lessons&quot;: 0,
+            &quot;total_tasks&quot;: 5,
+            &quot;completed_tasks&quot;: 0,
+            &quot;total_enrolled_students&quot;: 0,
+            &quot;average_completion_rate&quot;: 0
+        }
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Unpublished course for student):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 403,
+    &quot;message&quot;: &quot;Access denied. This course is not published.&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Course not found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 404,
+    &quot;message&quot;: &quot;Course not found&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
 }</code>
  </pre>
     </span>
@@ -1867,7 +2019,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 </span>
 <form id="form-GETcourses--courseId-" data-method="GET"
       data-path="courses/{courseId}"
-      data-authed="0"
+      data-authed="1"
       data-hasfiles="0"
       data-isarraybody="0"
       autocomplete="off"
@@ -1898,6 +2050,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
         </p>
                 <h4 class="fancy-heading-panel"><b>Headers</b></h4>
                                 <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETcourses--courseId-"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
 &nbsp;
  &nbsp;
@@ -1924,17 +2088,839 @@ You can check the Dev Tools console for debugging information.</code></pre>
                         <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>courseId</code></b>&nbsp;&nbsp;
-<small>string</small>&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="courseId"                data-endpoint="GETcourses--courseId-"
+               value="1"
+               data-component="url">
+    <br>
+<p>The ID of the course to retrieve. Example: <code>1</code></p>
+            </div>
+                    </form>
+
+                <h1 id="learning-paths">Learning Paths</h1>
+
+    <p>Endpoints for browsing learning paths, viewing details, enrolling and tracking progress.</p>
+
+                                <h2 id="learning-paths-GETlearning-paths">List learning paths</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Return a cursor-paginated list of learning paths accessible to the current user.</p>
+
+<span id="example-requests-GETlearning-paths">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "https://api.learning-center-academy.local/learning-paths?per_page=15&amp;cursor=%22eyJpZCI6M30%22&amp;search=%22programming%22&amp;enrolled=%22enrolled%22" \
+    --header "Authorization: Bearer Bearer {token}" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "https://api.learning-center-academy.local/learning-paths"
+);
+
+const params = {
+    "per_page": "15",
+    "cursor": ""eyJpZCI6M30"",
+    "search": ""programming"",
+    "enrolled": ""enrolled"",
+};
+Object.keys(params)
+    .forEach(key =&gt; url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Authorization": "Bearer Bearer {token}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETlearning-paths">
+            <blockquote>
+            <p>Example response (200, Learning paths found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Learning paths retrieved successfully&quot;,
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 1,
+            &quot;name&quot;: &quot;Programming Basics&quot;,
+            &quot;slug&quot;: &quot;programming-basics&quot;,
+            &quot;description&quot;: &quot;Introductory programming path&quot;,
+            &quot;banner_url&quot;: &quot;https://example.com/banners/programming-basics.png&quot;,
+            &quot;is_active&quot;: true,
+            &quot;total_estimated_time&quot;: 7200,
+            &quot;courses_count&quot;: 3,
+            &quot;is_enrolled&quot;: true,
+            &quot;progress&quot;: 45,
+            &quot;created_at&quot;: &quot;2024-01-01T12:00:00Z&quot;,
+            &quot;updated_at&quot;: &quot;2024-01-02T12:00:00Z&quot;
+        }
+    ],
+    &quot;pagination&quot;: {
+        &quot;per_page&quot;: 15,
+        &quot;next_cursor&quot;: &quot;eyJpZCI6M30&quot;,
+        &quot;prev_cursor&quot;: null,
+        &quot;has_more&quot;: true,
+        &quot;count&quot;: 1
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (200, No learning paths):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;No learning paths found&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, Missing or invalid tokens):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;Unauthorized&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Expired app token):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 403,
+    &quot;message&quot;: &quot;Forbidden&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETlearning-paths" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETlearning-paths"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETlearning-paths"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETlearning-paths" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETlearning-paths">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETlearning-paths" data-method="GET"
+      data-path="learning-paths"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETlearning-paths', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETlearning-paths"
+                    onclick="tryItOut('GETlearning-paths');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETlearning-paths"
+                    onclick="cancelTryOut('GETlearning-paths');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETlearning-paths"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>learning-paths</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
  &nbsp;
  &nbsp;
                 <input type="text" style="display: none"
-                              name="courseId"                data-endpoint="GETcourses--courseId-"
-               value="architecto"
+                              name="Authorization" class="auth-value"               data-endpoint="GETlearning-paths"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETlearning-paths"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETlearning-paths"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                            <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETlearning-paths"
+               value="15"
+               data-component="query">
+    <br>
+<p>Number of items per page, maximum 50. Example: <code>15</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>cursor</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="cursor"                data-endpoint="GETlearning-paths"
+               value=""eyJpZCI6M30""
+               data-component="query">
+    <br>
+<p>The pagination cursor from the previous response. Example: <code>"eyJpZCI6M30"</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>search</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="search"                data-endpoint="GETlearning-paths"
+               value=""programming""
+               data-component="query">
+    <br>
+<p>Filter by learning path name or description. Example: <code>"programming"</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>enrolled</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="enrolled"                data-endpoint="GETlearning-paths"
+               value=""enrolled""
+               data-component="query">
+    <br>
+<p>Filter by enrollment status: all, enrolled, not_enrolled. Example: <code>"enrolled"</code></p>
+            </div>
+                </form>
+
+                    <h2 id="learning-paths-GETlearning-paths--id-">Get learning path details</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Retrieve full details for a single learning path, including enrolled courses and user progress.</p>
+
+<span id="example-requests-GETlearning-paths--id-">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "https://api.learning-center-academy.local/learning-paths/1" \
+    --header "Authorization: Bearer Bearer {token}" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "https://api.learning-center-academy.local/learning-paths/1"
+);
+
+const headers = {
+    "Authorization": "Bearer Bearer {token}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETlearning-paths--id-">
+            <blockquote>
+            <p>Example response (200, Learning path found):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Learning path details retrieved successfully&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;Programming Basics&quot;,
+        &quot;slug&quot;: &quot;programming-basics&quot;,
+        &quot;description&quot;: &quot;Introductory programming path&quot;,
+        &quot;banner_url&quot;: &quot;https://example.com/banners/programming-basics.png&quot;,
+        &quot;is_active&quot;: true,
+        &quot;total_estimated_time&quot;: 7200,
+        &quot;courses_count&quot;: 3,
+        &quot;is_enrolled&quot;: true,
+        &quot;progress&quot;: 45,
+        &quot;courses&quot;: [],
+        &quot;enrollment&quot;: {
+            &quot;enrolled_at&quot;: &quot;2024-01-01T12:00:00Z&quot;,
+            &quot;progress&quot;: 45,
+            &quot;status&quot;: &quot;enrolled&quot;
+        },
+        &quot;created_at&quot;: &quot;2024-01-01T12:00:00Z&quot;,
+        &quot;updated_at&quot;: &quot;2024-01-02T12:00:00Z&quot;
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Learning path not accessible):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 404,
+    &quot;message&quot;: &quot;Learning path not found or not accessible&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETlearning-paths--id-" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETlearning-paths--id-"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETlearning-paths--id-"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETlearning-paths--id-" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETlearning-paths--id-">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETlearning-paths--id-" data-method="GET"
+      data-path="learning-paths/{id}"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETlearning-paths--id-', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETlearning-paths--id-"
+                    onclick="tryItOut('GETlearning-paths--id-');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETlearning-paths--id-"
+                    onclick="cancelTryOut('GETlearning-paths--id-');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETlearning-paths--id-"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>learning-paths/{id}</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETlearning-paths--id-"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETlearning-paths--id-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETlearning-paths--id-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>id</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="id"                data-endpoint="GETlearning-paths--id-"
+               value="1"
                data-component="url">
     <br>
-<p>Example: <code>architecto</code></p>
+<p>The ID of the learning path. Example: <code>1</code></p>
             </div>
                     </form>
+
+                    <h2 id="learning-paths-POSTlearning-paths--id--enroll">Enroll in a learning path</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Enroll the authenticated user in the given learning path and its courses.</p>
+
+<span id="example-requests-POSTlearning-paths--id--enroll">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "https://api.learning-center-academy.local/learning-paths/1/enroll" \
+    --header "Authorization: Bearer Bearer {token}" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "https://api.learning-center-academy.local/learning-paths/1/enroll"
+);
+
+const headers = {
+    "Authorization": "Bearer Bearer {token}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTlearning-paths--id--enroll">
+            <blockquote>
+            <p>Example response (201, Enrollment created):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 201,
+    &quot;message&quot;: &quot;Successfully enrolled in learning path&quot;,
+    &quot;data&quot;: {
+        &quot;learning_path_id&quot;: 1,
+        &quot;user_id&quot;: 1,
+        &quot;enrolled_at&quot;: &quot;2024-01-01T12:00:00Z&quot;,
+        &quot;progress&quot;: 0,
+        &quot;status&quot;: &quot;enrolled&quot;,
+        &quot;courses_enrolled&quot;: 3
+    },
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (400, Already enrolled):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 400,
+    &quot;message&quot;: &quot;You are already enrolled in this learning path&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (404, Learning path not accessible):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 404,
+    &quot;message&quot;: &quot;Learning path not found or not accessible&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-POSTlearning-paths--id--enroll" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTlearning-paths--id--enroll"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTlearning-paths--id--enroll"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTlearning-paths--id--enroll" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTlearning-paths--id--enroll">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTlearning-paths--id--enroll" data-method="POST"
+      data-path="learning-paths/{id}/enroll"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTlearning-paths--id--enroll', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-POSTlearning-paths--id--enroll"
+                    onclick="tryItOut('POSTlearning-paths--id--enroll');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-POSTlearning-paths--id--enroll"
+                    onclick="cancelTryOut('POSTlearning-paths--id--enroll');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-POSTlearning-paths--id--enroll"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>learning-paths/{id}/enroll</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="POSTlearning-paths--id--enroll"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTlearning-paths--id--enroll"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTlearning-paths--id--enroll"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>id</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="id"                data-endpoint="POSTlearning-paths--id--enroll"
+               value="1"
+               data-component="url">
+    <br>
+<p>The ID of the learning path to enroll in. Example: <code>1</code></p>
+            </div>
+                    </form>
+
+                    <h2 id="learning-paths-GETlearning-paths-progress-my">Get learning path progress</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Retrieve progress for the authenticated user across all enrolled learning paths.</p>
+
+<span id="example-requests-GETlearning-paths-progress-my">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "https://api.learning-center-academy.local/learning-paths/progress/my?per_page=15&amp;cursor=%22eyJpZCI6M30%22" \
+    --header "Authorization: Bearer Bearer {token}" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "https://api.learning-center-academy.local/learning-paths/progress/my"
+);
+
+const params = {
+    "per_page": "15",
+    "cursor": ""eyJpZCI6M30"",
+};
+Object.keys(params)
+    .forEach(key =&gt; url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Authorization": "Bearer Bearer {token}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETlearning-paths-progress-my">
+            <blockquote>
+            <p>Example response (200, Progress retrieved):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;Learning path progress retrieved successfully&quot;,
+    &quot;data&quot;: [
+        {
+            &quot;learning_path&quot;: {
+                &quot;id&quot;: 1,
+                &quot;name&quot;: &quot;Programming Basics&quot;,
+                &quot;slug&quot;: &quot;programming-basics&quot;,
+                &quot;banner_url&quot;: &quot;https://example.com/banners/programming-basics.png&quot;,
+                &quot;total_estimated_time&quot;: 7200,
+                &quot;courses_count&quot;: 3
+            },
+            &quot;enrollment&quot;: {
+                &quot;enrolled_at&quot;: &quot;2024-01-01T12:00:00Z&quot;,
+                &quot;progress&quot;: 45,
+                &quot;status&quot;: &quot;enrolled&quot;
+            },
+            &quot;course_progress&quot;: []
+        }
+    ],
+    &quot;pagination&quot;: {
+        &quot;per_page&quot;: 15,
+        &quot;next_cursor&quot;: &quot;eyJpZCI6M30&quot;,
+        &quot;prev_cursor&quot;: null,
+        &quot;has_more&quot;: true,
+        &quot;count&quot;: 1
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (200, No enrollments):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;No learning path enrollments found&quot;,
+    &quot;data&quot;: [],
+    &quot;pagination&quot;: {}
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETlearning-paths-progress-my" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETlearning-paths-progress-my"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETlearning-paths-progress-my"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETlearning-paths-progress-my" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETlearning-paths-progress-my">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETlearning-paths-progress-my" data-method="GET"
+      data-path="learning-paths/progress/my"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETlearning-paths-progress-my', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-GETlearning-paths-progress-my"
+                    onclick="tryItOut('GETlearning-paths-progress-my');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-GETlearning-paths-progress-my"
+                    onclick="cancelTryOut('GETlearning-paths-progress-my');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-GETlearning-paths-progress-my"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>learning-paths/progress/my</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Authorization</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Authorization" class="auth-value"               data-endpoint="GETlearning-paths-progress-my"
+               value="Bearer Bearer {token}"
+               data-component="header">
+    <br>
+<p>Example: <code>Bearer Bearer {token}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="GETlearning-paths-progress-my"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETlearning-paths-progress-my"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                            <h4 class="fancy-heading-panel"><b>Query Parameters</b></h4>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>per_page</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="per_page"                data-endpoint="GETlearning-paths-progress-my"
+               value="15"
+               data-component="query">
+    <br>
+<p>Number of items per page, maximum 50. Example: <code>15</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>cursor</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="cursor"                data-endpoint="GETlearning-paths-progress-my"
+               value=""eyJpZCI6M30""
+               data-component="query">
+    <br>
+<p>The pagination cursor from the previous response. Example: <code>"eyJpZCI6M30"</code></p>
+            </div>
+                </form>
 
             
 

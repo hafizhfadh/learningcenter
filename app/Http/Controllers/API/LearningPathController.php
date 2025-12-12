@@ -11,10 +11,73 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
+/**
+ * @group Learning Paths
+ *
+ * Endpoints for browsing learning paths, viewing details, enrolling and tracking progress.
+ */
 class LearningPathController extends Controller
 {
     use ApiResponse;
 
+    /**
+     * List learning paths
+     *
+     * Return a cursor-paginated list of learning paths accessible to the current user.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token returned from login.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @queryParam per_page int Number of items per page, maximum 50. Example: 15
+     * @queryParam cursor string The pagination cursor from the previous response. Example: "eyJpZCI6M30"
+     * @queryParam search string Filter by learning path name or description. Example: "programming"
+     * @queryParam enrolled string Filter by enrollment status: all, enrolled, not_enrolled. Example: "enrolled"
+     * @response 200 scenario="Learning paths found" {
+     *   "code": 200,
+     *   "message": "Learning paths retrieved successfully",
+     *   "data": [
+     *     {
+     *       "id": 1,
+     *       "name": "Programming Basics",
+     *       "slug": "programming-basics",
+     *       "description": "Introductory programming path",
+     *       "banner_url": "https://example.com/banners/programming-basics.png",
+     *       "is_active": true,
+     *       "total_estimated_time": 7200,
+     *       "courses_count": 3,
+     *       "is_enrolled": true,
+     *       "progress": 45,
+     *       "created_at": "2024-01-01T12:00:00Z",
+     *       "updated_at": "2024-01-02T12:00:00Z"
+     *     }
+     *   ],
+     *   "pagination": {
+     *     "per_page": 15,
+     *     "next_cursor": "eyJpZCI6M30",
+     *     "prev_cursor": null,
+     *     "has_more": true,
+     *     "count": 1
+     *   }
+     * }
+     * @response 200 scenario="No learning paths" {
+     *   "code": 200,
+     *   "message": "No learning paths found",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 401 scenario="Missing or invalid tokens" {
+     *   "code": 401,
+     *   "message": "Unauthorized",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 403 scenario="Expired app token" {
+     *   "code": 403,
+     *   "message": "Forbidden",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
     public function index(Request $request): JsonResponse
      {
          $user = Auth::user();
@@ -81,6 +144,47 @@ class LearningPathController extends Controller
          return $this->paginatedResponse($data, $pagination, 'Learning paths retrieved successfully');
      }
 
+    /**
+     * Get learning path details
+     *
+     * Retrieve full details for a single learning path, including enrolled courses and user progress.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token returned from login.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @urlParam id int required The ID of the learning path. Example: 1
+     * @response 200 scenario="Learning path found" {
+     *   "code": 200,
+     *   "message": "Learning path details retrieved successfully",
+     *   "data": {
+     *     "id": 1,
+     *     "name": "Programming Basics",
+     *     "slug": "programming-basics",
+     *     "description": "Introductory programming path",
+     *     "banner_url": "https://example.com/banners/programming-basics.png",
+     *     "is_active": true,
+     *     "total_estimated_time": 7200,
+     *     "courses_count": 3,
+     *     "is_enrolled": true,
+     *     "progress": 45,
+     *     "courses": [],
+     *     "enrollment": {
+     *       "enrolled_at": "2024-01-01T12:00:00Z",
+     *       "progress": 45,
+     *       "status": "enrolled"
+     *     },
+     *     "created_at": "2024-01-01T12:00:00Z",
+     *     "updated_at": "2024-01-02T12:00:00Z"
+     *   },
+     *   "pagination": {}
+     * }
+     * @response 404 scenario="Learning path not accessible" {
+     *   "code": 404,
+     *   "message": "Learning path not found or not accessible",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
     public function show(int $id): JsonResponse
     {
         $user = Auth::user();
@@ -162,6 +266,41 @@ class LearningPathController extends Controller
         return $this->successResponse($data, 'Learning path details retrieved successfully');
     }
 
+    /**
+     * Enroll in a learning path
+     *
+     * Enroll the authenticated user in the given learning path and its courses.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token returned from login.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @urlParam id int required The ID of the learning path to enroll in. Example: 1
+     * @response 201 scenario="Enrollment created" {
+     *   "code": 201,
+     *   "message": "Successfully enrolled in learning path",
+     *   "data": {
+     *     "learning_path_id": 1,
+     *     "user_id": 1,
+     *     "enrolled_at": "2024-01-01T12:00:00Z",
+     *     "progress": 0,
+     *     "status": "enrolled",
+     *     "courses_enrolled": 3
+     *   },
+     *   "pagination": {}
+     * }
+     * @response 400 scenario="Already enrolled" {
+     *   "code": 400,
+     *   "message": "You are already enrolled in this learning path",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     * @response 404 scenario="Learning path not accessible" {
+     *   "code": 404,
+     *   "message": "Learning path not found or not accessible",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
     public function enroll(int $id): JsonResponse
     {
         $user = Auth::user();
@@ -217,6 +356,52 @@ class LearningPathController extends Controller
         return $this->successResponse($data, 'Successfully enrolled in learning path', 201);
     }
 
+    /**
+     * Get learning path progress
+     *
+     * Retrieve progress for the authenticated user across all enrolled learning paths.
+     *
+     * @authenticated
+     * @headerParam Authorization string required Bearer token returned from login.
+     * @headerParam APP_TOKEN string required Enhanced app token returned from login.
+     * @queryParam per_page int Number of items per page, maximum 50. Example: 15
+     * @queryParam cursor string The pagination cursor from the previous response. Example: "eyJpZCI6M30"
+     * @response 200 scenario="Progress retrieved" {
+     *   "code": 200,
+     *   "message": "Learning path progress retrieved successfully",
+     *   "data": [
+     *     {
+     *       "learning_path": {
+     *         "id": 1,
+     *         "name": "Programming Basics",
+     *         "slug": "programming-basics",
+     *         "banner_url": "https://example.com/banners/programming-basics.png",
+     *         "total_estimated_time": 7200,
+     *         "courses_count": 3
+     *       },
+     *       "enrollment": {
+     *         "enrolled_at": "2024-01-01T12:00:00Z",
+     *         "progress": 45,
+     *         "status": "enrolled"
+     *       },
+     *       "course_progress": []
+     *     }
+     *   ],
+     *   "pagination": {
+     *     "per_page": 15,
+     *     "next_cursor": "eyJpZCI6M30",
+     *     "prev_cursor": null,
+     *     "has_more": true,
+     *     "count": 1
+     *   }
+     * }
+     * @response 200 scenario="No enrollments" {
+     *   "code": 200,
+     *   "message": "No learning path enrollments found",
+     *   "data": [],
+     *   "pagination": {}
+     * }
+     */
     public function progress(Request $request): JsonResponse
      {
          $user = Auth::user();
