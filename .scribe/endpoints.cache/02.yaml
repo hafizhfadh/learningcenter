@@ -9,7 +9,7 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: api/courses
+    uri: courses
     metadata:
       custom: []
       groupName: 'Course Management'
@@ -22,9 +22,10 @@ endpoints:
       description: |-
         Retrieve all available courses with pagination support. Returns basic course information
         including ID, title, instructor, and brief description. Students can only see published courses.
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -107,7 +108,7 @@ endpoints:
         name: sort
         description: ''
         required: false
-        example: title
+        example: created_at
         type: string
         enumValues:
           - title
@@ -121,7 +122,7 @@ endpoints:
         name: order
         description: ''
         required: false
-        example: asc
+        example: desc
         type: string
         enumValues:
           - asc
@@ -132,8 +133,8 @@ endpoints:
     cleanBodyParameters:
       page: 16
       per_page: 22
-      sort: title
-      order: asc
+      sort: created_at
+      order: desc
     fileParameters: []
     responses:
       -
@@ -189,7 +190,10 @@ endpoints:
         headers: []
         description: Unauthenticated
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -197,7 +201,7 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: api/courses/search
+    uri: courses/search
     metadata:
       custom: []
       groupName: 'Course Management'
@@ -210,9 +214,10 @@ endpoints:
       description: |-
         Search for courses using various filters including title, instructor name, department/subject,
         and date range. Supports full-text search capabilities where applicable.
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -390,7 +395,7 @@ endpoints:
         name: start_date
         description: 'Must be a valid date in the format <code>Y-m-d</code>.'
         required: false
-        example: '2025-11-04'
+        example: '2025-12-12'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -401,7 +406,7 @@ endpoints:
         name: end_date
         description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>start_date</code>.'
         required: false
-        example: '2051-11-28'
+        example: '2052-01-05'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -456,7 +461,7 @@ endpoints:
         name: sort
         description: ''
         required: false
-        example: relevance
+        example: created_at
         type: string
         enumValues:
           - title
@@ -471,7 +476,7 @@ endpoints:
         name: order
         description: ''
         required: false
-        example: asc
+        example: desc
         type: string
         enumValues:
           - asc
@@ -483,14 +488,14 @@ endpoints:
       q: b
       instructor: 'n'
       tags: g
-      start_date: '2025-11-04'
-      end_date: '2051-11-28'
+      start_date: '2025-12-12'
+      end_date: '2052-01-05'
       min_time: 39
       max_time: 84
       page: 66
       per_page: 17
-      sort: relevance
-      order: asc
+      sort: created_at
+      order: desc
     fileParameters: []
     responses:
       -
@@ -535,7 +540,10 @@ endpoints:
         headers: []
         description: 'Successful search results'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -543,7 +551,7 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: 'api/courses/{courseId}'
+    uri: 'courses/{courseId}'
     metadata:
       custom: []
       groupName: 'Course Management'
@@ -556,9 +564,10 @@ endpoints:
       description: |-
         Retrieve complete information for a specific course including full description,
         syllabus, schedule information, prerequisites, enrollment status, and associated materials.
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters:
@@ -697,7 +706,10 @@ endpoints:
         headers: []
         description: 'Course not found'
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null

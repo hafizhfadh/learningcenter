@@ -294,10 +294,10 @@ class Enrollment extends Model
 
 ### LearningPathController Features
 - **Standardized API Responses**: Uses ApiResponse trait for consistent formatting
-- **Authentication Required**: All methods require valid Sanctum tokens
+- **Authentication Required**: All methods require valid Sanctum tokens and an `APP_TOKEN` header
 - **Institution-based Filtering**: Automatic filtering by user's institution
 - **Comprehensive Error Handling**: Proper HTTP status codes and error messages
-- **Detailed Documentation**: Complete Scribe documentation with examples
+- **Automatically Generated Documentation**: Scramble-based OpenAPI docs with request/response schemas
 
 ### Key Methods
 1. **`index()`**: List learning paths with filtering and pagination

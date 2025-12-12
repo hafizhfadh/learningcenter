@@ -11,79 +11,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
-/**
- * @group Learning Paths
- * 
- * APIs for managing learning paths for students
- */
 class LearningPathController extends Controller
 {
     use ApiResponse;
 
-    /**
-      * Get Learning Paths List
-      * 
-      * Retrieve a list of learning paths accessible to authenticated users with institution-bound roles.
-      * Only school_teacher, school_admin, and student roles can access learning paths.
-      * 
-      * @authenticated
-      * 
-      * @queryParam cursor string Cursor for pagination (encoded cursor from previous response). Example: eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0
-       * @queryParam per_page int Number of items per page (max 50). Example: 15
-       * @queryParam search string Search term for filtering learning paths by name or description. Example: programming
-       * @queryParam enrolled string Filter by enrollment status (enrolled, not_enrolled, all). Example: enrolled
-      * 
-      * @response 200 scenario="Success with learning paths" {
-      *   "code": 200,
-      *   "message": "Learning paths retrieved successfully",
-      *   "data": [
-      *     {
-      *       "id": 1,
-      *       "name": "Full Stack Web Development",
-      *       "slug": "full-stack-web-development",
-      *       "description": "Complete web development learning path covering frontend and backend technologies",
-      *       "banner_url": "https://example.com/storage/banners/fullstack.jpg",
-      *       "is_active": true,
-      *       "total_estimated_time": 120,
-      *       "courses_count": 8,
-      *       "is_enrolled": true,
-      *       "progress": 45.5,
-      *       "created_at": "2024-01-01T00:00:00.000000Z",
-      *       "updated_at": "2024-01-01T00:00:00.000000Z"
-      *     }
-      *   ],
-      *   "pagination": {
-       *     "per_page": 15,
-       *     "next_cursor": "eyJpZCI6MTUsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0",
-       *     "prev_cursor": null,
-       *     "has_more": true,
-       *     "count": 15
-       *   }
-      * }
-     * 
-     * @response 200 scenario="Empty result" {
-     *   "code": 200,
-     *   "message": "No learning paths found",
-     *   "data": [],
-     *   "pagination": {}
-     * }
-     * 
-     * @responseField code int HTTP status code
-     * @responseField message string Response message
-     * @responseField data array Array of learning path objects
-     * @responseField data[].id int Learning path ID
-     * @responseField data[].name string Learning path name
-     * @responseField data[].slug string Learning path slug
-     * @responseField data[].description string Learning path description
-     * @responseField data[].banner_url string Learning path banner image URL
-     * @responseField data[].is_active boolean Whether the learning path is active
-     * @responseField data[].total_estimated_time int Total estimated time in hours
-     * @responseField data[].courses_count int Number of courses in the learning path
-     * @responseField data[].is_enrolled boolean Whether the current user is enrolled
-     * @responseField data[].progress float User's progress percentage (0-100)
-     
-     * @responseField pagination object Pagination information
-     */
     public function index(Request $request): JsonResponse
      {
          $user = Auth::user();
@@ -150,81 +81,6 @@ class LearningPathController extends Controller
          return $this->paginatedResponse($data, $pagination, 'Learning paths retrieved successfully');
      }
 
-    /**
-     * Get Learning Path Details
-     * 
-     * Retrieve detailed information about a specific learning path including all courses,
-     * lessons, and user progress information.
-     * 
-     * @authenticated
-     * 
-     * @urlParam id int required The learning path ID. Example: 1
-     * 
-     * @response 200 scenario="Learning path found" {
-     *   "code": 200,
-     *   "message": "Learning path details retrieved successfully",
-     *   "data": {
-     *     "id": 1,
-     *     "name": "Full Stack Web Development",
-     *     "slug": "full-stack-web-development",
-     *     "description": "Complete web development learning path covering frontend and backend technologies",
-     *     "banner_url": "https://example.com/storage/banners/fullstack.jpg",
-     *     "is_active": true,
-     *     "total_estimated_time": 120,
-     *     "courses_count": 8,
-     *     "is_enrolled": true,
-     *     "progress": 45.5,
-     *     "institution": {
-     *       "id": 1,
-     *       "name": "Harvard University",
-     *       "slug": "harvard-university"
-     *     },
-     *     "courses": [
-     *       {
-     *         "id": 1,
-     *         "title": "HTML & CSS Fundamentals",
-     *         "slug": "html-css-fundamentals",
-     *         "description": "Learn the basics of HTML and CSS",
-     *         "banner_url": "https://example.com/storage/banners/html-css.jpg",
-     *         "estimated_time": 15,
-     *         "is_published": true,
-     *         "order_index": 1,
-     *         "lessons_count": 12,
-     *         "user_progress": {
-     *           "is_enrolled": true,
-     *           "progress": 75.0,
-     *           "completed_lessons": 9,
-     *           "total_lessons": 12
-     *         },
-     *         "created_at": "2024-01-01T00:00:00.000000Z"
-     *       }
-     *     ],
-     *     "enrollment": {
-     *       "enrolled_at": "2024-01-15T10:30:00.000000Z",
-     *       "progress": 45.5,
-     *       "status": "active"
-     *     },
-     *     "created_at": "2024-01-01T00:00:00.000000Z",
-     *     "updated_at": "2024-01-01T00:00:00.000000Z"
-     *   },
-     *   "pagination": {}
-     * }
-     * 
-     * @response 404 scenario="Learning path not found" {
-     *   "code": 404,
-     *   "message": "Learning path not found or not accessible",
-     *   "data": [],
-     *   "pagination": {}
-     * }
-     * 
-     * @responseField code int HTTP status code
-     * @responseField message string Response message
-     * @responseField data object Learning path details with courses and progress
-     * @responseField data.courses array Array of courses in the learning path
-     * @responseField data.courses[].user_progress object User's progress in each course
-     * @responseField data.enrollment object User's enrollment information
-     * @responseField pagination object Pagination information (empty for single resource)
-     */
     public function show(int $id): JsonResponse
     {
         $user = Auth::user();
@@ -306,50 +162,6 @@ class LearningPathController extends Controller
         return $this->successResponse($data, 'Learning path details retrieved successfully');
     }
 
-    /**
-     * Enroll in Learning Path
-     * 
-     * Enroll the authenticated student in a specific learning path.
-     * This will also automatically enroll the student in all courses within the learning path.
-     * 
-     * @authenticated
-     * 
-     * @urlParam id int required The learning path ID. Example: 1
-     * 
-     * @response 201 scenario="Successfully enrolled" {
-     *   "code": 201,
-     *   "message": "Successfully enrolled in learning path",
-     *   "data": {
-     *     "learning_path_id": 1,
-     *     "user_id": 5,
-     *     "enrolled_at": "2024-01-15T10:30:00.000000Z",
-     *     "progress": 0,
-     *     "status": "active",
-     *     "courses_enrolled": 8
-     *   },
-     *   "pagination": {}
-     * }
-     * 
-     * @response 400 scenario="Already enrolled" {
-     *   "code": 400,
-     *   "message": "You are already enrolled in this learning path",
-     *   "data": [],
-     *   "pagination": {}
-     * }
-     * 
-     * @response 404 scenario="Learning path not found" {
-     *   "code": 404,
-     *   "message": "Learning path not found or not accessible",
-     *   "data": [],
-     *   "pagination": {}
-     * }
-     * 
-     * @responseField code int HTTP status code
-     * @responseField message string Response message
-     * @responseField data object Enrollment information
-     * @responseField data.courses_enrolled int Number of courses automatically enrolled
-     * @responseField pagination object Pagination information (empty for this endpoint)
-     */
     public function enroll(int $id): JsonResponse
     {
         $user = Auth::user();
@@ -405,63 +217,6 @@ class LearningPathController extends Controller
         return $this->successResponse($data, 'Successfully enrolled in learning path', 201);
     }
 
-    /**
-     * Get User's Learning Path Progress
-     * 
-     * Get detailed progress information for the authenticated user's enrolled learning paths.
-     * 
-     * @authenticated
-     * 
-     * @queryParam cursor string Cursor for pagination (encoded cursor from previous response). Example: eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0
-      * @queryParam per_page int Number of items per page (max 50). Example: 15
-     * 
-     * @response 200 scenario="Progress retrieved successfully" {
-     *   "code": 200,
-     *   "message": "Learning path progress retrieved successfully",
-     *   "data": [
-     *     {
-     *       "learning_path": {
-     *         "id": 1,
-     *         "name": "Full Stack Web Development",
-     *         "slug": "full-stack-web-development",
-     *         "banner_url": "https://example.com/storage/banners/fullstack.jpg",
-     *         "total_estimated_time": 120,
-     *         "courses_count": 8
-     *       },
-     *       "enrollment": {
-     *         "enrolled_at": "2024-01-15T10:30:00.000000Z",
-     *         "progress": 45.5,
-     *         "status": "active"
-     *       },
-     *       "course_progress": [
-     *         {
-     *           "course_id": 1,
-     *           "course_title": "HTML & CSS Fundamentals",
-     *           "progress": 75.0,
-     *           "completed_lessons": 9,
-     *           "total_lessons": 12,
-     *           "status": "in_progress"
-     *         }
-     *       ]
-     *     }
-     *   ],
-     *   "pagination": {
-      *     "per_page": 15,
-      *     "next_cursor": null,
-      *     "prev_cursor": null,
-      *     "has_more": false,
-      *     "count": 3
-      *   }
-     * }
-     * 
-     * @responseField code int HTTP status code
-     * @responseField message string Response message
-     * @responseField data array Array of learning path progress objects
-     * @responseField data[].learning_path object Learning path basic information
-     * @responseField data[].enrollment object User's enrollment details
-     * @responseField data[].course_progress array Progress for each course in the learning path
-     * @responseField pagination object Pagination information
-     */
     public function progress(Request $request): JsonResponse
      {
          $user = Auth::user();

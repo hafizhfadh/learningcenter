@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'force.https' => \App\Http\Middleware\ForceHttps::class,
             'configure.api.url' => \App\Http\Middleware\ConfigureApiUrl::class,
+            'app.token' => \App\Http\Middleware\ValidateAppToken::class,
         ]);
 
         $middleware->appendToGroup('web', \App\Http\Middleware\ForceHttps::class);

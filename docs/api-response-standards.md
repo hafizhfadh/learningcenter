@@ -9,7 +9,7 @@ All API endpoints in the learning center application follow a consistent respons
 - **HTTP Status Codes**: Proper HTTP status codes for different scenarios
 - **Error Handling**: Comprehensive error response format
 - **Pagination Support**: Built-in pagination for list endpoints
-- **Documentation**: Comprehensive API documentation using Scribe <mcreference link="https://scribe.knuckles.wtf/laravel/documenting" index="0">0</mcreference>
+- **Documentation**: Comprehensive API documentation generated automatically using Scramble <mcreference link="https://scramble.dedoc.co" index="0">0</mcreference>
 
 ## Standardized Response Format
 
@@ -190,9 +190,19 @@ return $this->paginatedResponse($users->items(), $pagination, 'Users retrieved s
 
 ## Authentication Implementation
 
-### AuthController Example
+### Dual-token Authentication Overview
 
-The `AuthController` demonstrates the standardized response format:
+The authentication system uses a dual-token model with the following components:
+
+- **Client APP_TOKEN header**: Identifies the calling application and is required when calling `POST /login`. This value is configured per client application (for example, a specific frontend or mobile app).
+- **auth token (`token`)**: A standard Bearer token used for user authentication on protected routes via the `Authorization` header.
+- **Enhanced `app_token`**: A signed token returned from `POST /login` which contains user-specific claims and is required for all protected routes in addition to the auth token.
+
+The login response now includes both the `token` and `app_token` fields.
+
+### Login Flow (AuthController Example)
+
+The `AuthController` demonstrates the dual-token login flow:
 
 ```php
 /**
@@ -207,6 +217,10 @@ class AuthController extends Controller
     /**
      * User Login
      * 
+     * This endpoint does not require a bearer token. Instead, client applications must
+     * include a valid APP_TOKEN header identifying the calling application.
+     * 
+     * @headerParam APP_TOKEN string required Application access token identifying the client.
      * @bodyParam email string required The user's email address. Example: john@example.com
      * @bodyParam password string required The user's password. Example: password123
      * 
@@ -217,7 +231,8 @@ class AuthController extends Controller
      *     "user": {...},
      *     "token": "1|abcdef123456789...",
      *     "token_type": "Bearer",
-     *     "expires_in": 2592000
+     *     "expires_in": 2592000,
+     *     "app_token": "{enhanced_app_token}"
      *   },
      *   "pagination": {}
      * }
@@ -225,65 +240,113 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         // Validation and authentication logic...
-        
+
         return $this->successResponse($responseData, 'Login successful');
     }
 }
 ```
 
-## Scribe Documentation Integration
+### Authentication Headers on Protected Endpoints
 
-### Documentation Annotations
+All protected API endpoints now require two headers:
 
-The API uses Scribe for generating comprehensive documentation <mcreference link="https://scribe.knuckles.wtf/laravel/documenting" index="0">0</mcreference>:
+- `Authorization: Bearer {token}` – The auth token returned from `POST /login`.
+- `APP_TOKEN: {app_token}` – The enhanced app token returned from `POST /login` containing user claims.
 
-#### Group Annotation
-```php
-/**
- * @group Authentication
- * 
- * APIs for managing user authentication
- */
-```
-
-#### Endpoint Documentation
-```php
-/**
- * User Login
- * 
- * Authenticate a user and return an access token.
- * 
- * @bodyParam email string required The user's email address. Example: john@example.com
- * @bodyParam password string required The user's password. Example: password123
- * 
- * @response 200 scenario="Successful login" {...}
- * @response 401 scenario="Invalid credentials" {...}
- * @response 422 scenario="Validation error" {...}
- * 
- * @responseField code int HTTP status code
- * @responseField message string Response message
- * @responseField data.user object User information
- */
-```
-
-#### Parameter Documentation
-- **`@bodyParam`**: Request body parameters
-- **`@queryParam`**: URL query parameters
-- **`@urlParam`**: URL path parameters
-
-#### Response Documentation
-- **`@response`**: Example responses with scenarios
-- **`@responseField`**: Description of response fields
-
-### Generating Documentation
+Example (cURL):
 
 ```bash
-# Generate API documentation
-php artisan scribe:generate
-
-# View documentation
-# Visit: http://your-domain/docs
+curl -X GET "https://api.learning-center-academy.local/profile" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer {auth_token}" \
+  -H "APP_TOKEN: {enhanced_app_token}"
 ```
+
+### Access Control Matrix
+
+The following table summarizes which roles can access common endpoints (additional constraints may apply at the resource level):
+
+| Endpoint                              | Requires Auth | Requires APP_TOKEN | Roles with Access                                      |
+|---------------------------------------|---------------|--------------------|--------------------------------------------------------|
+| `POST /login`                         | No            | Client APP_TOKEN   | All users with valid credentials                       |
+| `POST /refresh`                       | Yes           | Yes                | Same as login, with valid auth token                   |
+| `GET /profile`                        | Yes           | Yes                | `student`, `school_teacher`, `school_admin`, `super_admin` |
+| `GET /institution`                    | Yes           | Yes                | Institution-bound roles (`student`, `school_teacher`, `school_admin`) |
+| `GET /learning-paths`                 | Yes           | Yes                | Institution-bound roles                                |
+| `GET /courses`                        | Yes           | Yes                | Institution-bound roles                                |
+| Admin panel (Filament)                | Yes           | N/A                | `school_admin`, `school_teacher`, `super_admin`        |
+
+Refer to the specific endpoint documentation for detailed role checks and business rules.
+
+### Implementation Steps for Clients
+
+1. **Obtain a client APP_TOKEN** from the platform administrator and configure it in your client application (for example via environment variables).
+2. **Call `POST /login`** with:
+   - Request body: `email`, `password`.
+   - Header: `APP_TOKEN: {client-app-token}`.
+3. **Store the returned tokens** securely:
+   - `data.token` – Use as a Bearer token in the `Authorization` header.
+   - `data.app_token` – Use as the `APP_TOKEN` header for protected routes.
+4. **Call protected endpoints** with both headers:
+   - `Authorization: Bearer {token}`.
+   - `APP_TOKEN: {app_token}`.
+5. **Handle expiration**:
+   - If you receive `401 Unauthorized` or `403 Forbidden` related to tokens, prompt the user to log in again.
+
+### Troubleshooting Authentication Issues
+
+Common issues and resolutions:
+
+- **401 Unauthorized (missing or invalid token)**  
+  - Verify that the `Authorization` header is present and correctly formatted.  
+  - Ensure the `APP_TOKEN` header is present on protected routes.  
+  - Check that the enhanced `app_token` was not truncated or modified in transit.
+
+- **403 Forbidden (expired or unauthorized app_token)**  
+  - The enhanced `app_token` may be expired; call `POST /login` again to obtain a new one.  
+  - Verify that the client APP_TOKEN is correctly configured for your application.
+
+- **Subject mismatch (user ID does not match)**  
+  - Ensure that you are not reusing an `app_token` issued for a different user.  
+  - Always update stored tokens after a successful login.
+
+### Migration Guide: From Single-token to Dual-token Authentication
+
+If you previously used only a Bearer token for authentication:
+
+1. **Update your login request** to include the client APP_TOKEN header:
+   ```bash
+   curl -X POST "https://api.learning-center-academy.local/login" \
+     -H "Accept: application/json" \
+     -H "APP_TOKEN: {client-app-token}" \
+     -d '{"email": "john@example.com", "password": "password123"}'
+   ```
+2. **Update your token storage** to keep both `token` and `app_token` from the login response.
+3. **Update all protected requests** to send both headers:
+   - Before:  
+     `Authorization: Bearer {token}`
+   - After:  
+     `Authorization: Bearer {token}`  
+     `APP_TOKEN: {app_token}`
+4. **Review role-based access rules** for each endpoint and update your client-side navigation or feature toggles accordingly.
+
+## API Documentation Generation with Scramble
+
+Scramble analyzes Laravel routes, controllers, requests, and resources to generate OpenAPI documentation automatically, without requiring manual PHPDoc annotations on each endpoint. This keeps the documentation aligned with the actual behavior of the code.
+
+Key characteristics:
+
+- Documentation is generated in OpenAPI 3.1.0 format.
+- The default UI is available at `/docs/api` in local environment.
+- The raw OpenAPI JSON document is available at `/docs/api.json`.
+- Authentication requirements are inferred from middleware and configured globally via Scramble’s security configuration.
+
+Authentication is documented using a combined security scheme:
+
+- `Authorization: Bearer {token}` header (Sanctum token).
+- `APP_TOKEN: {app_token}` header (enhanced application token with user claims).
+
+The `POST /login` route is explicitly marked as unauthenticated in code so that the documentation correctly reflects that only the `APP_TOKEN` header is required for that endpoint.
 
 ## Best Practices
 
@@ -434,29 +497,9 @@ return response()->json(['error' => 'Not found'], 404);
 return $this->errorResponse('User not found', 404);
 ```
 
-4. **Add Scribe documentation:**
-```php
-/**
- * @group Your Group Name
- * 
- * Description of your API group
- */
-class YourController extends Controller
-{
-    /**
-     * Endpoint Title
-     * 
-     * Detailed description of what this endpoint does.
-     * 
-     * @bodyParam field string required Description. Example: value
-     * @response 200 scenario="Success" {...}
-     */
-    public function method(Request $request): JsonResponse
-    {
-        // Implementation
-    }
-}
-```
+4. **Rely on Scramble for documentation:**
+
+Scramble will derive most request and response schemas directly from your controllers, request validation rules, and resource transformations. You generally do not need to add manual documentation annotations to keep the API docs accurate.
 
 ## Conclusion
 

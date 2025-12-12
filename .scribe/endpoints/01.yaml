@@ -7,7 +7,7 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: api/learning-paths
+    uri: learning-paths
     metadata:
       custom: []
       groupName: 'Learning Paths'
@@ -23,6 +23,7 @@ endpoints:
       authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -281,7 +282,10 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -289,7 +293,7 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: 'api/learning-paths/{id}'
+    uri: 'learning-paths/{id}'
     metadata:
       custom: []
       groupName: 'Learning Paths'
@@ -305,6 +309,7 @@ endpoints:
       authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters:
@@ -472,7 +477,10 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -480,7 +488,7 @@ endpoints:
     custom: []
     httpMethods:
       - POST
-    uri: 'api/learning-paths/{id}/enroll'
+    uri: 'learning-paths/{id}/enroll'
     metadata:
       custom: []
       groupName: 'Learning Paths'
@@ -496,6 +504,7 @@ endpoints:
       authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters:
@@ -617,7 +626,10 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -625,7 +637,7 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: api/learning-paths/progress/my
+    uri: learning-paths/progress/my
     metadata:
       custom: []
       groupName: 'Learning Paths'
@@ -639,6 +651,7 @@ endpoints:
       authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -795,7 +808,10 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null

@@ -7,7 +7,7 @@ endpoints:
     custom: []
     httpMethods:
       - POST
-    uri: api/login
+    uri: login
     metadata:
       custom: []
       groupName: Authentication
@@ -20,9 +20,13 @@ endpoints:
       description: |-
         Authenticate a user and return an access token. The token will be valid for 30 days.
         A secure HTTP-only cookie will also be set for web authentication.
-      authenticated: false
+
+        This endpoint does not require a bearer token. Instead, client applications must
+        include a valid APP_TOKEN header identifying the calling application.
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -87,12 +91,24 @@ endpoints:
         content: |-
           {
             "code": 401,
-            "message": "The provided credentials do not match our records",
+            "message": "Unauthorized",
             "data": [],
             "pagination": {}
           }
         headers: []
-        description: 'Invalid credentials'
+        description: 'Missing APP_TOKEN or invalid credentials'
+      -
+        custom: []
+        status: 403
+        content: |-
+          {
+            "code": 403,
+            "message": "Forbidden",
+            "data": [],
+            "pagination": {}
+          }
+        headers: []
+        description: 'Unauthorized client APP_TOKEN'
       -
         custom: []
         status: 422
@@ -177,6 +193,17 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      data.app_token:
+        custom: []
+        name: data.app_token
+        description: 'Application token with user claims'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
       pagination:
         custom: []
         name: pagination
@@ -188,7 +215,10 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -196,7 +226,7 @@ endpoints:
     custom: []
     httpMethods:
       - POST
-    uri: api/refresh
+    uri: refresh
     metadata:
       custom: []
       groupName: Authentication
@@ -209,9 +239,10 @@ endpoints:
       description: |-
         Refresh the user's access token by providing valid credentials.
         This will revoke the current token and generate a new one.
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -377,7 +408,10 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -385,7 +419,7 @@ endpoints:
     custom: []
     httpMethods:
       - POST
-    uri: api/logout
+    uri: logout
     metadata:
       custom: []
       groupName: Authentication
@@ -401,6 +435,7 @@ endpoints:
       authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -480,7 +515,10 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -488,7 +526,7 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: api/profile
+    uri: profile
     metadata:
       custom: []
       groupName: Authentication
@@ -499,9 +537,10 @@ endpoints:
       subgroupDescription: ''
       title: 'Get Student Profile'
       description: "Retrieve the authenticated student's profile information."
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -588,7 +627,10 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -596,7 +638,7 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: api/institution
+    uri: institution
     metadata:
       custom: []
       groupName: Authentication
@@ -612,6 +654,7 @@ endpoints:
       authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer Bearer {YOUR_AUTH_TOKEN}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -804,7 +847,10 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null

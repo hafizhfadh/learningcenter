@@ -2,11 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::post('/login', [\App\Http\Controllers\API\AuthController::class, 'login']);
-Route::post('/refresh', [\App\Http\Controllers\API\AuthController::class, 'refresh']);
-Route::post('/logout', [\App\Http\Controllers\API\AuthController::class, 'logout'])->middleware('auth:sanctum');
+Route::post('/login', [\App\Http\Controllers\API\AuthController::class, 'login'])
+    ->middleware(['app.token', 'throttle:10,1']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'app.token'])->group(function () {
+    Route::post('/refresh', [\App\Http\Controllers\API\AuthController::class, 'refresh']);
+    Route::post('/logout', [\App\Http\Controllers\API\AuthController::class, 'logout']);
+
     Route::get('/profile', [\App\Http\Controllers\API\AuthController::class, 'profile']);
     Route::get('/institution', [\App\Http\Controllers\API\AuthController::class, 'institution']);
 
@@ -19,4 +21,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/courses/search', [\App\Http\Controllers\API\CourseController::class, 'search']);
     Route::get('/courses/{courseId}', [\App\Http\Controllers\API\CourseController::class, 'show']);
 });
-

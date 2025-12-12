@@ -90,6 +90,10 @@ return [
 
     'api_host' => parse_url(env('API_URL', env('APP_URL')), PHP_URL_HOST),
 
+    'client_tokens' => array_filter(
+        explode(',', (string) env('APP_CLIENT_TOKENS', ''))
+    ),
+
     /*
     |--------------------------------------------------------------------------
     | Encryption Key

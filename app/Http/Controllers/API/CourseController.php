@@ -13,68 +13,10 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 
-/**
- * @group Course Management
- * 
- * APIs for managing courses, including listing, searching, and retrieving detailed course information
- */
 class CourseController extends Controller
 {
     use ApiResponse;
 
-    /**
-     * Course Listing
-     * 
-     * Retrieve all available courses with pagination support. Returns basic course information
-     * including ID, title, instructor, and brief description. Students can only see published courses.
-     * 
-     * @queryParam page integer The page number for pagination. Example: 1
-     * @queryParam per_page integer Number of courses per page (max 100, default 20). Example: 20
-     * @queryParam sort string Sort field (title, created_at, estimated_time). Example: title
-     * @queryParam order string Sort order (asc, desc). Example: asc
-     * 
-     * @response 200 scenario="Successful course listing" {
-     *   "code": 200,
-     *   "message": "Courses retrieved successfully",
-     *   "data": [
-     *     {
-     *       "id": 1,
-     *       "title": "Introduction to Programming",
-     *       "slug": "intro-programming",
-     *       "description": "Learn the basics of programming with hands-on exercises",
-     *       "banner_url": "https://example.com/storage/banners/course1.jpg",
-     *       "tags": "programming,basics,beginner",
-     *       "estimated_time": 120,
-     *       "is_published": true,
-     *       "created_at": "2024-01-01T00:00:00.000000Z",
-     *       "instructor": {
-     *         "id": 2,
-     *         "name": "Dr. Jane Smith",
-     *         "email": "jane.smith@example.com"
-     *       },
-     *       "enrollment_status": "not_enrolled",
-     *       "total_lessons": 15,
-     *       "total_tasks": 8
-     *     }
-     *   ],
-     *   "pagination": {
-     *     "current_page": 1,
-     *     "per_page": 20,
-     *     "total": 50,
-     *     "last_page": 3,
-     *     "from": 1,
-     *     "to": 20,
-     *     "has_more_pages": true
-     *   }
-     * }
-     * 
-     * @response 401 scenario="Unauthenticated" {
-     *   "code": 401,
-     *   "message": "Unauthenticated",
-     *   "data": [],
-     *   "pagination": {}
-     * }
-     */
     public function index(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -161,60 +103,6 @@ class CourseController extends Controller
         );
     }
 
-    /**
-     * Course Search
-     * 
-     * Search for courses using various filters including title, instructor name, department/subject,
-     * and date range. Supports full-text search capabilities where applicable.
-     * 
-     * @queryParam q string Search query for course title (partial match). Example: programming
-     * @queryParam instructor string Search by instructor name (partial match). Example: Smith
-     * @queryParam tags string Search by tags/subject (partial match). Example: programming
-     * @queryParam start_date string Filter courses created after this date (Y-m-d format). Example: 2024-01-01
-     * @queryParam end_date string Filter courses created before this date (Y-m-d format). Example: 2024-12-31
-     * @queryParam min_time integer Minimum estimated time in minutes. Example: 60
-     * @queryParam max_time integer Maximum estimated time in minutes. Example: 300
-     * @queryParam page integer The page number for pagination. Example: 1
-     * @queryParam per_page integer Number of courses per page (max 100, default 20). Example: 20
-     * @queryParam sort string Sort field (title, created_at, estimated_time, relevance). Example: relevance
-     * @queryParam order string Sort order (asc, desc). Example: desc
-     * 
-     * @response 200 scenario="Successful search results" {
-     *   "code": 200,
-     *   "message": "Search completed successfully",
-     *   "data": [
-     *     {
-     *       "id": 1,
-     *       "title": "Advanced Programming Concepts",
-     *       "slug": "advanced-programming",
-     *       "description": "Deep dive into advanced programming techniques and patterns",
-     *       "banner_url": "https://example.com/storage/banners/course1.jpg",
-     *       "tags": "programming,advanced,patterns",
-     *       "estimated_time": 180,
-     *       "is_published": true,
-     *       "created_at": "2024-01-15T00:00:00.000000Z",
-     *       "instructor": {
-     *         "id": 2,
-     *         "name": "Dr. Jane Smith",
-     *         "email": "jane.smith@example.com"
-     *       },
-     *       "enrollment_status": "enrolled",
-     *       "total_lessons": 20,
-     *       "total_tasks": 12,
-     *       "relevance_score": 0.95
-     *     }
-     *   ],
-     *   "pagination": {
-     *     "current_page": 1,
-     *     "per_page": 20,
-     *     "total": 5,
-     *     "last_page": 1,
-     *     "from": 1,
-     *     "to": 5,
-     *     "has_more_pages": false
-     *   }
-     * }
-     */
     public function search(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -373,114 +261,6 @@ class CourseController extends Controller
         );
     }
 
-    /**
-     * Course Details
-     * 
-     * Retrieve complete information for a specific course including full description,
-     * syllabus, schedule information, prerequisites, enrollment status, and associated materials.
-     * 
-     * @urlParam courseId integer required The ID of the course. Example: 1
-     * 
-     * @response 200 scenario="Successful course details retrieval" {
-     *   "code": 200,
-     *   "message": "Course details retrieved successfully",
-     *   "data": {
-     *     "id": 1,
-     *     "title": "Introduction to Programming",
-     *     "slug": "intro-programming",
-     *     "description": "Comprehensive introduction to programming concepts with hands-on exercises and real-world projects",
-     *     "banner_url": "https://example.com/storage/banners/course1.jpg",
-     *     "tags": "programming,basics,beginner",
-     *     "estimated_time": 120,
-     *     "is_published": true,
-     *     "created_at": "2024-01-01T00:00:00.000000Z",
-     *     "updated_at": "2024-01-15T00:00:00.000000Z",
-     *     "instructor": {
-     *       "id": 2,
-     *       "name": "Dr. Jane Smith",
-     *       "email": "jane.smith@example.com"
-     *     },
-     *     "teachers": [
-     *       {
-     *         "id": 3,
-     *         "name": "Prof. John Doe",
-     *         "email": "john.doe@example.com",
-     *         "assigned_at": "2024-01-01T00:00:00.000000Z"
-     *       }
-     *     ],
-     *     "enrollment_status": "enrolled",
-     *     "enrollment_date": "2024-01-10T00:00:00.000000Z",
-     *     "progress_percentage": 45.5,
-     *     "lessons": [
-     *       {
-     *         "id": 1,
-     *         "title": "Getting Started",
-     *         "slug": "getting-started",
-     *         "order_index": 1,
-     *         "estimated_time": 30,
-     *         "is_completed": true
-     *       }
-     *     ],
-     *     "lesson_sections": [
-     *       {
-     *         "id": 1,
-     *         "title": "Fundamentals",
-     *         "order_index": 1,
-     *         "lessons": [
-     *           {
-     *             "id": 1,
-     *             "title": "Getting Started",
-     *             "slug": "getting-started",
-     *             "order_index": 1,
-     *             "estimated_time": 30,
-     *             "is_completed": true
-     *           }
-     *         ]
-     *       }
-     *     ],
-     *     "tasks": [
-     *       {
-     *         "id": 1,
-     *         "title": "First Programming Exercise",
-     *         "description": "Complete your first programming challenge",
-     *         "type": "assignment",
-     *         "is_completed": false,
-     *         "due_date": "2024-02-01T23:59:59.000000Z"
-     *       }
-     *     ],
-     *     "learning_paths": [
-     *       {
-     *         "id": 1,
-     *         "title": "Full Stack Development",
-     *         "order_index": 1
-     *       }
-     *     ],
-     *     "statistics": {
-     *       "total_lessons": 15,
-     *       "completed_lessons": 7,
-     *       "total_tasks": 8,
-     *       "completed_tasks": 3,
-     *       "total_enrolled_students": 150,
-     *       "average_completion_rate": 78.5
-     *     }
-     *   },
-     *   "pagination": {}
-     * }
-     * 
-     * @response 404 scenario="Course not found" {
-     *   "code": 404,
-     *   "message": "Course not found",
-     *   "data": [],
-     *   "pagination": {}
-     * }
-     * 
-     * @response 403 scenario="Access denied to unpublished course" {
-     *   "code": 403,
-     *   "message": "Access denied. This course is not published.",
-     *   "data": [],
-     *   "pagination": {}
-     * }
-     */
     public function show(Request $request, $courseId): JsonResponse
     {
         $user = Auth::user();
