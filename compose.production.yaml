@@ -23,6 +23,10 @@ x-base: &base
       GROUP_ID: ${HOST_GID:-1000}
   image: 'laravel/app:latest'
   user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+  environment:
+    APP_ENV: production
+    REDIS_HOST: redis
+    REDIS_PASSWORD: ${REDIS_PASSWORD}
   ulimits:
     nofile:
       soft: 65536
