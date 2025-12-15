@@ -15,7 +15,7 @@ help: ## Show this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  \033[32m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 up: ## Up containers
-	HOST_UID=${HOST_UID} HOST_GID=${HOST_GID} docker compose ${DC_RUN_ARGS} up -d --remove-orphans
+	HOST_UID=${HOST_UID} HOST_GID=${HOST_GID} docker compose ${DC_RUN_ARGS} up -d --remove-orphans --force-recreate
 
 logs: ## Tail all containers logs
 	docker compose ${DC_RUN_ARGS} logs -f
