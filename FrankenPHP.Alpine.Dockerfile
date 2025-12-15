@@ -24,7 +24,7 @@ FROM dunglas/frankenphp:${FRANKENPHP_VERSION}-php${PHP_VERSION}-alpine
 COPY --from=upstream /usr/local/bin/frankenphp /usr/local/bin/frankenphp
 
 LABEL maintainer="Hafizh Fadhlurrohman <hafizhfadh@gmail.com>"
-LABEL org.opencontainers.image.title="Learningcenter"
+LABEL org.opencontainers.image.title="Learning Center"
 LABEL org.opencontainers.image.description="Production-ready Docker Setup for Learning Center"
 LABEL org.opencontainers.image.source=https://github.com/hafizhfadh/learningcenter
 LABEL org.opencontainers.image.licenses=MIT
