@@ -151,18 +151,27 @@ services:
   horizon:
     <<: *base
     environment:
+      APP_ENV: production
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       CONTAINER_MODE: horizon
     labels:
       traefik.enable: false
   scheduler:
     <<: *base
     environment:
+      APP_ENV: production
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       CONTAINER_MODE: scheduler
     labels:
       traefik.enable: false
   reverb:
     <<: *base
     environment:
+      APP_ENV: production
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       CONTAINER_MODE: reverb
     labels:
       traefik.enable: true
