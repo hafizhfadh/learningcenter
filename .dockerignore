@@ -10,6 +10,8 @@
 /storage/clockwork
 /storage/logs
 /storage/pail
+.env.production
+letsencrypt
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
