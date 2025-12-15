@@ -76,6 +76,8 @@ services:
       - "--entryPoints.netdata.address=:19999"
       - "--entryPoints.prometheus.address=:9090"
       - "--entryPoints.grafana.address=:3000"
+    environment:
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     ports:
       - "127.0.0.1:8190:8190" # Traefik
       - "80:80" # HTTP
