@@ -175,7 +175,7 @@ services:
       CONTAINER_MODE: reverb
     labels:
       traefik.enable: true
-      traefik.http.routers.reverb.rule: (Host(`learning.csi-academy.id`) || Host(`app.docker.localhost`)) && PathPrefix(`/app`)
+      traefik.http.routers.reverb.rule: Host(`reverb.csi-academy.id`)
       traefik.http.routers.reverb.tls.certresolver: cloudflare
       traefik.http.routers.reverb.entryPoints: app-secure
       traefik.http.routers.reverb.priority: 30
